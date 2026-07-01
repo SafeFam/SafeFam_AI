@@ -1,0 +1,38 @@
+{
+  "target_per_class": 1500,
+  "targets": {
+    "train": 1050,
+    "validation": 225,
+    "test": 225
+  },
+  "input_counts": {
+    "phishing_candidates": 2685,
+    "normal_candidates": 1999
+  },
+  "selected_real_counts": {
+    "phishing": {
+      "train": 1050,
+      "validation": 225,
+      "test": 225
+    },
+    "normal": {
+      "train": 1050,
+      "validation": 225,
+      "test": 225
+    }
+  },
+  "final_counts": {
+    "phishing": 1500,
+    "normal": 1500
+  },
+  "split_counts": {
+    "train": 2100,
+    "validation": 450,
+    "test": 450
+  },
+  "final_total_rows": 3000,
+  "error_count": 180,
+  "dry_run": false,
+  "normal_root": "C:\\공경진_26년도\\data\\normal_aihub\\prepared",
+  "include_review": false
+}

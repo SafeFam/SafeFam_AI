@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"\\(Import-Csv 'C:\\\\Users\\\\kiute\\\\OneDrive\\\\바탕 화면\\\\공경진\\\\Data\\\\phishing_1500.csv' | Group-Object type | Select-Object Name, Count | Format-Table -AutoSize\\)\")"
+    ]
+  }
+}
