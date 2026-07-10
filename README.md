@@ -10,6 +10,7 @@
 │   ├── 📁 dto           # 데이터 전송 객체 (Spring 백엔드 통신 규격 통일)
 │   ├── 📁 router        # 엔드포인트 라우터 레이어
 │   └── 📄 main.py       # FastAPI 애플리케이션 진입점
+├── 📁 data_science       # AI 모델 학습 및 데이터 관리 레이어 
 ├── 📄 .env              # 로컬 환경 변수 시크릿 키 (git 제외)
 ├── 📄 Dockerfile        # 파이썬 3.11기반 애플리케이션 이미지 빌드 정의
 ├── 📄 docker-compose.yml# 로컬 개발용 멀티 컨테이너 오케스트레이션 설정
