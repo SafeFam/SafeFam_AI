@@ -1,9 +1,9 @@
 ---
-name: Feature Request
+name: Feature Issue Request
 about: 새로운 기능을 제안할 때 사용하세요
-title: "[Feat] "
-labels: enhancement
-assignees: ''
+title: 
+labels: 
+assignees:
 ---
 
 ## 🏷️ 이슈 유형
