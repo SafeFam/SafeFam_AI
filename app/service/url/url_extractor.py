@@ -16,9 +16,10 @@ def extract_urls_from_text(text: str) -> list[str]:
 
     # 문장 끝에 붙은 불필요한 문장부호 우측 정제
     cleaned_urls = []
+
     for url in raw_urls:
-        cleaned_urls = url.rstrip('.,?!:;)[]')
-        cleaned_urls.append(cleaned_urls)
+        cleaned_url = url.rstrip('.,?!:;)[]')
+        cleaned_urls.append(cleaned_url)
 
     # 추출 순서를 보존하며 중복 제거
     unique_urls = list(dict.fromkeys(cleaned_urls))
