@@ -6,10 +6,10 @@ logger = logging.getLogger(__name__)
 # 단축 URL의 HTTP 리다이렉트를 추적하여 최종 원본 주소를 반환
 async def resolve_short_url(url: str, max_redirects: int = 5, timeout: float = 5.0) -> str:
 
-    cleaned_url = url
+    current_url = url
 
     # 비동기 클라이언트 생성
-    async with httpx.AsyncClient(fllow_redirects=False) as client:
+    async with httpx.AsyncClient(follow_redirects=False) as client:
         for attempt in range(max_redirects):
             try:
                 # HEAD 요청을 통한 네트워크 오버헤드 최소화 및 헤더 데이터 수집
