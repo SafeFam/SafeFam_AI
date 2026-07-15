@@ -1,5 +1,5 @@
 import unittest
-from app.service.url.url_extractor import extract_urls_from_text
+from app.service.url.extractor import extract_urls_from_text
 
 class TestUrlExtractor(unittest.TestCase):
 
