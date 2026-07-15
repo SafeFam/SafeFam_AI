@@ -35,18 +35,18 @@ async def analyze_threat_pipeline(url: str) -> dict:
 # Google Safe browsing 결과와 VirusTotal 탐지 통계를 바탕으로,
 # 최종 위험도 등급(SAFE, SUSPICIOUS, DANGEROUS) 및 판정 이유를 산출
 def determine_final_threat_grade(url: str, gsb_malicious: bool, vt_stats: dict, is_mock: bool = False) -> dict:
-    malicious_count = vt_status.get("malicious", 0)
-    suspicious_count = vt_status.get("suspicious", 0)
+    malicious_count = vt_stats.get("malicious", 0)
+    suspicious_count = vt_stats.get("suspicious", 0)
 
     # 기본값 안전(SAFE) 설정
     grade = "SAFE"
-    reason = "안심하고 접속하셔도 괜찮은 안전한 링크입니다.."
+    reason = "안심하고 접속하셔도 괜찮은 안전한 링크입니다."
 
     # 구글 필터링에서 감지되었거나, 바이러스토탈 백신 엔진 중 3개 이상이 악성으로 분류한 경우
     if gsb_malicious or malicious_count >= 3:
         grade = "DANGEROUS"
         reason = "안전하지 않은 사이트입니다. 악성코드 유포 혹은 피싱 사기 페이지로 감지되었습니다."
-
+        
     # 바이러스토탈에서 1~2개 엔진에 의해 악성으로 감지되었거나 의심 카운트가 있는 경우
     elif 0 < malicious_count < 3 or suspicious_count > 0:
         grade = "SUSPICIOUS"

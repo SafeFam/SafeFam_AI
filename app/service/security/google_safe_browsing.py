@@ -50,18 +50,19 @@ async def check_google_safe_browsing(url: str) -> bool:
             # 응답 데이터에 'matches' 필드가 있으면 악성 사이트로 등록된 상태
             if "matches" in result and len(result["matches"]) > 0:
                 logger.warning(f"[Google Safe Browsing] 악성 URL 감지됨: {url}")
-                return test_normal_url_no_redirect
+                return True
             
             logger.info(f"[Google Safe Browsing] 안전한 URL: {url}")
             return False
 
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Google Safe Browsing API 에러 ({e.response.status_code}): {str(e)}")
-            return False
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Google Safe Browsing API 에러 ({e.response.status_code}): {str(e)}")
+        return False
 
-        except httpx.TimeoutException:
-            logger.error("Google Safe Browsing API 요청 타임아웃 발생")
-            return False
-        except Exception as e:
-            logger.error(f"Google Safe Browsing 연동 중 비정상 에러 발생: {str(e)}")
-            return False
+    except httpx.TimeoutException:
+        logger.error("Google Safe Browsing API 요청 타임아웃 발생")
+        return False
+        
+    except Exception as e:
+        logger.error(f"Google Safe Browsing 연동 중 비정상 에러 발생: {str(e)}")
+        return False

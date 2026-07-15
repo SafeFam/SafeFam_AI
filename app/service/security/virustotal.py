@@ -27,7 +27,7 @@ async def check_virus_total(url: str) -> dict:
 
     if not VT_API_KEY:
         logger.warning("VirusTotal API Key가 누락되었습니다. 빈 분석 결과를 반환합니다.")
-        return {"malicious": 0, "suspicious": 0, "harmless": 0. "undetected": 0}
+        return {"malicious": 0, "suspicious": 0, "harmless": 0, "undetected": 0}
 
     url_id = get_url_id(url)
     headers = {
