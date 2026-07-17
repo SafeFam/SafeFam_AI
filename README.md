@@ -44,6 +44,8 @@
  ```env
  ENV=local
  VIRUSTOTAL_API_KEY=your_actual_api_key_here
+ GEMINI_API_KEY=your_actual_gemini_api_key_here
+ GEMINI_MODEL=gemini-flash-latest
  ```
 
 ---
