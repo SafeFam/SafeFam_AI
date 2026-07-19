@@ -4,8 +4,6 @@ import logging
 import httpx
 from dotenv import load_dotenv
 
-from app.service.security.mock_provider import is_mock_enabled, get_mock_text_analysis_data
-
 # 환경 변수 로드
 load_dotenv()
 
@@ -18,6 +16,8 @@ API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODE
 # 위험도 등급 산정 임계값 (TRAINING_FLOW.md의 SMS/Voice 모델 HIGH/MEDIUM/LOW 기준과 동일)
 RISK_HIGH_THRESHOLD = 70
 RISK_MEDIUM_THRESHOLD = 40
+
+MOCK_ENABLED = os.getenv("MOCK_SECURITY_API", "False").lower() in ("true", "1", "t")
 
 # Gemini에게 구조화된 JSON 응답을 강제하기 위한 응답 스키마
 RESPONSE_SCHEMA = {
@@ -95,10 +95,15 @@ def _build_result(text_data: dict, is_mock: bool, error: str | None = None) -> d
 # Gemini API를 사용하여 문자 메시지의 어조/근거 기반 위험도 분석을 수행
 async def analyze_text_with_gemini(text: str) -> dict:
 
-    # Mocking 여부 체크
-    if is_mock_enabled():
-        mock_data = get_mock_text_analysis_data(text)
+    # mocking 체크 여부
+    if MOCK_ENABLED:
         logger.info(f"[Mock Gemini] 실제 API 호출 우회 (Sandbox Mode)")
+        mock_data = {
+            "risk_score": 85,
+            "tone_analysis": "긴급성 유도 및 기관 사칭 권위적 어조 감지",
+            "evidence": ["발급 완료. 즉시 확인하세요.", "국민건강보험"],
+            "reason": "[시연용 데이터] 건강검진 보고서 형식을 사칭하여 사용자의 급박한 클릭을 유도하는 전형적인 피싱 패턴입니다."
+        }
         return _build_result(mock_data, is_mock=True)
 
     if not GEMINI_API_KEY:
