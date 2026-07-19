@@ -1,68 +1,71 @@
-import os 
 import logging
 import httpx
-from dotenv import load_dotenv
-
-# 환경 변수 로드
-load_dotenv()
+from app.core.config import settings
+from app.service.security.base import BaseSecurityEngine
 
 logger = logging.getLogger(__name__)
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY")
-API_URL = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={GOOGLE_API_KEY}"
+class GoogleSafeBrowsingEngine(BaseSecurityEngine):
+    def __init__(self):
+        self.api_key = settings.GOOGLE_SAFE_BROWSING_API_KEY
+        self.api_url = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={self.api_key}"
 
-# Google Safe Browsing API를 사용하여 URL의 악성 여부를 1차 검사
-async def check_google_safe_browsing(url: str) -> bool:
-
-    if not GOOGLE_API_KEY:
-        logger.warning("Google Safe Browsing API Key가 누락되었습니다.")
-        return False
-
-    payload = {
-        "client": {
-            "clientId": "safefam-ai-backend",
-            "clientVersion": "1.0.0"
-        },
-        "threatInfo": {
-            "threatTypes": [
-                "MALWARE", 
-                "SOCIAL_ENGINEERING", 
-                "UNWANTED_SOFTWARE", 
-                "POTENTIALLY_HARMFUL_APPLICATION"
-            ],
-            "platformTypes": ["ANY_PLATFORM"],
-            "threatEntryTypes": ["URL"],
-            "threatEntries": [
-                {"url": url}
-            ] 
-        }
-    }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(API_URL, json=payload, timeout=5.0)
-
-            # API 호출 결과 에러 핸들링
-            response.raise_for_status()
-
-            result = response.json()
-
-            # 응답 데이터에 'matches' 필드가 있으면 악성 사이트로 등록된 상태
-            if "matches" in result and len(result["matches"]) > 0:
-                logger.warning(f"[Google Safe Browsing] 악성 URL 감지됨: {url}")
-                return True
-            
-            logger.info(f"[Google Safe Browsing] 안전한 URL: {url}")
-            return False
-
-    except httpx.HTTPStatusError as e:
-        logger.error(f"Google Safe Browsing API 에러 ({e.response.status_code}): {str(e)}")
-        return False
-
-    except httpx.TimeoutException:
-        logger.error("Google Safe Browsing API 요청 타임아웃 발생")
-        return False
+    # Google Safe Browsing API를 사용하여 URL의 실시간 악성 블랙리스트 등재 여부를 검사
+    async def scan_url(self, url: str) -> dict:
         
-    except Exception as e:
-        logger.error(f"Google Safe Browsing 연동 중 비정상 에러 발생: {str(e)}")
-        return False
+        # 공통 인터페이스 리턴 규격 스켈레톤 선언
+        default_result = {"is_malicious": False, "raw_score": 0.0, "detected_count": 0, "status": "safe"}
+
+        if not self.api_key:
+            logger.warning("[Google Safe Browsing] API Key가 누락되었습니다. 빈 분석 결과를 반환합니다.")
+            return default_result
+
+        payload = {
+            "client": {
+                "clientId": "safefam-ai-backend",
+                "clientVersion": "1.0.0"
+            },
+            "threatInfo": {
+                "threatTypes": [
+                    "MALWARE", 
+                    "SOCIAL_ENGINEERING", 
+                    "UNWANTED_SOFTWARE", 
+                    "POTENTIALLY_HARMFUL_APPLICATION"
+                ],
+                "platformTypes": ["ANY_PLATFORM"],
+                "threatEntryTypes": ["URL"],
+                "threatEntries": [
+                    {"url": url}
+                ] 
+            }
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.api_url, json=payload, timeout=5.0)
+                response.raise_for_status()
+
+                result = response.json()
+
+                # 응답 데이터에 'matches' 필드가 있으면 확실한 악성 사이트 상태
+                if "matches" in result and len(result["matches"]) > 0:
+                    logger.warning(f"[Google Safe Browsing] 악성 URL 감지됨: {url}")
+                    return {
+                        "is_malicious": True,
+                        "raw_score": 0.95,  
+                        "detected_count": len(result["matches"]),
+                        "status": "completed"
+                    }
+                
+                logger.info(f"[Google Safe Browsing] 안전한 URL: {url}")
+                return default_result
+
+            except httpx.HTTPStatusError as e:
+                logger.error(f"[Google Safe Browsing] API 에러 ({e.response.status_code}): {str(e)}")
+                return default_result
+            except httpx.TimeoutException:
+                logger.error("[Google Safe Browsing] API 요청 타임아웃 발생")
+                return default_result
+            except Exception as e:
+                logger.error(f"[Google Safe Browsing] 연동 중 비정상 에러 발생: {str(e)}")
+                return default_result

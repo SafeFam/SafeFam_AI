@@ -1,74 +1,64 @@
 import os 
 import logging 
-from dotenv import load_dotenv
-
-load_dotenv()
+from app.service.security.base import BaseSecurityEngine
 
 logger = logging.getLogger(__name__)
 
-# 스위치 flag 로드(기본값은 실제 호출하도록 False)
-MOCK_ENABLED = os.getenv("MOCK_SECURITY_API", "False").lower() in ("true", "1", "yes")
-
-# 시연 및 테스트용 사전 정의 데이터베이스 (Mock DB)
-MOCK_DATABASE = {
-    "https://www.google.com": {
-        "google_safe_browsing": False,  # 안전
-        "virustotal": {
-            "malicious": 0,
-            "suspicious": 0,
-            "harmless": 72,
-            "undetected": 10
+# [1] URL 보안 스캔용 Mock 엔진 (클래스 구조화)
+class MockSecurityEngine(BaseSecurityEngine):
+    def __init__(self):
+        self.mock_db = {
+            "https://www.google.com": {
+                "google_safe_browsing": False,
+                "malicious_count": 0
+            },
+            "https://www.naver.com": {
+                "google_safe_browsing": False,
+                "malicious_count": 0
+            },
+            "https://danger-phishing-test-site.com": {
+                "google_safe_browsing": True,
+                "malicious_count": 14
+            },
+            "https://hidden-malware-link.xyz": {
+                "google_safe_browsing": False,
+                "malicious_count": 8
+            }
         }
-    },
-    "https://www.naver.com": {
-        "google_safe_browsing": False,  # 안전
-        "virustotal": {
-            "malicious": 0,
-            "suspicious": 0,
-            "harmless": 75,
-            "undetected": 5
+        self.default_safe = {"google_safe_browsing": False, "malicious_count": 0}
+
+    async def scan_url(self, url: str) -> dict:
+        """
+        [상용 인터페이스 구현]
+        가상 DB를 매칭하여 상용 엔진과 동일한 규격의 딕셔너리를 반환합니다.
+        """
+        logger.info(f"🚨 [MOCK SECURITY ENGINE] Sandbox API 우회 매칭 -> {url}")
+        
+        # URL이 DB에 없으면 안전한 상태인 default_safe 적용
+        data = self.mock_db.get(url, self.default_safe)
+        
+        gsb_malicious = data.get("google_safe_browsing", False)
+        vt_malicious_count = data.get("malicious_count", 0)
+        
+        # 악성 여부 및 위험도 점수 가중치 산정 (상용 규격과 통일)
+        is_malicious = gsb_malicious or (vt_malicious_count >= 3)
+        
+        if gsb_malicious:
+            raw_score = 0.95
+        elif vt_malicious_count > 0:
+            raw_score = min(0.2 + (vt_malicious_count * 0.08), 1.0)
+        else:
+            raw_score = 0.0
+
+        return {
+            "is_malicious": is_malicious,
+            "raw_score": round(raw_score, 2),
+            "detected_count": vt_malicious_count,
+            "status": "completed"
         }
-    },
-    # 시연용 악성 피싱 사이트 가상 URL 예시
-    "https://danger-phishing-test-site.com": {
-        "google_safe_browsing": True,   # 구글 필터 감지
-        "virustotal": {
-            "malicious": 14,
-            "suspicious": 3,
-            "harmless": 40,
-            "undetected": 15
-        }
-    },
-    "https://hidden-malware-link.xyz": {
-        "google_safe_browsing": False,  # 구글은 뚫렸지만
-        "virustotal": {
-            "malicious": 8,            # 바이러스토탈에서 잡힌 케이스
-            "suspicious": 2,
-            "harmless": 50,
-            "undetected": 12
-        }
-    }
-}
 
-# 기본 모크 응답 (DB에 정의되지 않은 URL 입력 시 반환하는 기본 데이터)
-DEFAULT_SAFE_MOCK = {
-    "google_safe_browsing": False,
-    "virustotal": {
-        "malicious": 0,
-        "suspicious": 0,
-        "harmless": 65,
-        "undetected": 15
-    }
-}
 
-def is_mock_enabled() -> bool:
-    return MOCK_ENABLED
-
-def get_mock_security_data(url: str) -> dict:
-    logger.info(f"[Mock Security API] 실제 API 호출 우회 (Sandbox Mode) -> {url}")
-    return MOCK_DATABASE.get(url, DEFAULT_SAFE_MOCK)
-
-# 시연 및 테스트용 사전 정의 문자 위험도 분석 결과 (Gemini Mock DB)
+# [2] 텍스트 위험도 분석용 Mock 데이터 (기존 자산 완벽 보존)
 MOCK_TEXT_DATABASE = {
     "[Web발신] 안녕하세요 고객님, 주문하신 상품이 배송 완료되었습니다.": {
         "risk_score": 3,
@@ -76,7 +66,6 @@ MOCK_TEXT_DATABASE = {
         "evidence": [],
         "reason": "정상적인 배송 완료 안내 메시지로 판단됩니다."
     },
-    # 시연용 악성 스미싱 텍스트 예시
     "[검찰청] 귀하 명의로 대포통장이 개설되어 수사가 진행 중입니다. 즉시 아래 링크로 접속하여 신원을 확인하세요.": {
         "risk_score": 96,
         "tone_analysis": "수사기관을 사칭하며 즉각적인 공포와 긴급성을 유도하는 전형적인 협박성 어조입니다.",
@@ -89,7 +78,6 @@ MOCK_TEXT_DATABASE = {
     }
 }
 
-# 기본 모크 응답 (DB에 정의되지 않은 텍스트 입력 시 반환하는 기본 데이터)
 DEFAULT_SAFE_TEXT_MOCK = {
     "risk_score": 5,
     "tone_analysis": "특이 어조가 감지되지 않았습니다.",
@@ -98,5 +86,8 @@ DEFAULT_SAFE_TEXT_MOCK = {
 }
 
 def get_mock_text_analysis_data(text: str) -> dict:
-    logger.info("[Mock Gemini] 실제 API 호출 우회 (Sandbox Mode)")
+    """
+    [기존 자산 보존] 추후 Gemini AI 모델 API 연동 고도화 단계에서 활용할 텍스트 샌드박스 데이터 함수
+    """
+    logger.info("[Mock Gemini] 실제 AI API 호출 우회 (Sandbox Mode)")
     return MOCK_TEXT_DATABASE.get(text, DEFAULT_SAFE_TEXT_MOCK)
