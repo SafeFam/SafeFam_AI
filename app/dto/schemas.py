@@ -38,7 +38,7 @@ class RiskGrade(str, Enum):
 
 class ContributionBreakdown(BaseModel):
     llm: int = Field(..., description="LLM 문맥 분석 기여 점수 (0~50)", ge=0, le=50)
-    virus_total: int = Field(..., description="VirusTotal 엔진 기여 점수 (0~30)", ge=0, le=30)
+    hybrid_url: int = Field(..., description="하이브리드 URL 보안 엔진 기여 점수 (0~30)", ge=0, le=30)
     rules: int = Field(..., description="로컬 가드 규칙 기반 기여 점수 (0~20)", ge=0, le=20)
 
 class SmishingAnalysisResponse(BaseModel):
