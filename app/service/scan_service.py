@@ -55,6 +55,22 @@ class ScanService:
                 has_rule_violation=has_rule_violation
             )
 
+            # URL 부재 시 예외 방어 및 스켈레톤 분기벽 구축
+            if has_url:
+                real_url_analysis = {
+                    "has_url": True,
+                    "is_shortened": original_url != traced_url,
+                    "origin_url": traced_url,
+                    "original_url": original_url,
+                    "is_url_malicious": hybrid_res["is_malicious"],
+                    "url_risk_score": hybrid_res["url_risk_score"],
+                    "engine_source": hybrid_res["source"],
+                    "error_message": hybrid_res["error_message"]
+                }
+            else:
+                # URL이 없는 평문 문자일 경우 null(None) 처리
+                real_url_analysis = None
+
             return SmishingAnalysisResponse(
                 status="SUCCESS",
                 message="3중 가중치 결합 스미싱 통합 분석이 완료되었습니다.",
@@ -62,20 +78,19 @@ class ScanService:
                 risk_grade=risk_grade,
                 contribution_breakdown=breakdown,
                 text_analysis=text_analysis,
-                url_analysis={
-                    "has_url": has_url,
-                    "is_shortened": original_url != traced_url if has_url else False,
-                    "origin_url": traced_url,
-                    "original_url": original_url if has_url else None,
-                    "is_url_malicious": hybrid_res["is_malicious"],
-                    "url_risk_score": hybrid_res["url_risk_score"],
-                    "engine_source": hybrid_res["source"],
-                    "error_message": hybrid_res["error_message"]
-                }
+                url_analysis=real_url_analysis
             )
         except Exception as e:
             logger.error(f"파이프라인 에러: {str(e)}")
-            return SmishingAnalysisResponse(status="ERROR", message=str(e), final_score=0, risk_grade=RiskGrade.LOW, contribution_breakdown=ContributionBreakdown(llm=0, hybrid_url=0, rules=0))
+            return SmishingAnalysisResponse(
+                status="ERROR", 
+                message=str(e), 
+                final_score=0, 
+                risk_grade=RiskGrade.LOW, 
+                contribution_breakdown=ContributionBreakdown(llm=0, hybrid_url=0, rules=0),
+                text_analysis=None,
+                url_analysis=None
+            )
 
     async def scan_message_text(self, message: str) -> URLScanResponse:
         urls = extract_urls(message)
