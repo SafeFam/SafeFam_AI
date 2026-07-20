@@ -17,8 +17,7 @@ class URLScanResponse(BaseModel):
     error_message: Optional[str] = Field(None, description="에러 발생 시 메시지 기록용")
 
     class Config:
-
-       json_schema_extra = {
+        json_schema_extra = {
             "example": {
                 "has_url": True,
                 "original_url": "https://bit.ly/suspect-link",
@@ -64,7 +63,7 @@ class SmishingAnalysisResponse(BaseModel):
                 "risk_grade": "HIGH",
                 "contribution_breakdown": {
                     "llm": 45,
-                    "virus_total": 30,
+                    "hybrid_url": 30,
                     "rules": 20
                 },
                 "text_analysis": {

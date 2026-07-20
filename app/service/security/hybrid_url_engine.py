@@ -15,9 +15,18 @@ class HybridUrlEngine:
         self.gsb_engine = GoogleSafeBrowsingEngine()
 
     async def scan_url(self, traced_url: str) -> dict:
-        logger.info(f"[MOCK MODE] 하이브리드 URL 스캔 -> Target: {traced_url}")
-            return {"is_malicious": True, "url_risk_score": 0.85, "source": "Hybrid-Engine (MOCK)", "detected_count": 4, "error_message": None}
+        # 쉘 환경변수에 따른 MOCK 모드 분기 로직 정상화
+        if MOCK_ENABLED:
+            logger.info(f"[MOCK MODE] 하이브리드 URL 스캔 -> Target: {traced_url}")
+            return {
+                "is_malicious": True, 
+                "url_risk_score": 0.85, 
+                "source": "Hybrid-Engine (MOCK)", 
+                "detected_count": 4, 
+                "error_message": None
+            }
 
+        # PROD 운영 모드 가동 
         logger.info("[PROD MODE] 1차 방어선: Google Safe Browsing API 가동")
         error_logs = []
 
@@ -32,12 +41,13 @@ class HybridUrlEngine:
 
         vt_result = {"is_malicious": False, "detected_count": 0}
 
-        # GSB 악성 확정 시 VT 생략
+        # GSB 악성 확정 시 VT 생략 (Quota 절약)
         if is_gsb_blocked:
             logger.info(" GSB 악성 판정으로 VirusTotal 호출 생략 (Quota 절약)")
             engine_source = "Hybrid-Engine (GSB)"
             risk_score = gsb_result.get("raw_score", 0.95)
-            if risk_score > 1.0: risk_score /= 100.0
+            if risk_score > 1.0: 
+                risk_score /= 100.0
         else:
             logger.info(" GSB 청정/불확실로 인한 2차 방어선 VirusTotal 백업 가동")
             engine_source = "Hybrid-Engine (GSB+VT)"
@@ -51,7 +61,8 @@ class HybridUrlEngine:
             vt_malicious_count = vt_result.get("detected_count", 0)
             if vt_malicious_count > 0:
                 base_score = vt_result.get("raw_score", 0.0)
-                if base_score > 1.0: base_score /= 100.0
+                if base_score > 1.0: 
+                    base_score /= 100.0
                 risk_score = max(base_score, min(0.1 + (vt_malicious_count * 0.15), 0.95))
             else:
                 risk_score = 0.0

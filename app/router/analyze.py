@@ -1,33 +1,33 @@
 import logging
-from fastapi import APIRouter, Depends, status
-from app.dto.request import AnalyzeRequest
-from app.dto.schemas import SmishingAnalysisResponse
+from fastapi import APIRouter, Depends, status, HTTPException
+from app.dto.schemas import URLScanRequest, SmishingAnalysisResponse
 from app.service.scan_service import ScanService
 
 logger = logging.getLogger(__name__)
 
-# 문자 분석 전용 라우터 생성
 router = APIRouter(prefix="/analyze", tags=["Analyze"])
 
-# 서비스 인스턴스 생성 유틸
 def get_scan_service() -> ScanService:
     return ScanService()
 
-# 통합 스미싱 탐지 API
 @router.post(
     "", 
     response_model=SmishingAnalysisResponse, 
     status_code=status.HTTP_200_OK,
-    summary="[메인 통합 엔진] 문자 본문 기반 3중 스미싱 통합 분석",
-    description="문자 본문 전체를 분석하여 LLM 문맥, 하이브리드 URL 검사, 로컬 규칙을 합성한 0~100점 점수를 반환합니다."
+    summary="[메인 통합 엔진] 문자 본문 기반 3중 스미싱 통합 분석"
 )
 async def analyze_smishing(
-    payload: AnalyzeRequest,
+    payload: URLScanRequest,
     scan_service: ScanService = Depends(get_scan_service)
-    ) -> SmishingAnalysisResponse:
+) -> SmishingAnalysisResponse:
     
-    # Spring Boot에서 전달된 문제 메시지를 접수하여 비동기 파이프라인(LLM + 하이브리드 URL + 로컬 룰)으로 정밀 스캔
-    
-    logger.info(f"[Router] 통합 스미싱 분석 마스터 파이프라인 진입: {payload.message[:15]}...")
+    logger.info(f"[Router] 통합 스미싱 분석 마스터 파이프라인 진입: {payload.text[:15]}...")
 
-    return await scan_service.analyze_pipeline(payload.message)
+    try:
+        return await scan_service.analyze_pipeline(payload.text)
+    except Exception as e:
+        logger.error(f"[Router] 스캔 처리 중 장애 발생: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"서버 내부 스캔 파이프라인 연산 중 오류: {str(e)}"
+        )

@@ -12,15 +12,15 @@ class ScanService:
     def __init__(self):
         self.hybrid_url_engine = HybridUrlEngine()  
 
-    # 텍스트 트랙과 URL 트랙을 병렬 조립하고 스코어링을 매핑
-    async def analyze_pipeline(self, message: str) -> SmishingAnalysisResponse:
+    # 텍스트 트랙과 URL 트랙을 병렬 조립하고 스코어링을 매핑 
+    async def analyze_pipeline(self, text: str) -> SmishingAnalysisResponse:
       
         try:
-            urls = extract_urls(message)
+            urls = extract_urls(text)
             has_url = len(urls) > 0
 
-            # 비동기 Task 스케줄링
-            text_task = asyncio.create_task(analyze_text_with_gemini(message))
+            # 비동기 Task 스케줄링 
+            text_task = asyncio.create_task(analyze_text_with_gemini(text))
             url_task = None
 
             if has_url:
@@ -47,7 +47,7 @@ class ScanService:
                 hybrid_res["is_malicious"] = True
                 hybrid_res["url_risk_score"] = max(hybrid_res["url_risk_score"], 0.75)
 
-            # 3중 스코어링 최종 계산
+            # 3중 스코어링 최종 계산 
             final_score, risk_grade, breakdown = ScoringEngine.calculate_score(
                 llm_score=int(llm_score),
                 is_url_malicious=hybrid_res["is_malicious"],
@@ -68,7 +68,6 @@ class ScanService:
                     "error_message": hybrid_res["error_message"]
                 }
             else:
-                # URL이 없는 평문 문자일 경우 null(None) 처리
                 real_url_analysis = None
 
             return SmishingAnalysisResponse(
@@ -94,7 +93,23 @@ class ScanService:
 
     async def scan_message_text(self, message: str) -> URLScanResponse:
         urls = extract_urls(message)
-        if not urls: return URLScanResponse(has_url=False, original_url=None, traced_url=None, is_url_malicious=False, url_risk_score=0.0, engine_source="Pre-Processing-Filter")
+        if not urls: 
+            return URLScanResponse(
+                has_url=False, 
+                original_url=None, 
+                traced_url=None, 
+                is_url_malicious=False, 
+                url_risk_score=0.0, 
+                engine_source="Pre-Processing-Filter"
+            )
         traced_url = await trace_url(urls[0])
         res = await self.hybrid_url_engine.scan_url(traced_url)
-        return URLScanResponse(has_url=True, original_url=urls[0], traced_url=traced_url, is_url_malicious=res["is_malicious"], url_risk_score=res["url_risk_score"], engine_source=res["source"], error_message=res["error_message"])
+        return URLScanResponse(
+            has_url=True, 
+            original_url=urls[0], 
+            traced_url=traced_url, 
+            is_url_malicious=res["is_malicious"], 
+            url_risk_score=res["url_risk_score"], 
+            engine_source=res["source"], 
+            error_message=res["error_message"]
+        )
