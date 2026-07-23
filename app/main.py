@@ -8,6 +8,7 @@ app = FastAPI(
     version=settings.VERSION
 )
 
+# Spring Boot 및 프론트엔드 연동을 위한 CORS 미들웨어 설정
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -16,7 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analyze.router, prefix=settings.API_V1_STR)
+# 라우터 통합 등록 
+app.include_router(analyze.router, prefix="/api")
 
 @app.get("/", tags=["Root"])
 def root_check():
