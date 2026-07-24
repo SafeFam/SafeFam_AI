@@ -36,9 +36,11 @@ class RiskGrade(str, Enum):
     LOW = "LOW"
 
 class ContributionBreakdown(BaseModel):
-    llm: int = Field(..., description="LLM 문맥 분석 기여 점수 (0~50)", ge=0, le=50)
-    hybrid_url: int = Field(..., description="하이브리드 URL 보안 엔진 기여 점수 (0~30)", ge=0, le=30)
-    rules: int = Field(..., description="로컬 가드 규칙 기반 기여 점수 (0~20)", ge=0, le=20)
+    # URL이 있으면 LLM 50% / 규칙 20%, URL이 없으면 하이브리드 URL 트랙(30%)이 LLM/규칙으로
+    # 재배분되어 LLM 65% / 규칙 35%가 되므로 상한이 두 시나리오 중 더 큰 쪽 기준으로 설정됨
+    llm: int = Field(..., description="LLM 문맥 분석 기여 점수 (URL 있음: 0~50, URL 없음: 0~65)", ge=0, le=65)
+    hybrid_url: int = Field(..., description="하이브리드 URL 보안 엔진 기여 점수 (URL 있을 때만 0~30, 없으면 0)", ge=0, le=30)
+    rules: int = Field(..., description="로컬 가드 규칙 기반 기여 점수 (URL 있음: 0~20, URL 없음: 0~35)", ge=0, le=35)
 
 class SmishingAnalysisResponse(BaseModel):
     status: str = Field(..., description="응답 상태 (SUCCESS / ERROR)")
@@ -49,9 +51,10 @@ class SmishingAnalysisResponse(BaseModel):
     risk_grade: RiskGrade = Field(..., description="최종 점수 기반 위험 등급 분류 (HIGH/MEDIUM/LOW)")
     contribution_breakdown: ContributionBreakdown = Field(..., description="3개 레이어별 점수 기여도 명세")
 
-    # 세부 분석 트랙 데이터 
+    # 세부 분석 트랙 데이터
     text_analysis: Optional[dict] = Field(None, description="LLM 실시간 문맥 분석 상세 결과")
     url_analysis: Optional[dict] = Field(None, description="하이브리드 URL 보안 엔진 상세 분석 결과")
+    rule_analysis: Optional[dict] = Field(None, description="로컬 규칙 기반 엔진(금융기관 DB/키워드/계좌·카드번호) 상세 분석 결과")
 
     class Config:
         use_enum_values = True
