@@ -136,3 +136,25 @@ async def test_analyze_pipeline_forces_high_when_local_domain_rule_matches(mock_
     assert result.risk_grade == "HIGH"
     assert result.final_score >= 70
     assert result.rule_analysis["has_malicious_domain_pattern"] is True
+
+
+@pytest.mark.asyncio
+@patch("app.service.scan_service.analyze_text_with_gemini", new_callable=AsyncMock)
+@patch("app.service.scan_service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
+async def test_analyze_pipeline_does_not_fail_open_when_both_text_engines_are_down(mock_nb, mock_gemini):
+    """
+    나이브 베이즈 모델 로드 실패 + Gemini 호출도 동시에 실패(rate limit 등)하는 경우,
+    URL/규칙 신호가 전혀 없는 문자라도 최종 등급이 조용히 LOW로 나와선 안 된다.
+    두 분류기가 동시에 다운됐다는 인프라 장애가 "안전 확인됨"으로 둔갑하면 안 됨 (fail-open 방지).
+    """
+    mock_nb.return_value = _nb_result("UNKNOWN", 0, is_available=False)
+    mock_gemini.return_value = {
+        "is_mock": False,
+        "result": {"grade": "UNKNOWN", "risk_score": 0, "tone_analysis": "", "evidence": [], "error_message": "Rate Limit"}
+    }
+
+    service = ScanService()
+    result = await service.analyze_pipeline("URL도 없고 특이사항도 없는 문자")
+
+    assert result.risk_grade != "LOW"
+    assert result.final_score >= 40

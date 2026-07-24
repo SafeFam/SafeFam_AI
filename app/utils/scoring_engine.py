@@ -22,6 +22,13 @@ class ScoringEngine:
     NAIVE_BAYES_WEIGHT = 0.3
     LLM_WEIGHT = 0.7
 
+    # 나이브 베이즈와 Gemini가 동시에 실패해 텍스트 트랙에 아무 신호도 없을 때의 대체 점수.
+    # 0을 반환하면 "판정 불가"가 "안전 확인됨"으로 둔갑해 fail-open이 되므로, 최종 등급이
+    # 최소 MEDIUM 이상이 되도록 강제한다. 텍스트 트랙 가중치가 가장 낮은 경우(URL 있음, 50%)에도
+    # 다른 트랙 기여가 전혀 없이 이 값 하나만으로 final_score가 40점(HIGH/MEDIUM 문턱)에 닿아야 하므로
+    # 80 이상이어야 함 (80 * 0.5 = 40).
+    BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE = 80
+
     # 3중 트랙 간 가중치 (URL 유무에 따라 재배분)
     TEXT_TRACK_WEIGHT_WITH_URL = 0.50
     RULES_TRACK_WEIGHT_WITH_URL = 0.20
@@ -39,11 +46,17 @@ class ScoringEngine:
         """
         나이브 베이즈(1차) + Gemini(2차) 텍스트 위험도를 하나의 점수로 결합.
         - 나이브 베이즈가 SAFE로 판정해 Gemini를 스킵한 경우: naive_bayes_score가 곧 llm_score와 동일하므로 그대로 사용
-        - Gemini 호출이 실패한 경우: 나이브 베이즈가 이미 SAFE 미만(의심)으로 판단해 에스컬레이션한 상황이므로,
-          Gemini 장애를 이유로 점수를 0으로 깎지 않고 나이브 베이즈 점수를 그대로 신뢰 (fail-safe)
+        - 나이브 베이즈 모델 로드에 실패했지만 Gemini는 정상 수행된 경우: Gemini 점수를 그대로 신뢰
+        - 나이브 베이즈와 Gemini가 동시에 실패한 경우: 신뢰할 수 있는 신호가 전혀 없으므로 llm_score(보통 0)를
+          그대로 반환하지 않고 대체 점수로 fail-safe 처리 (두 분류기가 동시에 다운됐다는 이유만으로
+          "안전"으로 오판되는 것을 방지)
+        - Gemini 호출이 실패한 경우(나이브 베이즈는 정상): 나이브 베이즈가 이미 SAFE 미만(의심)으로 판단해
+          에스컬레이션한 상황이므로, Gemini 장애를 이유로 점수를 0으로 깎지 않고 나이브 베이즈 점수를 그대로 신뢰
         - 둘 다 정상 수행된 경우: Gemini(문맥 분석)에 더 큰 가중치를 두고 나이브 베이즈 신호를 보조적으로 반영
         """
         if naive_bayes_score is None:
+            if not llm_available:
+                return ScoringEngine.BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE
             return llm_score
         if not llm_available:
             return naive_bayes_score

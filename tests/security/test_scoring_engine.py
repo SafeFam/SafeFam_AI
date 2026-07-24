@@ -23,6 +23,36 @@ def test_combine_text_track_score_weights_gemini_higher_when_both_available():
     assert score == round(0.3 * 91 + 0.7 * 5)
 
 
+def test_combine_text_track_score_does_not_fail_open_when_both_engines_unavailable():
+    """
+    나이브 베이즈 모델 로드 실패(naive_bayes_score=None) + Gemini 호출도 실패(llm_available=False)가
+    동시에 발생한 경우, llm_score(보통 0)를 그대로 반환해 "안전"으로 둔갑시키면 안 되고
+    fail-safe 대체 점수(SAFE 문턱 이상)를 반환해야 한다.
+    """
+    score = ScoringEngine._combine_text_track_score(None, 0, False)
+
+    assert score == ScoringEngine.BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE
+    assert score >= 40  # SAFE로 오판되지 않도록 최소 MEDIUM 문턱 이상이어야 함
+
+
+def test_calculate_score_both_engines_down_lands_at_least_medium_not_low():
+    """
+    두 텍스트 분류기가 모두 다운된 상태로 파이프라인 전체를 돌려도, URL/규칙 신호가 없다면
+    최종 등급이 조용히 LOW로 나오면 안 되고 최소 MEDIUM 이상으로 판정되어야 한다.
+    """
+    final_score, risk_grade, breakdown = ScoringEngine.calculate_score(
+        llm_score=0,
+        is_url_malicious=False,
+        url_risk_score=0.0,
+        rule_score=0,
+        naive_bayes_score=None,
+        llm_available=False
+    )
+
+    assert risk_grade != RiskGrade.LOW
+    assert final_score >= 40
+
+
 def test_calculate_score_naive_bayes_false_positive_is_dampened_by_gemini():
     """
     실제 확인된 나이브 베이즈 오탐 사례("엄마 오늘 저녁 메뉴 뭐야?" -> risk_score 97)를
