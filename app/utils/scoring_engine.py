@@ -29,6 +29,11 @@ class ScoringEngine:
     # 80 이상이어야 함 (80 * 0.5 = 40).
     BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE = 80
 
+    # 파이프라인 전체가 예외로 죽어 어떤 트랙도 점수를 내지 못했을 때의 대체 점수.
+    # 0점을 반환하면 "분석 실패"가 "안전 확인됨(LOW)"으로 둔갑하는 fail-open이 되므로,
+    # 등급이 최소 MEDIUM(40점 이상, HIGH 미만)으로 나오도록 강제한다.
+    PIPELINE_FAILURE_FALLBACK_SCORE = 50
+
     # 3중 트랙 간 가중치 (URL 유무에 따라 재배분)
     TEXT_TRACK_WEIGHT_WITH_URL = 0.50
     RULES_TRACK_WEIGHT_WITH_URL = 0.20

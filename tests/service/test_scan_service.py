@@ -158,3 +158,21 @@ async def test_analyze_pipeline_does_not_fail_open_when_both_text_engines_are_do
 
     assert result.risk_grade != "LOW"
     assert result.final_score >= 40
+
+
+@pytest.mark.asyncio
+@patch("app.service.scan_service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
+async def test_analyze_pipeline_does_not_fail_open_when_pipeline_itself_throws(mock_nb):
+    """
+    나이브 베이즈/Gemini 개별 실패가 아니라 파이프라인 자체가 처리 중 예외로 죽는 경우
+    (네트워크 오류, 버그 등)에도 status="ERROR"만 보고 걸러내지 않는 소비자를 위해
+    risk_grade/final_score 자체가 조용히 LOW/0("안전 확인됨")으로 나와선 안 된다.
+    """
+    mock_nb.side_effect = RuntimeError("예기치 못한 파이프라인 장애")
+
+    service = ScanService()
+    result = await service.analyze_pipeline("URL도 없고 특이사항도 없는 문자")
+
+    assert result.status == "ERROR"
+    assert result.risk_grade != "LOW"
+    assert result.final_score >= 40

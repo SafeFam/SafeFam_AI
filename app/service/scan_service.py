@@ -117,11 +117,16 @@ class ScanService:
             )
         except Exception as e:
             logger.error(f"파이프라인 에러: {str(e)}")
+            # 파이프라인이 통째로 죽어 어떤 트랙도 실행되지 못한 경우, final_score=0/LOW를
+            # 반환하면 "분석 실패"가 "안전 확인됨"으로 읽혀 fail-open이 된다 (텍스트 트랙
+            # 양쪽 엔진이 동시에 실패한 경우를 막는 BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE와
+            # 같은 이유). status="ERROR"만 보고 걸러내지 않는 소비자를 위해 등급/점수 자체를
+            # 최소 MEDIUM으로 강제한다.
             return SmishingAnalysisResponse(
                 status="ERROR",
                 message=str(e),
-                final_score=0,
-                risk_grade=RiskGrade.LOW,
+                final_score=ScoringEngine.PIPELINE_FAILURE_FALLBACK_SCORE,
+                risk_grade=RiskGrade.MEDIUM,
                 contribution_breakdown=ContributionBreakdown(llm=0, hybrid_url=0, rules=0),
                 text_analysis=None,
                 url_analysis=None,
