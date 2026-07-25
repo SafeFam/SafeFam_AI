@@ -7,35 +7,68 @@ from app.utils.url_tracker import trace_url
 @pytest.mark.asyncio
 async def test_normal_url_no_redirect():
     """일반 URL은 리다이렉트 없이 자기 자신을 반환해야 함"""
-    url = "https://www.google.com"
-    result = await trace_url(url)
+    url = "https://example.com/page"
+    final_response = httpx.Response(200, request=httpx.Request("HEAD", url))
+
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
+         patch("app.utils.url_tracker._is_public_host", new_callable=AsyncMock, return_value=True):
+        mock_head.return_value = final_response
+        result = await trace_url(url)
+
     assert result == url
 
 
 @pytest.mark.asyncio
 async def test_tinyurl_resolution():
-    """tinyurl 단축 주소가 원본 구글 주소로 잘 풀리는지 검증"""
+    """단축 URL이 리다이렉트를 따라가 최종 목적지 주소로 잘 풀리는지 검증"""
     short_url = "https://tinyurl.com/app-store"
-    result = await trace_url(short_url)
-    # 종착지가 특정 앱스토어 링크나 정상 도메인으로 복원되는지 확인
+    final_url = "https://apps.apple.com/app/id123456789"
+    redirect_response = httpx.Response(
+        301,
+        headers={"Location": final_url},
+        request=httpx.Request("HEAD", short_url),
+    )
+    final_response = httpx.Response(200, request=httpx.Request("HEAD", final_url))
+
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
+         patch("app.utils.url_tracker._is_public_host", new_callable=AsyncMock, return_value=True):
+        mock_head.side_effect = [redirect_response, final_response]
+        result = await trace_url(short_url)
+
+    # 종착지가 단축 도메인이 아닌 정상 목적지 주소로 복원되는지 확인
     assert "tinyurl.com" not in result
+    assert result == final_url
 
 
 @pytest.mark.asyncio
 async def test_broken_url_graceful_handling():
-    """존재하지 않는 이상한 URL이어도 서버가 안 터지고 본래 값을 뱉어내는지 검증"""
+    """
+    DNS 조회가 실패하는(존재하지 않는) 도메인이어도 서버가 안 터지고 원본 값을 그대로
+    반환해야 함. 실제 DNS에 의존하지 않도록 _is_public_host의 조회 실패 결과(None)를
+    직접 시뮬레이션한다.
+    """
     invalid_url = "https://this-is-completely-broken-domain-12345.com"
-    result = await trace_url(invalid_url, timeout=2.0)
+
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
+         patch("app.utils.url_tracker._is_public_host", new_callable=AsyncMock, return_value=None):
+        result = await trace_url(invalid_url, timeout=2.0)
+
     assert result == invalid_url
+    mock_head.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_max_redirect_limit():
     """최대 리다이렉트 제한 횟수가 정상 작동하는지 (0회 제한 테스트)"""
-    short_url = "https://tinyurl.com/app-store"
-    # max_redirects를 0으로 주면 바로 튕겨서 원래 주소가 나와야 함
-    result = await trace_url(short_url, max_redirects=0)
+    short_url = "https://short.example/app-store"
+
+    # max_redirects=0이면 반복문 몸체(가드 검증 + 실제 요청)가 한 번도 실행되지 않고
+    # 바로 튕겨서 원래 주소가 나와야 한다 - 그 사실 자체를 head 미호출로 증명한다.
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head:
+        result = await trace_url(short_url, max_redirects=0)
+
     assert result == short_url
+    mock_head.assert_not_awaited()
 
 
 @pytest.mark.asyncio
