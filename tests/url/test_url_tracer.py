@@ -86,23 +86,37 @@ async def test_protocol_relative_redirect_is_resolved():
 
 @pytest.mark.asyncio
 async def test_ssrf_guard_blocks_loopback_ip_literal():
-    """루프백 IP 리터럴로의 요청은 DNS 조회 없이도 즉시 차단되어야 한다 (SSRF 방지)."""
-    result = await trace_url("http://127.0.0.1:8080/admin")
+    """
+    루프백 IP 리터럴로의 요청은 DNS 조회 없이도 즉시 차단되어야 한다 (SSRF 방지).
+    반환값이 원본 URL과 같다는 것만으로는 가드가 실제로 I/O 이전에 막았다는 증거가
+    안 된다 (예: 아무도 안 듣는 포트라 연결이 실패해도 결과가 똑같이 나올 수 있음).
+    그래서 client.head 자체가 한 번도 호출되지 않았는지까지 확인한다.
+    """
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head:
+        result = await trace_url("http://127.0.0.1:8080/admin")
+
     assert result == "http://127.0.0.1:8080/admin"
+    mock_head.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_ssrf_guard_blocks_cloud_metadata_ip():
-    """클라우드 인스턴스 메타데이터 주소(169.254.169.254)로의 요청은 차단되어야 한다."""
-    result = await trace_url("http://169.254.169.254/latest/meta-data/")
+    """클라우드 인스턴스 메타데이터 주소(169.254.169.254)로의 요청은 실제 I/O 없이 차단되어야 한다."""
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head:
+        result = await trace_url("http://169.254.169.254/latest/meta-data/")
+
     assert result == "http://169.254.169.254/latest/meta-data/"
+    mock_head.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_ssrf_guard_blocks_private_lan_ip():
-    """사설 대역(예: 192.168.0.0/16)으로의 요청은 차단되어야 한다."""
-    result = await trace_url("http://192.168.1.1/")
+    """사설 대역(예: 192.168.0.0/16)으로의 요청은 실제 I/O 없이 차단되어야 한다."""
+    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head:
+        result = await trace_url("http://192.168.1.1/")
+
     assert result == "http://192.168.1.1/"
+    mock_head.assert_not_awaited()
 
 
 @pytest.mark.asyncio

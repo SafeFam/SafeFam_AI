@@ -1,11 +1,14 @@
 """
 Swagger UI(/docs)가 문서화하는 POST /api/analyze 계약을 실제 HTTP 레벨에서 검증하는 E2E 시나리오 테스트.
 
-- 나이브 베이즈(1차)와 URL 리다이렉트 추적기는 실제 로직을 그대로 태운다 (로컬/무료 자원).
+- 나이브 베이즈(1차)는 실제 로직을 그대로 태운다 (로컬/무료 자원).
+- URL 리다이렉트 추적기(trace_url)는 리다이렉트가 없는 고정값으로 Mock 처리한다 -
+  실제 동작은 tests/url/test_url_tracer.py에서 전담 검증하며, 여기서는 outbound
+  DNS/HTTP 호출과 CI 아웃바운드 의존성을 없애기 위함이다.
 - Gemini(2차)와 GSB+VT 하이브리드 URL 엔진은 결정론적인 Mock 모드로 우회한다 (유료/외부 API 의존성 제거).
 """
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -56,9 +59,14 @@ def test_message_with_url_populates_url_analysis_via_hybrid_engine():
     """
     시나리오: URL이 포함된 문자 -> URL 트랙이 실행되어 url_analysis가 채워지고,
     Mock 하이브리드 엔진의 악성 판정이 최종 스코어의 hybrid_url 기여분에 반영되어야 한다.
+    trace_url 자체는 이 테스트의 관심사가 아니므로(리다이렉트 동작은 전담 URL 트레이서
+    테스트에서 검증) 리다이렉트 없이 원본 URL을 그대로 돌려주도록 Mock 처리한다.
     """
     text = "국민은행 보안 업데이트 안내입니다. https://www.google.com 확인해주세요."
-    response = client.post("/api/analyze", json={"text": text})
+
+    with patch("app.service.scan_service.trace_url", new_callable=AsyncMock) as mock_trace:
+        mock_trace.return_value = "https://www.google.com"
+        response = client.post("/api/analyze", json={"text": text})
 
     assert response.status_code == 200
     body = response.json()
