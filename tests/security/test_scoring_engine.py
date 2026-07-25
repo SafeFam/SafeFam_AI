@@ -102,6 +102,27 @@ def test_calculate_score_gsb_confirmed_forces_high_even_with_benign_text_and_no_
     assert final_score >= 70
 
 
+def test_calculate_score_confirmed_override_keeps_breakdown_reconciled_with_final_score():
+    """
+    확정 악성 오버라이드로 final_score가 70점 이상으로 강제 상향되면, 그 상승분이
+    contribution_breakdown에도 반영되어 llm+hybrid_url+rules 합계가 final_score와
+    일치해야 한다 (오버라이드 전 가중합 그대로 남아 점수와 어긋나면 안 됨).
+    """
+    final_score, risk_grade, breakdown = ScoringEngine.calculate_score(
+        llm_score=5,               # 텍스트는 평범함 -> 오버라이드 전 가중합은 70점에 한참 못 미침
+        is_url_malicious=True,
+        url_risk_score=0.95,
+        rule_score=0,
+        is_confirmed_malicious=True
+    )
+
+    assert risk_grade == RiskGrade.HIGH
+    assert final_score == 70
+    assert breakdown.llm + breakdown.hybrid_url + breakdown.rules == final_score
+    # 오버라이드 사유가 URL 트랙의 확정 판정이므로 그쪽에 우선 배정되어야 한다.
+    assert breakdown.hybrid_url == 30
+
+
 def test_calculate_score_gsb_not_confirmed_does_not_trigger_override():
     """
     VT 단독 탐지 등 GSB 확정이 아닌 경우엔 오버라이드가 발동하지 않고

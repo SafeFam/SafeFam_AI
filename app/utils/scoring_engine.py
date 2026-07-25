@@ -131,8 +131,27 @@ class ScoringEngine:
                 logger.warning(
                     f"[Scoring Engine] 확정 악성 URL 감지 -> HIGH 등급 강제 오버라이드 (원래 점수: {final_score})"
                 )
+            pre_override_score = final_score
             final_score = max(final_score, 70)
             risk_grade = RiskGrade.HIGH
+
+            # 오버라이드로 늘어난 만큼(final_score - 원래 점수)을 breakdown에도 반영해야
+            # contribution_breakdown 합계가 final_score와 어긋나지 않는다. 확정 판정의
+            # 근거가 URL 트랙이므로 그쪽에 먼저 배정하고, 각 트랙의 스키마 상한(30/35/65)을
+            # 넘으면 규칙 -> LLM 순으로 나머지를 채운다.
+            score_gap = final_score - pre_override_score
+            if score_gap > 0:
+                url_add = min(score_gap, 30 - url_contrib)
+                url_contrib += url_add
+                score_gap -= url_add
+
+                rules_add = min(score_gap, 35 - rules_contrib)
+                rules_contrib += rules_add
+                score_gap -= rules_add
+
+                llm_add = min(score_gap, 65 - llm_contrib)
+                llm_contrib += llm_add
+                score_gap -= llm_add
 
         logger.info(
             f"[Scoring Engine] 통합 연산 완료 -> 최종 점수: {final_score} | 등급: {risk_grade} "
