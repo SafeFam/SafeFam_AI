@@ -63,22 +63,32 @@ class VirusTotalEngine(BaseSecurityEngine):
 
                 # 보고서 데이터 파싱 (오타 수정 및 디테일 파싱)
                 stats = report_data.get("data", {}).get("attributes", {}).get("last_analysis_stats", {})
-                
+
                 malicious = stats.get("malicious", 0)
                 suspicious = stats.get("suspicious", 0)
-                
-                logger.info(f"[VirusTotal] 분석 완료 - 악성: {malicious}, 의심: {suspicious}")
+                # last_analysis_stats에 잡힌 전체 엔진 수 (malicious/suspicious/harmless/undetected/timeout 등 전부 합산)
+                total_engines = sum(stats.values()) if stats else 0
+
+                logger.info(
+                    f"[VirusTotal] 분석 완료 - 악성: {malicious}, 의심: {suspicious}, 전체 엔진: {total_engines}"
+                )
 
                 # 백신 엔진 중 3개 이상이 악성(malicious)이라고 판정하거나, 의심 엔진이 과도하게 많을 때 악성으로 분류
                 is_malicious = (malicious >= 3) or (malicious + suspicious >= 5)
-                
-                # 가중치 기반 위험도 점수 산정 (최대 1.0)
-                raw_score = min((malicious * 0.15) + (suspicious * 0.05), 1.0)
+
+                # 악성 판정 엔진 수 비율 기반 위험도 점수 산정 (의심 엔진은 절반 가중치로 반영, 최대 1.0)
+                if total_engines > 0:
+                    malicious_ratio = malicious / total_engines
+                    suspicious_ratio = suspicious / total_engines
+                    raw_score = min(malicious_ratio + suspicious_ratio * 0.5, 1.0)
+                else:
+                    raw_score = 0.0
 
                 return {
                     "is_malicious": is_malicious,
                     "raw_score": round(raw_score, 2),
                     "detected_count": malicious,
+                    "total_engines": total_engines,
                     "status": "completed"
                 }
 
