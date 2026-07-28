@@ -9,6 +9,28 @@ class Settings(BaseSettings):
     VIRUSTOTAL_API_KEY: str | None = None
     GOOGLE_SAFE_BROWSING_API_KEY: str | None = None
 
+    GEMINI_TIMEOUT_SECONDS: float = Field(
+        default=10.0,
+        gt=0,
+    )
+    GSB_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        gt=0,
+    )
+    VIRUSTOTAL_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        gt=0,
+    )
+    URL_TRACE_TIMEOUT_SECONDS: float = Field(
+        default=3.0,
+        gt=0,
+    )
+    EXTERNAL_API_MAX_RETRIES: int = Field(
+        default=1,
+        ge=0,
+        le=3,
+    )
+
 
     RABBITMQ_URL: str = (
         "amqp://safefam:safefam-local@localhost:5672/"
@@ -48,7 +70,6 @@ class Settings(BaseSettings):
         default=30.0,
         gt=0,
     )
-
 
     model_config = SettingsConfigDict(
         env_file=".env", 

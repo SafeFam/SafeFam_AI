@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 
@@ -247,23 +246,22 @@ class HybridUrlAnalyzer:
         self,
         traced_url: str,
     ) -> dict:
-        """VT 클라이언트 타임아웃 제한과 함께 호출"""
+        """VirusTotal 클라이언트를 호출하고 실패 결과로 변환"""
         try:
-            return await asyncio.wait_for(
-                self.vt_client.scan_url(traced_url),
-                timeout=4.0,
+            return await self.vt_client.scan_url(
+                traced_url
             )
 
-        except asyncio.TimeoutError:
-            logger.error(
-                "[Hybrid URL] VirusTotal 호출 타임아웃"
+        except Exception:
+            logger.exception(
+                "[Hybrid URL] VirusTotal 호출 중 예외 발생"
             )
             return {
                 "is_malicious": False,
                 "raw_score": 0.0,
                 "detected_count": 0,
                 "status": "unavailable",
-                "error_code": "TIMEOUT",
+                "error_code": "UNEXPECTED_ERROR",
             }
 
         except Exception:

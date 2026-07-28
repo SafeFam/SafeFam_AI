@@ -150,7 +150,6 @@ async def analyze_text_with_gemini(text: str) -> dict:
             api_url=API_URL,
             api_key=GEMINI_API_KEY,
             payload=payload,
-            timeout_seconds=10.0,
         )
 
         candidates = result_json.get("candidates", [])

@@ -2,6 +2,7 @@ import base64
 import logging
 import httpx
 from app.core.config import settings
+from app.infrastructure.http_retry import request_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +75,14 @@ class VirusTotalClient:
 
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.get(
-                    report_url,
-                    headers=self.headers,
-                    timeout=5.0,
+                response = await request_with_retry(
+                    lambda: client.get(
+                        report_url,
+                        headers=self.headers,
+                        timeout=settings.VIRUSTOTAL_TIMEOUT_SECONDS,
+                    ),
+                    max_retries=settings.EXTERNAL_API_MAX_RETRIES,
+                    operation_name="VirusTotal report",
                 )
 
                 # 기존 분석 보고서가 존재하지 않는 경우 신규 스캔 요청
@@ -211,11 +216,15 @@ class VirusTotalClient:
         )
 
         scan_url = f"{self.base_url}/urls"
-        scan_response = await client.post(
-            scan_url,
-            headers=self.headers,
-            data={"url": url},
-            timeout=5.0,
+        scan_response = await request_with_retry(
+            lambda: client.post(
+                scan_url,
+                headers=self.headers,
+                data={"url": url},
+                timeout=settings.VIRUSTOTAL_TIMEOUT_SECONDS,
+            ),
+            max_retries=settings.EXTERNAL_API_MAX_RETRIES,
+            operation_name="VirusTotal scan",
         )
 
         if scan_response.status_code == 429:

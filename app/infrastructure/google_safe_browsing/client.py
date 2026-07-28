@@ -1,6 +1,7 @@
 import logging
 import httpx
 from app.core.config import settings
+from app.infrastructure.http_retry import request_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +73,14 @@ class GoogleSafeBrowsingClient:
 
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.post(
-                    self.api_url,
-                    json=payload,
-                    timeout=5.0,
+                response = await request_with_retry(
+                    lambda: client.post(
+                        self.api_url,
+                        json=payload,
+                        timeout=settings.GSB_TIMEOUT_SECONDS,
+                    ),
+                    max_retries=settings.EXTERNAL_API_MAX_RETRIES,
+                    operation_name="Google Safe Browsing",
                 )
                 response.raise_for_status()
 

@@ -3,19 +3,18 @@ import socket
 import asyncio
 import ipaddress
 import logging
-from typing import List, Optional
-from urllib.parse import urljoin, urlparse
 import httpx
 import httpcore
+
+from typing import List, Optional
+from urllib.parse import urljoin, urlparse
+from app.core.config import settings
+from app.infrastructure.http_retry import request_with_retry
 
 logger = logging.getLogger(__name__)
 
 # URL 정규표현식 패턴
 URL_PATTERN = re.compile(r'https?://[^\s\'"<>]+')
-
-# DNS 조회 자체가 멎어버리는 것(응답 없는 리졸버 등)을 막기 위한 상한
-DNS_RESOLVE_TIMEOUT = 3.0
-
 
 def _is_blocked_ip(ip: "ipaddress.IPv4Address | ipaddress.IPv6Address") -> bool:
     """사설/루프백/링크로컬 등 외부에 공개되지 않은 주소인지 판별."""
@@ -30,8 +29,11 @@ def _is_blocked_ip(ip: "ipaddress.IPv4Address | ipaddress.IPv6Address") -> bool:
 
 
 async def _is_public_host(
-    hostname: Optional[str], dns_timeout: float = DNS_RESOLVE_TIMEOUT
+    hostname: Optional[str],
+    dns_timeout: float | None = None,
 ) -> Optional[str]:
+    if dns_timeout is None:
+        dns_timeout = settings.URL_TRACE_TIMEOUT_SECONDS
     """
     SSRF 방어: 호스트가 실제로 가리키는 IP를 DNS로 확인해서 내부망/사설 대역이면 차단.
     도메인이 공개 주소처럼 보여도 리다이렉트 체인 중간에 내부망으로 우회할 수 있으므로
@@ -145,7 +147,13 @@ def extract_urls(text: str) -> List[str]:
 
 
 # 단축 URL의 리다이렉트를 추적하고 최종 주소를 반환
-async def trace_url(url: str, max_redirects: int = 5, timeout: float = 3.0) -> str:
+async def trace_url(
+    url: str,
+    max_redirects: int = 5,
+    timeout: float | None = None,
+) -> str:
+    if timeout is None:
+        timeout = settings.URL_TRACE_TIMEOUT_SECONDS
 
     current_url = url
 
@@ -170,11 +178,27 @@ async def trace_url(url: str, max_redirects: int = 5, timeout: float = 3.0) -> s
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 }
 
-                response = await client.head(current_url, headers=headers, timeout=timeout)
+                response = await request_with_retry(
+                    lambda: client.head(
+                        current_url,
+                        headers=headers,
+                        timeout=timeout,
+                    ),
+                    max_retries=settings.EXTERNAL_API_MAX_RETRIES,
+                    operation_name="URL trace HEAD",
+                )
 
                 # HEAD를 차단하거나 거부하는 서버(400, 404, 405)에 대응하기 위한 GET 폴백
                 if response.status_code in [400, 404, 405]:
-                    response = await client.get(current_url, headers=headers, timeout=timeout)
+                    response = await request_with_retry(
+                        lambda: client.get(
+                            current_url,
+                            headers=headers,
+                            timeout=timeout,
+                        ),
+                        max_retries=settings.EXTERNAL_API_MAX_RETRIES,
+                        operation_name="URL trace GET",
+                    )
 
             # HTTP Redirection 상태 코드 판별 (3xx)
             if response.is_redirect or response.status_code in [301, 302, 303, 307, 308]:
