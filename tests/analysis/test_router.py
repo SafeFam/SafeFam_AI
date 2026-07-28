@@ -8,10 +8,11 @@ Swagger UI(/docs)가 문서화하는 POST /api/analyze 계약을 실제 HTTP 레
 - Gemini(2차)와 GSB+VT 하이브리드 URL 엔진은 결정론적인 Mock 모드로 우회한다 (유료/외부 API 의존성 제거).
 """
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
-from app.main import app
+from app.main import create_app
 
+app = create_app(rabbitmq_consumer_enabled=False)
 client = TestClient(app)
 
 
