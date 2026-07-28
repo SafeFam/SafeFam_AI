@@ -56,7 +56,10 @@ async def test_connect_initializes_request_topology(
     mock_connect_robust.assert_awaited_once_with(
         app_settings.RABBITMQ_URL
     )
-    fake_connection.channel.assert_awaited_once()
+    fake_connection.channel.assert_awaited_once_with(
+        publisher_confirms=True,
+        on_return_raises=True,
+    )
 
     fake_channel.set_qos.assert_awaited_once_with(
         prefetch_count=1
@@ -90,7 +93,7 @@ async def test_connect_initializes_request_topology(
 async def test_connect_does_not_open_duplicate_connection(
     mock_connect_robust: AsyncMock,
 ):
-    """중복 연결 방지 테스트."""
+    """중복 연결 방지 테스트"""
     fake_connection = AsyncMock()
     fake_connection.is_closed = False
 

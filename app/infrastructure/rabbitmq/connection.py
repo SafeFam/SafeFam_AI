@@ -90,6 +90,15 @@ class RabbitMQConnection:
 
         return self.request_queue
 
+    def get_exchange(self) -> AbstractRobustExchange:
+        """초기화된 분석 이벤트 Exchange를 반환"""
+        if self.exchange is None:
+            raise RabbitMQNotConnectedError(
+                "RabbitMQ exchange is not initialized."
+            )
+
+        return self.exchange
+
     async def close(self) -> None:
         if self.connection is None:
             return
