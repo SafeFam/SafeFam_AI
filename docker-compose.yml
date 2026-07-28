@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   fastapi-ai:
@@ -9,6 +9,22 @@ services:
     volumes:
       - .:/workspace
     environment:
-      - ENV=local
-    # 로컬 개발을 위한 핫 리로드(--reload) 활성화 명령어 주입
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      ENV: local
+      RABBITMQ_URL: ${RABBITMQ_DOCKER_URL}
+      RABBITMQ_ANALYSIS_EXCHANGE: ${RABBITMQ_ANALYSIS_EXCHANGE:-safefam.analysis}
+      RABBITMQ_ANALYSIS_REQUEST_QUEUE: ${RABBITMQ_ANALYSIS_REQUEST_QUEUE:-safefam.analysis.requested.q}
+      RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: ${RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY:-analysis.requested.v1}
+      RABBITMQ_PREFETCH_COUNT: ${RABBITMQ_PREFETCH_COUNT:-1}
+      RABBITMQ_CONSUMER_ENABLED: ${RABBITMQ_CONSUMER_ENABLED:-true}
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    networks:
+      - safefam-network
+
+networks:
+  safefam-network:
+    external: true
+    name: safefam-network
