@@ -1,0 +1,236 @@
+import json
+from unittest.mock import AsyncMock
+
+import pytest
+
+from app.analysis.schemas import (
+    ContributionBreakdown,
+    RiskGrade,
+    SmishingAnalysisResponse,
+)
+from app.infrastructure.rabbitmq.consumer import (
+    AnalysisRequestConsumer,
+)
+
+def create_valid_message_body() -> bytes:
+    event_data = {
+        "schemaVersion": "1.0",
+        "eventId": (
+            "1fb898fa-d89d-4d0b-a43f-a8b00daeb765"
+        ),
+        "analysisId": 123,
+        "clientMessageId": "sms-20260728-001",
+        "traceId": (
+            "2d59c74e-0691-4f01-bde3-c657ba4c90cd"
+        ),
+        "occurredAt": "2026-07-28T01:30:00Z",
+        "payload": {
+            "sender": "1588-0000",
+            "content": (
+                "[국민은행] 계좌가 정지되었습니다."
+            ),
+            "receivedAt": (
+                "2026-07-28T10:29:00+09:00"
+            ),
+            "source": "AUTO",
+        },
+    }
+
+    return json.dumps(
+        event_data,
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+def create_success_result() -> SmishingAnalysisResponse:
+    return SmishingAnalysisResponse(
+        status="SUCCESS",
+        message="Analysis completed successfully.",
+        final_score=82,
+        risk_grade=RiskGrade.HIGH,
+        contribution_breakdown=ContributionBreakdown(
+            llm=42,
+            hybrid_url=25,
+            rules=15,
+        ),
+        text_analysis=None,
+        url_analysis=None,
+        rule_analysis=None,
+    )
+
+def create_message(
+    *,
+    body: bytes | None = None,
+    redelivered: bool = False,
+):
+    message = AsyncMock()
+
+    message.body = body or create_valid_message_body()
+    message.message_id = "rabbit-message-001"
+    message.redelivered = redelivered
+
+    return message
+
+def create_consumer():
+    request_queue = AsyncMock()
+    handler = AsyncMock()
+
+    consumer = AnalysisRequestConsumer(
+        request_queue=request_queue,
+        handler=handler,
+    )
+
+    return consumer, request_queue, handler
+
+@pytest.mark.asyncio
+async def test_consumer_acknowledges_successful_message():
+    """정상 처리 ACK 테스트"""
+    consumer, _, handler = create_consumer()
+    message = create_message()
+
+    expected_result = create_success_result()
+    handler.handle.return_value = expected_result
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_awaited_once()
+
+    handled_event = handler.handle.await_args.args[0]
+    assert handled_event.analysisId == 123
+    assert handled_event.payload.content == (
+        "[국민은행] 계좌가 정지되었습니다."
+    )
+
+    message.ack.assert_awaited_once()
+    message.nack.assert_not_awaited()
+    message.reject.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_consumer_rejects_invalid_json_without_requeue():
+    """잘못된 JSON reject 테스트"""
+    consumer, _, handler = create_consumer()
+    message = create_message(body=b"{invalid-json")
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_not_awaited()
+    message.reject.assert_awaited_once_with(
+        requeue=False
+    )
+    message.ack.assert_not_awaited()
+    message.nack.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_consumer_rejects_invalid_event_schema():
+    """잘못된 이벤트 스키마 reject 테스트"""
+    consumer, _, handler = create_consumer()
+
+    invalid_event = {
+        "schemaVersion": "2.0",
+        "eventId": "not-a-uuid",
+        "analysisId": 0,
+    }
+
+    message = create_message(
+        body=json.dumps(invalid_event).encode("utf-8")
+    )
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_not_awaited()
+    message.reject.assert_awaited_once_with(
+        requeue=False
+    )
+    message.ack.assert_not_awaited()
+    message.nack.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_consumer_requeues_first_processing_failure():
+    """최초 분석 실패 재시도 테스트"""
+    consumer, _, handler = create_consumer()
+    message = create_message(redelivered=False)
+
+    handler.handle.side_effect = RuntimeError(
+        "Temporary analysis failure"
+    )
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_awaited_once()
+    message.nack.assert_awaited_once_with(
+        requeue=True
+    )
+    message.ack.assert_not_awaited()
+    message.reject.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_consumer_rejects_failure_after_redelivery():
+    """재시도 후 실패 reject 테스트"""
+    consumer, _, handler = create_consumer()
+    message = create_message(redelivered=True)
+
+    handler.handle.side_effect = RuntimeError(
+        "Analysis failed again"
+    )
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_awaited_once()
+    message.reject.assert_awaited_once_with(
+        requeue=False
+    )
+    message.ack.assert_not_awaited()
+    message.nack.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_consumer_start_subscribes_to_queue():
+    """Consumer 시작 테스트"""
+    consumer, request_queue, _ = create_consumer()
+
+    request_queue.consume.return_value = (
+        "analysis-consumer-tag"
+    )
+
+    await consumer.start()
+
+    request_queue.consume.assert_awaited_once_with(
+        consumer._on_message,
+        no_ack=False,
+    )
+    assert consumer.consumer_tag == (
+        "analysis-consumer-tag"
+    )
+
+@pytest.mark.asyncio
+async def test_consumer_start_is_idempotent():
+    """Consumer 중복 시작 방지 테스트"""
+    consumer, request_queue, _ = create_consumer()
+
+    request_queue.consume.return_value = (
+        "analysis-consumer-tag"
+    )
+
+    await consumer.start()
+    await consumer.start()
+
+    request_queue.consume.assert_awaited_once()
+
+@pytest.mark.asyncio
+async def test_consumer_stop_cancels_subscription():
+    """Consumer 중단 테스트"""
+    consumer, request_queue, _ = create_consumer()
+    consumer.consumer_tag = "analysis-consumer-tag"
+
+    await consumer.stop()
+
+    request_queue.cancel.assert_awaited_once_with(
+        "analysis-consumer-tag"
+    )
+    assert consumer.consumer_tag is None
+
+@pytest.mark.asyncio
+async def test_consumer_stop_before_start_does_nothing():
+    consumer, request_queue, _ = create_consumer()
+
+    await consumer.stop()
+
+    request_queue.cancel.assert_not_awaited()

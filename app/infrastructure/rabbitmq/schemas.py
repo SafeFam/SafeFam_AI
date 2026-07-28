@@ -10,13 +10,13 @@ from pydantic import (
     field_validator,
 )
 
-# 분석 요청이 생성된 경로
 class AnalysisSource(str, Enum):
+    """분석 요청이 생성된 경로"""
     AUTO = "AUTO"
     MANUAL = "MANUAL"
 
-# AI 분석에 필요한 실제 문자 데이터
 class AnalysisRequestedPayload(BaseModel):
+    """AI 분석에 필요한 실제 문자 본문 데이터 스키마"""
     model_config = ConfigDict(extra="forbid")
 
     sender: str | None = Field(default=None, max_length=100)
@@ -31,8 +31,8 @@ class AnalysisRequestedPayload(BaseModel):
             raise ValueError("content must not be blank")
         return value
 
-# Spring이 발행하는 ANALYSIS_REQUESTED v1 이벤트
 class AnalysisRequestedEvent(BaseModel):
+    """Spring 메시징 시스템이 발행하는 ANALYSIS_REQUESTED v1 이벤트 스키마"""
     model_config = ConfigDict(extra="forbid")
 
     schemaVersion: Literal["1.0"]
