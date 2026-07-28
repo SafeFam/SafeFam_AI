@@ -23,6 +23,32 @@ class Settings(BaseSettings):
     RABBITMQ_PREFETCH_COUNT: int = Field(default=1, ge=1)
     RABBITMQ_CONSUMER_ENABLED: bool = True
 
+    RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY: str = (
+    "analysis.completed.v1"
+    )
+    RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY: str = (
+        "analysis.partial.v1"
+    )
+    RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY: str = (
+        "analysis.failed.v1"
+    )
+
+    RABBITMQ_ANALYSIS_DLQ: str = (
+        "safefam.analysis.requested.dlq"
+    )
+    RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY: str = (
+        "analysis.requested.dead.v1"
+    )
+
+    RABBITMQ_PUBLISH_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        gt=0,
+    )
+    RABBITMQ_SHUTDOWN_TIMEOUT_SECONDS: float = Field(
+        default=30.0,
+        gt=0,
+    )
+
 
     model_config = SettingsConfigDict(
         env_file=".env", 

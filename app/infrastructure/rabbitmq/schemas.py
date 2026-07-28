@@ -8,12 +8,15 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_validator,
 )
 
+
 class AnalysisSource(str, Enum):
-    """분석 요청이 생성된 경로"""
+    """분석 요청이 생성된 경로를 정의"""
     AUTO = "AUTO"
     MANUAL = "MANUAL"
+
 
 class AnalysisRequestedPayload(BaseModel):
     """AI 분석에 필요한 실제 문자 본문 데이터 스키마"""
@@ -31,6 +34,7 @@ class AnalysisRequestedPayload(BaseModel):
             raise ValueError("content must not be blank")
         return value
 
+
 class AnalysisRequestedEvent(BaseModel):
     """Spring 메시징 시스템이 발행하는 ANALYSIS_REQUESTED v1 이벤트 스키마"""
     model_config = ConfigDict(extra="forbid")
@@ -45,3 +49,139 @@ class AnalysisRequestedEvent(BaseModel):
     traceId: UUID
     occurredAt: AwareDatetime
     payload: AnalysisRequestedPayload
+
+
+class AnalysisEventType(str, Enum):
+    """분석 결과 이벤트의 종합 처리 상태를 정의"""
+    COMPLETED = "ANALYSIS_COMPLETED"
+    PARTIAL = "ANALYSIS_PARTIAL"
+    FAILED = "ANALYSIS_FAILED"
+
+
+class TextAnalysisMethod(str, Enum):
+    """텍스트 분석에 사용된 AI 및 알고리즘 방식을 정의"""
+    NAIVE_BAYES = "NAIVE_BAYES"
+    GEMINI = "GEMINI"
+    NAIVE_BAYES_GEMINI = "NAIVE_BAYES_GEMINI"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class RawScores(BaseModel):
+    """각 분석 트랙별(텍스트, URL, 룰) 원시 점수 데이터 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    text: int | None = Field(default=None, ge=0, le=100)
+    url: int | None = Field(default=None, ge=0, le=100)
+    rules: int | None = Field(default=None, ge=0, le=100)
+
+
+class WeightedContributions(BaseModel):
+    """최종 위험도 점수에 반영된 트랙별 가중치 기여 점수 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    text: int = Field(ge=0, le=65)
+    url: int = Field(ge=0, le=30)
+    rules: int = Field(ge=0, le=35)
+
+
+class TextAnalysisDetail(BaseModel):
+    """텍스트 분석 트랙의 세부 진단 결과 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    method: TextAnalysisMethod
+    score: int | None = Field(default=None, ge=0, le=100)
+    grade: str | None = None
+    reason: str | None = None
+    evidence: list[str] = Field(default_factory=list)
+    failedEngines: list[str] = Field(default_factory=list)
+
+
+class UrlAnalysisDetail(BaseModel):
+    """URL 분석 트랙의 세부 진단 결과 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    hasUrl: bool
+    originalUrl: str | None = None
+    tracedUrl: str | None = None
+    malicious: bool | None = None
+    score: int | None = Field(default=None, ge=0, le=100)
+    engineSource: str | None = None
+    errorCode: str | None = None
+
+
+class RuleAnalysisDetail(BaseModel):
+    """기반 룰 기반 탐지 트랙의 세부 진단 결과 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    score: int = Field(ge=0, le=100)
+    matchedRules: list[str] = Field(default_factory=list)
+    maliciousDomainPattern: bool = False
+
+
+class AnalysisResultPayload(BaseModel):
+    """분석 결과 이벤트에 포함되는 통합 분석 페이로드 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    finalScore: int | None = Field(default=None, ge=0, le=100)
+    riskGrade: str | None = None
+    phishingType: str | None = None
+
+    rawScores: RawScores
+    weightedContributions: WeightedContributions | None = None
+
+    textAnalysis: TextAnalysisDetail | None = None
+    urlAnalysis: UrlAnalysisDetail | None = None
+    ruleAnalysis: RuleAnalysisDetail | None = None
+
+    failedTracks: list[str] = Field(default_factory=list)
+    failureCode: str | None = None
+
+
+class AnalysisResultEvent(BaseModel):
+    """FastAPI가 처리 후 Spring으로 발행하는 분석 결과 이벤트 스키마"""
+    model_config = ConfigDict(extra="forbid")
+
+    schemaVersion: Literal["1.0"]
+    eventId: UUID
+    causationId: UUID
+    analysisId: int = Field(gt=0)
+    clientMessageId: str | None = None
+    traceId: UUID
+    occurredAt: AwareDatetime
+    eventType: AnalysisEventType
+    payload: AnalysisResultPayload
+
+    @model_validator(mode="after")
+    def validate_event_result(self) -> "AnalysisResultEvent":
+        """이벤트 타입(COMPLETED, PARTIAL, FAILED)에 따른 필드 유효성을 검증합니다."""
+        if self.eventType == AnalysisEventType.COMPLETED:
+            if self.payload.finalScore is None:
+                raise ValueError(
+                    "completed event requires finalScore"
+                )
+            if self.payload.riskGrade is None:
+                raise ValueError(
+                    "completed event requires riskGrade"
+                )
+
+        if self.eventType == AnalysisEventType.PARTIAL:
+            if not self.payload.failedTracks:
+                raise ValueError(
+                    "partial event requires failedTracks"
+                )
+            if self.payload.finalScore is None:
+                raise ValueError(
+                    "partial event requires finalScore"
+                )
+
+        if self.eventType == AnalysisEventType.FAILED:
+            if not self.payload.failureCode:
+                raise ValueError(
+                    "failed event requires failureCode"
+                )
+            if self.payload.riskGrade == "LOW":
+                raise ValueError(
+                    "failed event must not be classified as LOW"
+                )
+
+        return self
