@@ -30,10 +30,17 @@ def test_lifespan_starts_and_stops_rabbitmq_consumer():
     fake_connection.get_request_queue.return_value = (
         fake_queue
     )
+    fake_exchange = MagicMock()
+    fake_connection.get_exchange.return_value = (
+        fake_exchange
+    )
 
     fake_consumer = MagicMock()
     fake_consumer.start = AsyncMock()
     fake_consumer.stop = AsyncMock()
+    fake_result_publisher = MagicMock()
+    fake_result_factory = MagicMock()
+    fake_dead_letter_publisher = MagicMock()
 
     application = create_app(
         rabbitmq_consumer_enabled=True
@@ -47,7 +54,19 @@ def test_lifespan_starts_and_stops_rabbitmq_consumer():
         patch(
             "app.main.AnalysisRequestConsumer",
             return_value=fake_consumer,
+        ) as mock_consumer_class,
+        patch(
+            "app.main.AnalysisResultPublisher",
+            return_value=fake_result_publisher,
+        ) as mock_result_publisher_class,
+        patch(
+            "app.main.AnalysisResultEventFactory",
+            return_value=fake_result_factory,
         ),
+        patch(
+            "app.main.DeadLetterPublisher",
+            return_value=fake_dead_letter_publisher,
+        ) as mock_dead_letter_publisher_class,
     ):
         with TestClient(application) as test_client:
             response = test_client.get("/")
@@ -55,6 +74,32 @@ def test_lifespan_starts_and_stops_rabbitmq_consumer():
             assert response.status_code == 200
             fake_connection.connect.assert_awaited_once()
             fake_consumer.start.assert_awaited_once()
+
+        mock_result_publisher_class.assert_called_once_with(
+            exchange=fake_exchange,
+        )
+        mock_dead_letter_publisher_class.assert_called_once_with(
+            exchange=fake_exchange,
+        )
+        consumer_arguments = (
+            mock_consumer_class.call_args.kwargs
+        )
+        assert (
+            consumer_arguments["request_queue"]
+            is fake_queue
+        )
+        assert (
+            consumer_arguments["result_publisher"]
+            is fake_result_publisher
+        )
+        assert (
+            consumer_arguments["result_factory"]
+            is fake_result_factory
+        )
+        assert (
+            consumer_arguments["dead_letter_publisher"]
+            is fake_dead_letter_publisher
+        )
 
         fake_consumer.stop.assert_awaited_once()
         fake_connection.close.assert_awaited_once()

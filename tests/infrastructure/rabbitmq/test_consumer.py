@@ -8,6 +8,9 @@ from app.analysis.schemas import (
     RiskGrade,
     SmishingAnalysisResponse,
 )
+from app.infrastructure.errors import (
+    NonRetryableProcessingError,
+)
 from app.infrastructure.rabbitmq.consumer import (
     AnalysisRequestConsumer,
 )
@@ -98,14 +101,20 @@ def create_consumer():
     result_factory = Mock()
     result_factory.create.return_value = Mock(
         eventId="result-event-id",
-        eventType=Mock(value="ANALYSIS_COMPLETED"),
+        eventType=Mock(
+            value="ANALYSIS_COMPLETED"
+        ),
     )
+
+    dead_letter_publisher = Mock()
+    dead_letter_publisher.publish = AsyncMock()
 
     consumer = AnalysisRequestConsumer(
         request_queue=request_queue,
         handler=handler,
         result_publisher=result_publisher,
         result_factory=result_factory,
+        dead_letter_publisher=dead_letter_publisher,
     )
 
     return consumer, request_queue, handler
@@ -153,7 +162,7 @@ async def test_consumer_acknowledges_successful_message():
 
 @pytest.mark.asyncio
 async def test_consumer_does_not_ack_when_publication_fails():
-    """결과 이벤트 발행 실패 시 요청 메시지를 ACK하지 않습니다."""
+    """결과 이벤트 발행 실패 시 요청 메시지를 ACK X"""
     consumer, _, handler = create_consumer()
     message = create_message()
 
@@ -172,7 +181,7 @@ async def test_consumer_does_not_ack_when_publication_fails():
 
 @pytest.mark.asyncio
 async def test_consumer_publishes_failed_result_and_acks():
-    """ERROR 응답을 FAILED 결과 이벤트로 발행한 뒤 ACK합니다."""
+    """ERROR 응답을 FAILED 결과 이벤트로 발행한 뒤 ACK"""
     consumer, _, handler = create_consumer()
     message = create_message()
 
@@ -192,23 +201,26 @@ async def test_consumer_publishes_failed_result_and_acks():
     message.nack.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_consumer_rejects_invalid_json_without_requeue():
-    """잘못된 JSON reject 테스트"""
+async def test_consumer_routes_invalid_json_to_sanitized_dlq():
+    """잘못된 JSON은 정제된 DLQ 이벤트 발행 후 ACK합니다."""
     consumer, _, handler = create_consumer()
     message = create_message(body=b"{invalid-json")
 
     await consumer._on_message(message)
 
     handler.handle.assert_not_awaited()
-    message.reject.assert_awaited_once_with(
-        requeue=False
+    consumer.dead_letter_publisher.publish.assert_awaited_once_with(
+        original_message_id=message.message_id,
+        failure_code="INVALID_JSON",
+        request_event=None,
     )
-    message.ack.assert_not_awaited()
+    message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
+    message.reject.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_consumer_rejects_invalid_event_schema():
-    """잘못된 이벤트 스키마 reject 테스트"""
+async def test_consumer_routes_unsupported_schema_to_dlq():
+    """지원하지 않는 버전은 정제된 DLQ 이벤트로 격리합니다."""
     consumer, _, handler = create_consumer()
 
     invalid_event = {
@@ -224,10 +236,39 @@ async def test_consumer_rejects_invalid_event_schema():
     await consumer._on_message(message)
 
     handler.handle.assert_not_awaited()
-    message.reject.assert_awaited_once_with(
-        requeue=False
+    consumer.dead_letter_publisher.publish.assert_awaited_once_with(
+        original_message_id=message.message_id,
+        failure_code="UNSUPPORTED_SCHEMA_VERSION",
+        request_event=None,
     )
-    message.ack.assert_not_awaited()
+    message.ack.assert_awaited_once()
+    message.nack.assert_not_awaited()
+    message.reject.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_consumer_routes_invalid_event_schema_to_dlq():
+    """v1 형식 오류는 INVALID_EVENT_SCHEMA로 격리합니다."""
+    consumer, _, handler = create_consumer()
+    message = create_message(
+        body=json.dumps(
+            {
+                "schemaVersion": "1.0",
+                "eventId": "not-a-uuid",
+                "analysisId": 0,
+            }
+        ).encode("utf-8")
+    )
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_not_awaited()
+    consumer.dead_letter_publisher.publish.assert_awaited_once_with(
+        original_message_id=message.message_id,
+        failure_code="INVALID_EVENT_SCHEMA",
+        request_event=None,
+    )
+    message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
 
 @pytest.mark.asyncio
@@ -269,8 +310,8 @@ async def test_consumer_does_not_treat_redelivery_as_retry_attempt():
     message.reject.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_consumer_rejects_after_recorded_retry_fails():
-    """Reject after the recorded application retry also fails."""
+async def test_consumer_routes_to_dlq_after_retry_fails():
+    """기록된 재시도까지 실패하면 정제 DLQ로 격리합니다."""
     consumer, _, handler = create_consumer()
     first_message = create_message(redelivered=False)
     second_message = create_message(redelivered=True)
@@ -285,10 +326,66 @@ async def test_consumer_rejects_after_recorded_retry_fails():
     first_message.nack.assert_awaited_once_with(
         requeue=True
     )
-    second_message.reject.assert_awaited_once_with(
-        requeue=False
+    dlq_arguments = (
+        consumer.dead_letter_publisher
+        .publish.call_args.kwargs
     )
+    assert (
+        dlq_arguments["original_message_id"]
+        == second_message.message_id
+    )
+    assert (
+        dlq_arguments["failure_code"]
+        == "PROCESSING_RETRIES_EXHAUSTED"
+    )
+    assert dlq_arguments["request_event"].analysisId == 123
+    second_message.ack.assert_awaited_once()
+    second_message.reject.assert_not_awaited()
     assert consumer.retry_attempts == {}
+
+
+@pytest.mark.asyncio
+async def test_consumer_requeues_when_dlq_publication_fails():
+    """DLQ 발행 실패 시 원본 유실을 막기 위해 requeue합니다."""
+    consumer, _, handler = create_consumer()
+    message = create_message(body=b"{invalid-json")
+
+    consumer.dead_letter_publisher.publish.side_effect = (
+        RuntimeError("DLQ unavailable")
+    )
+
+    await consumer._on_message(message)
+
+    handler.handle.assert_not_awaited()
+    message.ack.assert_not_awaited()
+    message.nack.assert_awaited_once_with(requeue=True)
+    message.reject.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_consumer_routes_non_retryable_processing_error_to_dlq():
+    """처리 중 재시도 불가 오류는 즉시 DLQ로 격리합니다."""
+    consumer, _, handler = create_consumer()
+    message = create_message()
+
+    handler.handle.side_effect = NonRetryableProcessingError(
+        message="Invalid provider credentials",
+        failure_code="INVALID_PROVIDER_CREDENTIALS",
+    )
+
+    await consumer._on_message(message)
+
+    dlq_arguments = (
+        consumer.dead_letter_publisher
+        .publish.call_args.kwargs
+    )
+    assert (
+        dlq_arguments["failure_code"]
+        == "INVALID_PROVIDER_CREDENTIALS"
+    )
+    assert dlq_arguments["request_event"].analysisId == 123
+    message.ack.assert_awaited_once()
+    message.nack.assert_not_awaited()
 
 @pytest.mark.asyncio
 async def test_consumer_clears_retry_state_after_success():

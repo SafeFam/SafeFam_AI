@@ -29,6 +29,7 @@ class RabbitMQConnection:
         self.channel: AbstractRobustChannel | None = None
         self.exchange: AbstractRobustExchange | None = None
         self.request_queue: AbstractRobustQueue | None = None
+        self.dead_letter_queue: AbstractRobustQueue | None = None
 
     async def connect(self) -> None:
         """RabbitMQ 연결 및 Exchange, Queue, Binding 초기화"""
@@ -75,6 +76,21 @@ class RabbitMQConnection:
             ),
         )
 
+        self.dead_letter_queue = (
+            await self.channel.declare_queue(
+                self.settings.RABBITMQ_ANALYSIS_DLQ,
+                durable=True,
+            )
+        )
+
+        await self.dead_letter_queue.bind(
+            self.exchange,
+            routing_key=(
+                self.settings
+                .RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY
+            ),
+        )
+
         logger.info(
             "RabbitMQ analysis request topology initialized. "
             "exchange=%s queue=%s routing_key=%s prefetch=%s",
@@ -114,3 +130,4 @@ class RabbitMQConnection:
         self.channel = None
         self.exchange = None
         self.request_queue = None
+        self.dead_letter_queue = None

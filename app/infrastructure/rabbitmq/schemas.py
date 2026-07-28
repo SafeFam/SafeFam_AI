@@ -153,7 +153,7 @@ class AnalysisResultEvent(BaseModel):
 
     @model_validator(mode="after")
     def validate_event_result(self) -> "AnalysisResultEvent":
-        """이벤트 타입(COMPLETED, PARTIAL, FAILED)에 따른 필드 유효성을 검증합니다."""
+        """이벤트 타입(COMPLETED, PARTIAL, FAILED)에 따른 필드 유효성을 검증"""
         if self.eventType == AnalysisEventType.COMPLETED:
             if self.payload.finalScore is None:
                 raise ValueError(
@@ -185,3 +185,25 @@ class AnalysisResultEvent(BaseModel):
                 )
 
         return self
+
+class DeadLetterEvent(BaseModel):
+    """원문과 개인정보를 제외한 실패 메시지를 격리하는 이벤트 스키마"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schemaVersion: Literal["1.0"]
+    eventId: UUID
+    originalMessageId: str | None = Field(
+        default=None,
+        max_length=255,
+    )
+    analysisId: int | None = Field(
+        default=None,
+        gt=0,
+    )
+    traceId: UUID | None = None
+    failureCode: str = Field(
+        min_length=1,
+        max_length=100,
+    )
+    failedAt: AwareDatetime

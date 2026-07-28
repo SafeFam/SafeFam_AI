@@ -22,6 +22,9 @@ from app.infrastructure.rabbitmq.publisher import (
 from app.infrastructure.rabbitmq.result_factory import (
     AnalysisResultEventFactory,
 )
+from app.infrastructure.rabbitmq.dead_letter import (
+    DeadLetterPublisher,
+)
 
 
 def create_lifespan(
@@ -52,11 +55,16 @@ def create_lifespan(
 
             result_factory = AnalysisResultEventFactory()
 
+            dead_letter_publisher = DeadLetterPublisher(
+                exchange=rabbitmq.get_exchange(),
+            )
+
             consumer = AnalysisRequestConsumer(
                 request_queue=rabbitmq.get_request_queue(),
                 handler=handler,
                 result_publisher=result_publisher,
                 result_factory=result_factory,
+                dead_letter_publisher=dead_letter_publisher,
             )
 
             await consumer.start()
