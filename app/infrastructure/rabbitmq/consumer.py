@@ -1,6 +1,8 @@
+import asyncio
 import json
 import logging
 from json import JSONDecodeError
+from app.core.config import settings
 
 from aio_pika.abc import (
     AbstractIncomingMessage,
@@ -43,6 +45,9 @@ class AnalysisRequestConsumer:
         result_publisher: AnalysisResultPublisher,
         result_factory: AnalysisResultEventFactory,
         dead_letter_publisher: DeadLetterPublisher,
+        shutdown_timeout_seconds: float = (
+            settings.RABBITMQ_SHUTDOWN_TIMEOUT_SECONDS
+        ),
     ) -> None:
         self.request_queue = request_queue
         self.handler = handler
@@ -52,6 +57,11 @@ class AnalysisRequestConsumer:
 
         self.consumer_tag: str | None = None
         self.retry_attempts: dict[str, int] = {}
+
+        self.shutdown_timeout_seconds = (
+            shutdown_timeout_seconds
+        )
+        self.in_flight_tasks: set[asyncio.Task] = set()
 
     async def start(self) -> None:
         """분석 요청 Consumer 시작"""
@@ -75,22 +85,80 @@ class AnalysisRequestConsumer:
         )
 
     async def stop(self) -> None:
-        """분석 요청 Consumer 구독 중단"""
-        if self.consumer_tag is None:
+        """신규 수신을 중단하고 처리 중인 메시지 대기"""
+        if self.consumer_tag is not None:
+            consumer_tag = self.consumer_tag
+            self.consumer_tag = None
+
+            await self.request_queue.cancel(
+                consumer_tag
+            )
+
+            logger.info(
+                "Analysis request consumer subscription stopped. "
+                "consumer_tag=%s",
+                consumer_tag,
+            )
+
+        current_task = asyncio.current_task()
+
+        pending_tasks = {
+            task
+            for task in self.in_flight_tasks
+            if task is not current_task
+            and not task.done()
+        }
+
+        if not pending_tasks:
+            logger.info(
+                "No in-flight analysis requests remain."
+            )
             return
 
-        consumer_tag = self.consumer_tag
+        logger.info(
+            "Waiting for in-flight analysis requests. "
+            "count=%s timeout_seconds=%s",
+            len(pending_tasks),
+            self.shutdown_timeout_seconds,
+        )
 
-        await self.request_queue.cancel(consumer_tag)
-        self.consumer_tag = None
+        done, pending = await asyncio.wait(
+            pending_tasks,
+            timeout=self.shutdown_timeout_seconds,
+        )
+
+        if pending:
+            logger.warning(
+                "Graceful shutdown timeout reached. "
+                "completed=%s pending=%s",
+                len(done),
+                len(pending),
+            )
+            return
 
         logger.info(
-            "Analysis request consumer stopped. "
-            "consumer_tag=%s",
-            consumer_tag,
+            "All in-flight analysis requests completed. "
+            "completed=%s",
+            len(done),
         )
 
     async def _on_message(
+        self,
+        message: AbstractIncomingMessage,
+    ) -> None:
+        """현재 메시지 처리 Task 기록"""
+        task = asyncio.current_task()
+
+        if task is not None:
+            self.in_flight_tasks.add(task)
+
+        try:
+            await self._process_message(message)
+        finally:
+            if task is not None:
+                self.in_flight_tasks.discard(task)
+
+    async def _process_message(
         self,
         message: AbstractIncomingMessage,
     ) -> None:
