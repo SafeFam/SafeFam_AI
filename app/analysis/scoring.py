@@ -71,48 +71,172 @@ class RiskScoringEngine:
         )
 
     @staticmethod
+    def _normalize_weights(
+        text_weight: float,
+        url_weight: float,
+        rules_weight: float,
+        *,
+        text_available: bool,
+        url_available: bool,
+        rules_available: bool,
+    ) -> tuple[float, float, float]:
+        """사용 가능한 분석 트랙들의 가중치 합이 1.0(100%)이 되도록 정규화"""
+        available_text_weight = (
+            text_weight if text_available else 0.0
+        )
+        available_url_weight = (
+            url_weight if url_available else 0.0
+        )
+        available_rules_weight = (
+            rules_weight if rules_available else 0.0
+        )
+
+        total_weight = (
+            available_text_weight
+            + available_url_weight
+            + available_rules_weight
+        )
+
+        if total_weight == 0:
+            raise ValueError(
+                "No analysis tracks are available"
+            )
+
+        return (
+            available_text_weight / total_weight,
+            available_url_weight / total_weight,
+            available_rules_weight / total_weight,
+        )
+
+    @staticmethod
     def calculate_score(
-        llm_score: int, # LLM(Gemini)이 반환한 위험도 점수 (0~100). 나이브 베이즈 단독 판정 시엔 그 점수와 동일
-        is_url_malicious: bool, # 하이브리드 URL 엔진의 최종 악성 판정 여부
-        url_risk_score: float,  # 하이브리드 URL 엔진이 계산한 위험도 점수 (0.0~1.0)
-        rule_score: int,   # 로컬 규칙 기반 엔진(금융기관 DB, 금융 키워드, 계좌/카드번호 등)의 위험도 점수 (0~100)
-        has_url: bool = True,  # 문자 본문에 URL이 있었는지 여부 -> 트랙 가중치 재배분 기준
-        naive_bayes_score: Optional[int] = None,  # 1차 나이브 베이즈 위험도 점수 (미수행 시 None)
-        llm_available: bool = True,  # Gemini 2차 검증이 정상적으로 수행되었는지 여부
-        is_confirmed_malicious: bool = False  # GSB 블랙리스트 등재 / VT 다수 엔진 합의 / 로컬 도메인 룰 중 하나라도 확정된 경우
-    ) -> Tuple[int, RiskGrade, ContributionBreakdown]:
+        llm_score: int,
+        is_url_malicious: bool,
+        url_risk_score: float,
+        rule_score: int,
+        has_url: bool = True,
+        naive_bayes_score: Optional[int] = None,
+        llm_available: bool = True,
+        is_confirmed_malicious: bool = False,
+        text_available: bool = True,
+        url_available: bool = True,
+        rules_available: bool = True,
+    ) -> Tuple[
+        int,
+        RiskGrade,
+        ContributionBreakdown,
+    ]:
+        """모든 분석 트랙의 점수와 가중치를 종합하여 최종 점수, 위험 등급, 트랙별 기여도 계산"""
+        text_track_score = (
+            RiskScoringEngine
+            ._combine_text_track_score(
+                naive_bayes_score=naive_bayes_score,
+                llm_score=llm_score,
+                llm_available=llm_available,
+            )
+        )
 
-        # 텍스트 문맥 점수와 하이브리드 URL 엔진의 결과값을 결합하여 최종 위험도를 산출
-        text_track_score = RiskScoringEngine._combine_text_track_score(naive_bayes_score, llm_score, llm_available)
-
+        # URL 유무에 따른 기본 가중치 설정
         if has_url:
-            text_weight = RiskScoringEngine.TEXT_TRACK_WEIGHT_WITH_URL
-            rules_weight = RiskScoringEngine.RULES_TRACK_WEIGHT_WITH_URL
-
-            # URL 트랙 기여 점수 (만점 30점)
-            if is_url_malicious or url_risk_score > 0:
-                url_contrib = round(url_risk_score * RiskScoringEngine.URL_TRACK_WEIGHT * 100)
-                url_contrib = min(max(url_contrib, 0), 30)
-            else:
-                url_contrib = 0
+            text_weight = (
+                RiskScoringEngine
+                .TEXT_TRACK_WEIGHT_WITH_URL
+            )
+            url_weight = (
+                RiskScoringEngine.URL_TRACK_WEIGHT
+            )
+            rules_weight = (
+                RiskScoringEngine
+                .RULES_TRACK_WEIGHT_WITH_URL
+            )
         else:
-            # 채점할 URL 자체가 없으므로 URL 트랙은 성립하지 않음 -> LLM/규칙 트랙으로 재배분
-            text_weight = RiskScoringEngine.TEXT_TRACK_WEIGHT_NO_URL
-            rules_weight = RiskScoringEngine.RULES_TRACK_WEIGHT_NO_URL
+            text_weight = (
+                RiskScoringEngine
+                .TEXT_TRACK_WEIGHT_NO_URL
+            )
+            url_weight = 0.0
+            rules_weight = (
+                RiskScoringEngine
+                .RULES_TRACK_WEIGHT_NO_URL
+            )
+            url_available = False
+
+        # 트랙별 가용성 상태를 반영한 가중치 정규화
+        (
+            text_weight,
+            url_weight,
+            rules_weight,
+        ) = RiskScoringEngine._normalize_weights(
+            text_weight=text_weight,
+            url_weight=url_weight,
+            rules_weight=rules_weight,
+            text_available=text_available,
+            url_available=url_available,
+            rules_available=rules_available,
+        )
+
+        # 텍스트 트랙 점수 기여도 계산
+        if text_available:
+            llm_contrib = round(
+                text_track_score * text_weight
+            )
+        else:
+            llm_contrib = 0
+
+        # URL 트랙 점수 기여도 계산
+        if url_available:
+            normalized_url_score = min(
+                max(url_risk_score, 0.0),
+                1.0,
+            )
+            url_contrib = round(
+                normalized_url_score
+                * url_weight
+                * 100
+            )
+        else:
             url_contrib = 0
 
-        # 1. 텍스트 트랙 기여 점수 — 나이브 베이즈 + Gemini 하이브리드 결합, URL 유무에 따라 50% 또는 65%
-        llm_contrib = round(text_track_score * text_weight)
+        # 룰 트랙 점수 기여도 계산
+        if rules_available:
+            normalized_rule_score = min(
+                max(rule_score, 0),
+                100,
+            )
+            rules_contrib = round(
+                normalized_rule_score
+                * rules_weight
+            )
+        else:
+            rules_contrib = 0
 
-        # 2. 로컬 규칙 기반 기여 점수 — 금융기관 DB/키워드/계좌·카드번호 룰 엔진 점수(0~100)를
-        #    URL 유무에 따라 20% 또는 35% 배점으로 환산
-        rules_contrib = round(rule_score * rules_weight)
-        rules_contrib = min(max(rules_contrib, 0), round(100 * rules_weight))
+        contribution_total = (
+            llm_contrib
+            + url_contrib
+            + rules_contrib
+        )
 
-        # 최종 위험도 점수 합산
-        final_score = min(llm_contrib + url_contrib + rules_contrib, 100)
+        # 반올림 오차로 인해 총합이 100점을 초과하는 경우 보정
+        if contribution_total > 100:
+            overflow = contribution_total - 100
 
-        # 최종 점수 기반 임계치 등급 분기
+            if llm_contrib >= max(
+                url_contrib,
+                rules_contrib,
+            ):
+                llm_contrib -= overflow
+            elif url_contrib >= rules_contrib:
+                url_contrib -= overflow
+            else:
+                rules_contrib -= overflow
+
+        final_score = (
+            llm_contrib
+            + url_contrib
+            + rules_contrib
+        )
+
+        # 점수 위험 등급 판정
         if final_score >= 70:
             risk_grade = RiskGrade.HIGH
         elif final_score >= 40:
@@ -120,48 +244,70 @@ class RiskScoringEngine:
         else:
             risk_grade = RiskGrade.LOW
 
-        # 확정 악성 URL 하드 오버라이드: 텍스트 문맥이 아무리 평범해도 아래 중 하나라도 확정되면
-        # 가중합으로 희석되지 않고 무조건 HIGH 처리 (GSB만큼 신뢰도가 낮은 VT 단독/소수 탐지는 제외).
-        # - GSB 블랙리스트 실제 등재 확인
-        # - VT 다수 엔진(임계치 이상) 동시 합의 탐지
-        # - 로컬 도메인 룰(.ru, testsafebrowsing 등) 매치
-        # 등급-점수 표기 일관성을 위해 점수도 HIGH 임계치(70점) 이상으로 끌어올림.
+        # 확정 악성 신호 감지 시 최소 HIGH 등급(70점) 보장
         if is_confirmed_malicious:
             if risk_grade != RiskGrade.HIGH:
                 logger.warning(
-                    f"[Scoring Engine] 확정 악성 URL 감지 -> HIGH 등급 강제 오버라이드 (원래 점수: {final_score})"
+                    "[Scoring Engine] 확정 악성 신호 "
+                    "감지: HIGH 등급으로 조정 "
+                    "(기존 점수: %s)",
+                    final_score,
                 )
-            pre_override_score = final_score
-            final_score = max(final_score, 70)
-            risk_grade = RiskGrade.HIGH
 
-            # 오버라이드로 늘어난 만큼(final_score - 원래 점수)을 breakdown에도 반영해야
-            # contribution_breakdown 합계가 final_score와 어긋나지 않는다. 확정 판정의
-            # 근거가 URL 트랙이므로 그쪽에 먼저 배정하고, 각 트랙의 스키마 상한(30/35/65)을
-            # 넘으면 규칙 -> LLM 순으로 나머지를 채운다.
-            score_gap = final_score - pre_override_score
+            target_score = max(final_score, 70)
+            score_gap = target_score - final_score
+
             if score_gap > 0:
-                url_add = min(score_gap, 30 - url_contrib)
+                url_capacity = max(
+                    round(url_weight * 100) - url_contrib,
+                    0,
+                )
+                url_add = min(
+                    score_gap,
+                    url_capacity,
+                )
                 url_contrib += url_add
                 score_gap -= url_add
 
-                rules_add = min(score_gap, 35 - rules_contrib)
+                rules_capacity = max(
+                    round(rules_weight * 100) - rules_contrib,
+                    0,
+                )
+                rules_add = min(
+                    score_gap,
+                    rules_capacity,
+                )
                 rules_contrib += rules_add
                 score_gap -= rules_add
 
-                llm_add = min(score_gap, 65 - llm_contrib)
-                llm_contrib += llm_add
-                score_gap -= llm_add
+                text_capacity = max(
+                    round(text_weight * 100) - llm_contrib,
+                    0,
+                )
+                text_add = min(
+                    score_gap,
+                    text_capacity,
+                )
+                llm_contrib += text_add
+
+            final_score = target_score
+            risk_grade = RiskGrade.HIGH
 
         logger.info(
-            f"[Scoring Engine] 통합 연산 완료 -> 최종 점수: {final_score} | 등급: {risk_grade} "
-                f"(LLM: {llm_contrib}, Hybrid-URL: {url_contrib}, Rules: {rules_contrib})"
+            "[Scoring Engine] 계산 완료 - "
+            "점수: %s, 등급: %s "
+            "(TEXT: %s, URL: %s, RULES: %s)",
+            final_score,
+            risk_grade,
+            llm_contrib,
+            url_contrib,
+            rules_contrib,
         )
 
         breakdown = ContributionBreakdown(
             llm=llm_contrib,
             hybrid_url=url_contrib,
-            rules=rules_contrib
+            rules=rules_contrib,
         )
 
         return final_score, risk_grade, breakdown

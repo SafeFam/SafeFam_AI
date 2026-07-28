@@ -39,9 +39,9 @@ class RiskGrade(str, Enum):
 class ContributionBreakdown(BaseModel):
     # URL이 있으면 LLM 50% / 규칙 20%, URL이 없으면 하이브리드 URL 트랙(30%)이 LLM/규칙으로
     # 재배분되어 LLM 65% / 규칙 35%가 되므로 상한이 두 시나리오 중 더 큰 쪽 기준으로 설정됨
-    llm: int = Field(..., description="LLM 문맥 분석 기여 점수 (URL 있음: 0~50, URL 없음: 0~65)", ge=0, le=65)
-    hybrid_url: int = Field(..., description="하이브리드 URL 보안 엔진 기여 점수 (URL 있을 때만 0~30, 없으면 0)", ge=0, le=30)
-    rules: int = Field(..., description="로컬 가드 규칙 기반 기여 점수 (URL 있음: 0~20, URL 없음: 0~35)", ge=0, le=35)
+    llm: int = Field(ge=0, le=100)
+    hybrid_url: int = Field(ge=0, le=100)
+    rules: int = Field(ge=0, le=100)
 
 class SmishingAnalysisResponse(BaseModel):
     status: str = Field(..., description="응답 상태 (SUCCESS / ERROR)")

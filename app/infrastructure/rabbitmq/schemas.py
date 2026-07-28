@@ -79,9 +79,9 @@ class WeightedContributions(BaseModel):
     """최종 위험도 점수에 반영된 트랙별 가중치 기여 점수 스키마"""
     model_config = ConfigDict(extra="forbid")
 
-    text: int = Field(ge=0, le=65)
-    url: int = Field(ge=0, le=30)
-    rules: int = Field(ge=0, le=35)
+    text: int = Field(ge=0, le=100)
+    url: int = Field(ge=0, le=100)
+    rules: int = Field(ge=0, le=100)
 
 
 class TextAnalysisDetail(BaseModel):

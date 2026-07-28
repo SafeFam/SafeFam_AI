@@ -67,36 +67,92 @@ class SmishingAnalysisService:
             if url_task:
                 (text_analysis, naive_bayes_score, llm_available), (traced_url, hybrid_res) = await asyncio.gather(text_task, url_task)
             else:
-                text_analysis, naive_bayes_score, llm_available = await text_task
-                traced_url, hybrid_res = None, {"is_malicious": False, "url_risk_score": 0.0, "source": "Pre-Processing-Filter", "error_message": None, "is_gsb_confirmed": False, "is_vt_confirmed": False}
+                (
+                    text_analysis,
+                    naive_bayes_score,
+                    llm_available,
+                ) = await text_task
 
-            llm_score = text_analysis.get("result", {}).get("risk_score", 0) if isinstance(text_analysis, dict) else 0
+                traced_url = None
+                hybrid_res = {
+                    "is_malicious": False,
+                    "url_risk_score": 0.0,
+                    "source": "Pre-Processing-Filter",
+                    "available": False,
+                    "failed_providers": [],
+                    "pending_providers": [],
+                    "error_message": None,
+                    "is_gsb_confirmed": False,
+                    "is_vt_confirmed": False,
+                }
+
+            text_result = (
+                text_analysis.get("result") or {}
+                if isinstance(text_analysis, dict)
+                else {}
+            )
+            llm_score = text_result.get("risk_score", 0)
+            text_available = (
+                naive_bayes_score is not None
+                or llm_available
+            )
 
             # 로컬 규칙 기반 트랙: 금융기관 DB 대조 + 금융 키워드 + 계좌/카드번호 패턴 + 도메인 룰(.ru 등)
-            rule_result = self.rule_analyzer(text, traced_url)
-            if rule_result["has_malicious_domain_pattern"]:
+            try:
+                rule_result = self.rule_analyzer(text, traced_url)
+            except Exception:
+                logger.exception("[Analysis Service] 규칙 분석 중 오류 발생")
+                rule_result = {
+                    "rule_score": 0,
+                    "has_malicious_domain_pattern": False,
+                    "matched_rules": [],
+                    "error_message": "RULE_ANALYSIS_FAILED",
+                }
+
+            rules_available = not bool(rule_result.get("error_message"))
+            url_available = (
+                has_url
+                and hybrid_res.get("available", False)
+            )
+
+            if rule_result.get("has_malicious_domain_pattern", False):
                 hybrid_res["is_malicious"] = True
-                hybrid_res["url_risk_score"] = max(hybrid_res["url_risk_score"], 0.75)
+                hybrid_res["url_risk_score"] = max(
+                    hybrid_res.get("url_risk_score", 0.0),
+                    0.75,
+                )
 
             # 확정 악성 판정 소스 3종 중 하나라도 해당하면 문맥 점수와 무관하게 HIGH 강제 오버라이드 대상.
             # (GSB 블랙리스트 등재 / VT 다수 엔진 합의 / 로컬 도메인 룰 매치 — 신뢰도 낮은 VT 소수 탐지는 제외)
             is_confirmed_malicious = (
                 hybrid_res.get("is_gsb_confirmed", False)
                 or hybrid_res.get("is_vt_confirmed", False)
-                or rule_result["has_malicious_domain_pattern"]
+                or rule_result.get("has_malicious_domain_pattern", False)
             )
+
+            if (
+                not text_available
+                and not url_available
+                and rule_result.get("rule_score", 0) == 0
+            ):
+                raise ValueError(
+                    "No reliable analysis signal is available"
+                )
 
             # 3중 스코어링 최종 계산 (텍스트 트랙은 나이브 베이즈 + Gemini 하이브리드 결합 점수 사용,
             # URL 없으면 URL 트랙(30%)이 LLM/규칙 트랙으로 재배분됨)
             final_score, risk_grade, breakdown = RiskScoringEngine.calculate_score(
                 llm_score=int(llm_score),
-                is_url_malicious=hybrid_res["is_malicious"],
-                url_risk_score=hybrid_res["url_risk_score"],
-                rule_score=rule_result["rule_score"],
+                is_url_malicious=hybrid_res.get("is_malicious", False),
+                url_risk_score=hybrid_res.get("url_risk_score", 0.0),
+                rule_score=rule_result.get("rule_score", 0),
                 has_url=has_url,
                 naive_bayes_score=naive_bayes_score,
                 llm_available=llm_available,
-                is_confirmed_malicious=is_confirmed_malicious
+                is_confirmed_malicious=is_confirmed_malicious,
+                text_available=text_available,
+                url_available=url_available,
+                rules_available=rules_available,
             )
 
             # URL 부재 시 예외 방어 및 스켈레톤 분기벽 구축
@@ -106,10 +162,13 @@ class SmishingAnalysisService:
                     "is_shortened": original_url != traced_url,
                     "origin_url": traced_url,
                     "original_url": original_url,
-                    "is_url_malicious": hybrid_res["is_malicious"],
-                    "url_risk_score": hybrid_res["url_risk_score"],
-                    "engine_source": hybrid_res["source"],
-                    "error_message": hybrid_res["error_message"]
+                    "is_url_malicious": hybrid_res.get("is_malicious", False),
+                    "url_risk_score": hybrid_res.get("url_risk_score", 0.0),
+                    "engine_source": hybrid_res.get("source", "Hybrid-Engine"),
+                    "available": url_available,
+                    "failed_providers": hybrid_res.get("failed_providers", []),
+                    "pending_providers": hybrid_res.get("pending_providers", []),
+                    "error_message": hybrid_res.get("error_message"),
                 }
             else:
                 real_url_analysis = None
