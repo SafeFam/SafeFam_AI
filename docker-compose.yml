@@ -10,7 +10,7 @@ services:
       - .:/workspace
     environment:
       ENV: local
-      RABBITMQ_URL: ${RABBITMQ_DOCKER_URL}
+      RABBITMQ_URL: ${RABBITMQ_DOCKER_URL:-amqp://safefam:safefam-local@rabbitmq:5672/}
       RABBITMQ_ANALYSIS_EXCHANGE: ${RABBITMQ_ANALYSIS_EXCHANGE:-safefam.analysis}
       RABBITMQ_ANALYSIS_REQUEST_QUEUE: ${RABBITMQ_ANALYSIS_REQUEST_QUEUE:-safefam.analysis.requested.q}
       RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: ${RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY:-analysis.requested.v1}

@@ -54,10 +54,11 @@ def create_lifespan(
 
             yield
         finally:
-            if consumer is not None:
-                await consumer.stop()
-
-            await rabbitmq.close()
+            try:
+                if consumer is not None:
+                    await consumer.stop()
+            finally:
+                await rabbitmq.close()
 
     return lifespan
 

@@ -163,23 +163,60 @@ async def test_consumer_requeues_first_processing_failure():
     message.reject.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_consumer_rejects_failure_after_redelivery():
-    """재시도 후 실패 reject 테스트"""
+async def test_consumer_does_not_treat_redelivery_as_retry_attempt():
+    """Broker redelivery is not an application retry attempt."""
     consumer, _, handler = create_consumer()
     message = create_message(redelivered=True)
 
     handler.handle.side_effect = RuntimeError(
-        "Analysis failed again"
+        "Temporary analysis failure"
     )
 
     await consumer._on_message(message)
 
     handler.handle.assert_awaited_once()
-    message.reject.assert_awaited_once_with(
-        requeue=False
+    message.nack.assert_awaited_once_with(
+        requeue=True
     )
     message.ack.assert_not_awaited()
-    message.nack.assert_not_awaited()
+    message.reject.assert_not_awaited()
+
+@pytest.mark.asyncio
+async def test_consumer_rejects_after_recorded_retry_fails():
+    """Reject after the recorded application retry also fails."""
+    consumer, _, handler = create_consumer()
+    first_message = create_message(redelivered=False)
+    second_message = create_message(redelivered=True)
+
+    handler.handle.side_effect = RuntimeError(
+        "Analysis failure"
+    )
+
+    await consumer._on_message(first_message)
+    await consumer._on_message(second_message)
+
+    first_message.nack.assert_awaited_once_with(
+        requeue=True
+    )
+    second_message.reject.assert_awaited_once_with(
+        requeue=False
+    )
+    assert consumer.retry_attempts == {}
+
+@pytest.mark.asyncio
+async def test_consumer_clears_retry_state_after_success():
+    """Clear application retry state after successful processing."""
+    consumer, _, handler = create_consumer()
+    message = create_message()
+    event_id = "1fb898fa-d89d-4d0b-a43f-a8b00daeb765"
+
+    consumer.retry_attempts[event_id] = 1
+    handler.handle.return_value = create_success_result()
+
+    await consumer._on_message(message)
+
+    assert event_id not in consumer.retry_attempts
+    message.ack.assert_awaited_once()
 
 @pytest.mark.asyncio
 async def test_consumer_start_subscribes_to_queue():

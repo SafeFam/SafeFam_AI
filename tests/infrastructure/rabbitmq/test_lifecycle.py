@@ -96,3 +96,43 @@ def test_lifespan_closes_connection_when_consumer_start_fails():
                 pass
 
     fake_connection.close.assert_awaited_once()
+
+
+def test_lifespan_closes_connection_when_consumer_stop_fails():
+    """Always close RabbitMQ when consumer shutdown fails."""
+    fake_connection = MagicMock()
+    fake_connection.connect = AsyncMock()
+    fake_connection.close = AsyncMock()
+    fake_connection.get_request_queue.return_value = (
+        MagicMock()
+    )
+
+    fake_consumer = MagicMock()
+    fake_consumer.start = AsyncMock()
+    fake_consumer.stop = AsyncMock(
+        side_effect=RuntimeError("Consumer stop failed")
+    )
+
+    application = create_app(
+        rabbitmq_consumer_enabled=True
+    )
+
+    with (
+        patch(
+            "app.main.RabbitMQConnection",
+            return_value=fake_connection,
+        ),
+        patch(
+            "app.main.AnalysisRequestConsumer",
+            return_value=fake_consumer,
+        ),
+    ):
+        with pytest.raises(
+            RuntimeError,
+            match="Consumer stop failed",
+        ):
+            with TestClient(application):
+                pass
+
+    fake_consumer.stop.assert_awaited_once()
+    fake_connection.close.assert_awaited_once()
