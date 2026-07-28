@@ -83,6 +83,7 @@ async def test_connect_initializes_request_topology(
 
     assert rabbitmq.exchange is fake_exchange
     assert rabbitmq.request_queue is fake_queue
+    assert rabbitmq.get_exchange() is fake_exchange
 
 @pytest.mark.asyncio
 @patch(
@@ -126,6 +127,19 @@ def test_get_request_queue_fails_before_connect():
         match="request queue is not initialized",
     ):
         rabbitmq.get_request_queue()
+
+
+def test_get_exchange_fails_before_connect():
+    """연결 전 Exchange 접근 테스트."""
+    rabbitmq = RabbitMQConnection(
+        create_fake_settings()
+    )
+
+    with pytest.raises(
+        RabbitMQNotConnectedError,
+        match="exchange is not initialized",
+    ):
+        rabbitmq.get_exchange()
 
 @pytest.mark.asyncio
 async def test_close_closes_connection_and_clears_resources():

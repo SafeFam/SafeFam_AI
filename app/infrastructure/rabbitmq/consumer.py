@@ -6,8 +6,15 @@ from aio_pika.abc import (
 )
 from pydantic import ValidationError
 
+from app.analysis.execution import classify_execution
 from app.infrastructure.rabbitmq.handler import (
     AnalysisRequestHandler,
+)
+from app.infrastructure.rabbitmq.publisher import (
+    AnalysisResultPublisher,
+)
+from app.infrastructure.rabbitmq.result_factory import (
+    AnalysisResultEventFactory,
 )
 from app.infrastructure.rabbitmq.schemas import (
     AnalysisRequestedEvent,
@@ -23,9 +30,14 @@ class AnalysisRequestConsumer:
         self,
         request_queue: AbstractRobustQueue,
         handler: AnalysisRequestHandler,
+        result_publisher: AnalysisResultPublisher,
+        result_factory: AnalysisResultEventFactory,
     ) -> None:
         self.request_queue = request_queue
         self.handler = handler
+        self.result_publisher = result_publisher
+        self.result_factory = result_factory
+
         self.consumer_tag: str | None = None
         self.retry_attempts: dict[str, int] = {}
 
@@ -71,7 +83,7 @@ class AnalysisRequestConsumer:
         self,
         message: AbstractIncomingMessage,
     ) -> None:
-        """메시지를 검증하고 분석 핸들러 호출"""
+        """요청을 분석하고 결과 이벤트 발행 후 ACK"""
         try:
             event = AnalysisRequestedEvent.model_validate_json(
                 message.body
@@ -87,7 +99,18 @@ class AnalysisRequestConsumer:
             return
 
         try:
-            await self.handler.handle(event)
+            result = await self.handler.handle(event)
+
+            execution = classify_execution(result)
+
+            result_event = self.result_factory.create(
+                request=event,
+                execution=execution,
+            )
+
+            await self.result_publisher.publish(
+                result_event
+            )
         except Exception:
             await self._handle_processing_failure(
                 message=message,
@@ -96,16 +119,20 @@ class AnalysisRequestConsumer:
             return
 
         self.retry_attempts.pop(str(event.eventId), None)
+
         await message.ack()
 
         logger.info(
-            "Analysis request acknowledged. "
+            "Analysis request acknowledged after result publication. "
             "message_id=%s event_id=%s "
-            "analysis_id=%s trace_id=%s",
+            "analysis_id=%s trace_id=%s "
+            "result_event_id=%s result_event_type=%s",
             message.message_id,
             event.eventId,
             event.analysisId,
             event.traceId,
+            result_event.eventId,
+            result_event.eventType.value,
         )
 
     async def _handle_processing_failure(

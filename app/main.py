@@ -16,6 +16,12 @@ from app.infrastructure.rabbitmq.consumer import (
 from app.infrastructure.rabbitmq.handler import (
     AnalysisRequestHandler,
 )
+from app.infrastructure.rabbitmq.publisher import (
+    AnalysisResultPublisher,
+)
+from app.infrastructure.rabbitmq.result_factory import (
+    AnalysisResultEventFactory,
+)
 
 
 def create_lifespan(
@@ -40,9 +46,17 @@ def create_lifespan(
                 analysis_service=SmishingAnalysisService()
             )
 
+            result_publisher = AnalysisResultPublisher(
+                exchange=rabbitmq.get_exchange(),
+            )
+
+            result_factory = AnalysisResultEventFactory()
+
             consumer = AnalysisRequestConsumer(
                 request_queue=rabbitmq.get_request_queue(),
                 handler=handler,
+                result_publisher=result_publisher,
+                result_factory=result_factory,
             )
 
             await consumer.start()

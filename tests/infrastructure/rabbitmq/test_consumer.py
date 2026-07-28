@@ -1,5 +1,5 @@
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -57,6 +57,24 @@ def create_success_result() -> SmishingAnalysisResponse:
         rule_analysis=None,
     )
 
+
+def create_error_result() -> SmishingAnalysisResponse:
+    return SmishingAnalysisResponse(
+        status="ERROR",
+        message="All analysis tracks failed.",
+        final_score=40,
+        risk_grade=RiskGrade.MEDIUM,
+        contribution_breakdown=ContributionBreakdown(
+            llm=0,
+            hybrid_url=0,
+            rules=0,
+        ),
+        text_analysis=None,
+        url_analysis=None,
+        rule_analysis=None,
+    )
+
+
 def create_message(
     *,
     body: bytes | None = None,
@@ -74,9 +92,20 @@ def create_consumer():
     request_queue = AsyncMock()
     handler = AsyncMock()
 
+    result_publisher = Mock()
+    result_publisher.publish = AsyncMock()
+
+    result_factory = Mock()
+    result_factory.create.return_value = Mock(
+        eventId="result-event-id",
+        eventType=Mock(value="ANALYSIS_COMPLETED"),
+    )
+
     consumer = AnalysisRequestConsumer(
         request_queue=request_queue,
         handler=handler,
+        result_publisher=result_publisher,
+        result_factory=result_factory,
     )
 
     return consumer, request_queue, handler
@@ -100,9 +129,67 @@ async def test_consumer_acknowledges_successful_message():
         "[국민은행] 계좌가 정지되었습니다."
     )
 
+    consumer.result_factory.create.assert_called_once()
+    factory_arguments = (
+        consumer.result_factory.create.call_args.kwargs
+    )
+    assert factory_arguments["request"] is handled_event
+    assert (
+        factory_arguments["execution"].status.value
+        == "COMPLETED"
+    )
+
+    result_event = (
+        consumer.result_factory.create.return_value
+    )
+    consumer.result_publisher.publish.assert_awaited_once_with(
+        result_event
+    )
+
     message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
     message.reject.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_consumer_does_not_ack_when_publication_fails():
+    """결과 이벤트 발행 실패 시 요청 메시지를 ACK하지 않습니다."""
+    consumer, _, handler = create_consumer()
+    message = create_message()
+
+    handler.handle.return_value = create_success_result()
+    consumer.result_publisher.publish.side_effect = (
+        RuntimeError("RabbitMQ publish failed")
+    )
+
+    await consumer._on_message(message)
+
+    consumer.result_publisher.publish.assert_awaited_once()
+    message.ack.assert_not_awaited()
+    message.nack.assert_awaited_once_with(requeue=True)
+    message.reject.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_consumer_publishes_failed_result_and_acks():
+    """ERROR 응답을 FAILED 결과 이벤트로 발행한 뒤 ACK합니다."""
+    consumer, _, handler = create_consumer()
+    message = create_message()
+
+    handler.handle.return_value = create_error_result()
+
+    await consumer._on_message(message)
+
+    factory_arguments = (
+        consumer.result_factory.create.call_args.kwargs
+    )
+    assert (
+        factory_arguments["execution"].status.value
+        == "FAILED"
+    )
+    consumer.result_publisher.publish.assert_awaited_once()
+    message.ack.assert_awaited_once()
+    message.nack.assert_not_awaited()
 
 @pytest.mark.asyncio
 async def test_consumer_rejects_invalid_json_without_requeue():

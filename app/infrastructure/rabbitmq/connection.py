@@ -45,7 +45,10 @@ class RabbitMQConnection:
             self.settings.RABBITMQ_URL
         )
 
-        self.channel = await self.connection.channel()
+        self.channel = await self.connection.channel(
+            publisher_confirms=True,
+            on_return_raises=True,
+        )
 
         await self.channel.set_qos(
             prefetch_count=(
