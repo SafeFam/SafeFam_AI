@@ -155,9 +155,9 @@ async def test_handler_propagates_analysis_service_exception():
 
 @pytest.mark.asyncio
 async def test_handler_logs_event_tracking_identifiers(
-    """추적 식별자 로그 테스트"""
     caplog: pytest.LogCaptureFixture,
 ):
+    """추적 식별자 로그 테스트."""
     event = create_analysis_requested_event()
     expected_result = create_success_result()
 
@@ -183,9 +183,9 @@ async def test_handler_logs_event_tracking_identifiers(
 
 @pytest.mark.asyncio
 async def test_handler_does_not_log_message_content(
-    """문자 원문을 로그에 남기지 않는지 테스트"""
     caplog: pytest.LogCaptureFixture,
 ):
+    """문자 원문을 로그에 남기지 않는지 테스트."""
     event = create_analysis_requested_event()
     expected_result = create_success_result()
 
@@ -205,9 +205,9 @@ async def test_handler_does_not_log_message_content(
 
 @pytest.mark.asyncio
 async def test_handler_logs_tracking_identifiers_on_failure(
-    """실패 로그 식별자 테스트"""
     caplog: pytest.LogCaptureFixture,
 ):
+    """실패 로그 식별자 테스트."""
     event = create_analysis_requested_event()
     error_result = create_error_result()
 

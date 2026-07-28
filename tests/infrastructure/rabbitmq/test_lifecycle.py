@@ -1,5 +1,10 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import create_app
+
 def test_disabled_consumer_does_not_connect_to_rabbitmq():
     """Consumer가 비활성화됐을 때 RabbitMQ를 생성하지 않는지 테스트"""
     application = create_app(

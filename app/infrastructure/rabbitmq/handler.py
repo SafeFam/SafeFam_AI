@@ -33,7 +33,7 @@ class AnalysisRequestHandler:
             event.traceId,
         )
 
-        result = await self.analysis_service.analysis_pipeline(
+        result = await self.analysis_service.analyze_pipeline(
             event.payload.content
         )
 
@@ -49,7 +49,7 @@ class AnalysisRequestHandler:
             )
 
             raise AnalysisPipelineError(
-                "Analysis pipeline failed."
+                "Analysis pipeline failed. "
                 f"analysis_id={event.analysisId} "
                 f"reason={result.message}"
             )

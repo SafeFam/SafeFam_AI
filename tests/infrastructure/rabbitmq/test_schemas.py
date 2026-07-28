@@ -224,9 +224,9 @@ def test_rejects_unknown_payload_field(
         AnalysisRequestedEvent.model_validate(valid_event_data)
 
 def test_parses_event_from_json_message(
-    """JSON 문자열 파싱 테스트"""
     valid_event_data: dict,
 ):
+    """JSON 문자열 파싱 테스트."""
     message_body = json.dumps(
         valid_event_data,
         ensure_ascii=False,

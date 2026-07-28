@@ -32,9 +32,9 @@ def create_fake_settings():
     new_callable=AsyncMock,
 )
 async def test_connect_initializes_request_topology(
-    """연결과 토폴로지 선언 테스트"""
     mock_connect_robust: AsyncMock,
 ):
+    """연결과 토폴로지 선언 테스트."""
     fake_connection = AsyncMock()
     fake_connection.is_closed = False
 
@@ -88,9 +88,9 @@ async def test_connect_initializes_request_topology(
     new_callable=AsyncMock,
 )
 async def test_connect_does_not_open_duplicate_connection(
-    """중복 연결 방지 테스트"""
     mock_connect_robust: AsyncMock,
 ):
+    """중복 연결 방지 테스트."""
     fake_connection = AsyncMock()
     fake_connection.is_closed = False
 
