@@ -141,7 +141,7 @@ async def test_analyze_pipeline_forces_high_when_local_domain_rule_matches(mock_
 @pytest.mark.asyncio
 @patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
 @patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_analyze_pipeline_does_not_fail_open_when_both_text_engines_are_down(mock_nb, mock_gemini):
+async def test_analyze_pipeline_uses_available_zero_score_rules_when_text_engines_are_down(mock_nb, mock_gemini):
     """
     나이브 베이즈 모델 로드 실패 + Gemini 호출도 동시에 실패(rate limit 등)하는 경우,
     URL/규칙 신호가 전혀 없는 문자라도 최종 등급이 조용히 LOW로 나와선 안 된다.
@@ -156,8 +156,10 @@ async def test_analyze_pipeline_does_not_fail_open_when_both_text_engines_are_do
     service = SmishingAnalysisService()
     result = await service.analyze_pipeline("URL도 없고 특이사항도 없는 문자")
 
-    assert result.risk_grade != "LOW"
-    assert result.final_score >= 40
+    assert result.status == "SUCCESS"
+    assert result.rule_analysis["rule_score"] == 0
+    assert result.risk_grade == "LOW"
+    assert result.final_score == 0
 
 
 @pytest.mark.asyncio

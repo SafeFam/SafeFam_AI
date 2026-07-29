@@ -1,4 +1,6 @@
 from app.analysis.schemas import RiskGrade
+import pytest
+
 from app.analysis.scoring import RiskScoringEngine
 
 ScoringEngine = RiskScoringEngine
@@ -206,3 +208,36 @@ def test_calculate_score_without_url_raises_ceiling_above_old_50_point_cap():
     assert breakdown.llm == 65
     assert final_score == 65
     assert final_score > 50
+
+def test_redistributes_url_weight_when_url_unavailable():
+    final_score, _, breakdown = (
+        RiskScoringEngine.calculate_score(
+            llm_score=70,
+            is_url_malicious=False,
+            url_risk_score=0.0,
+            rule_score=70,
+            has_url=True,
+            url_available=False,
+        )
+    )
+
+    assert breakdown.hybrid_url == 0
+    assert breakdown.llm == 50
+    assert breakdown.rules == 20
+    assert final_score == 70
+
+def test_raises_when_all_tracks_are_unavailable():
+    with pytest.raises(
+        ValueError,
+        match="No analysis tracks are available",
+    ):
+        RiskScoringEngine.calculate_score(
+            llm_score=0,
+            is_url_malicious=False,
+            url_risk_score=0.0,
+            rule_score=0,
+            has_url=True,
+            text_available=False,
+            url_available=False,
+            rules_available=False,
+        )

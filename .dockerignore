@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+
+.venv
+__pycache__
+.pytest_cache
+*.py[cod]
+
+.env
+.env.*
+
+tests
+requirements-dev.txt
+
+*.log
+.DS_Store
