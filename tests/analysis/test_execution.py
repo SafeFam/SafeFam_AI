@@ -151,6 +151,29 @@ def test_classifies_naive_bayes_failure_with_valid_gemini() -> None:
     )
 
 
+def test_classifies_unknown_naive_bayes_without_error_code() -> None:
+    execution = classify_execution(
+        _result(
+            text_analysis={
+                "result": {
+                    "grade": "SAFE",
+                    "error_message": None,
+                },
+                "stage1_naive_bayes": {
+                    "grade": "UNKNOWN",
+                    "error_message": None,
+                },
+            },
+            rule_analysis={"error_message": None},
+        )
+    )
+
+    assert execution.status == AnalysisExecutionStatus.PARTIAL
+    assert execution.failed_tracks == (
+        "TEXT:NAIVE_BAYES",
+    )
+
+
 def test_classifies_rule_failure_as_partial() -> None:
     execution = classify_execution(
         _result(

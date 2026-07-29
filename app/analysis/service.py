@@ -134,10 +134,7 @@ class SmishingAnalysisService:
             no_reliable_signal = (
                 not text_available
                 and not url_available
-                and (
-                    not rules_available
-                    or rule_result.get("rule_score", 0) == 0
-                )
+                and not rules_available
             )
             if no_reliable_signal:
                 raise ValueError(

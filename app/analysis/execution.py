@@ -52,7 +52,7 @@ def classify_execution(
             failed_tracks.append("TEXT:GEMINI")
         else:
             failed_tracks.append("TEXT")
-    elif stage1_result.get("error_message"):
+    elif stage1_failed:
         failed_tracks.append("TEXT:NAIVE_BAYES")
 
     url_analysis = result.url_analysis or {}

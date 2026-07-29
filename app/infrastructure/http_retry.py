@@ -2,6 +2,8 @@ import asyncio
 import logging
 import random
 from collections.abc import Awaitable, Callable
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import httpx
 
@@ -37,7 +39,23 @@ async def _sleep_before_retry(
         try:
             delay = max(float(retry_after), 0.0)
         except ValueError:
-            delay = None
+            try:
+                retry_at = parsedate_to_datetime(
+                    retry_after
+                )
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(
+                        tzinfo=timezone.utc
+                    )
+                delay = max(
+                    (
+                        retry_at
+                        - datetime.now(timezone.utc)
+                    ).total_seconds(),
+                    0.0,
+                )
+            except (TypeError, ValueError, OverflowError):
+                delay = None
 
     if delay is None:
         base_delay = min(0.25 * (2 ** attempt), 5.0)
