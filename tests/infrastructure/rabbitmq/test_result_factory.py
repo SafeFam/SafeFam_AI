@@ -18,6 +18,7 @@ from app.infrastructure.rabbitmq.result_factory import (
 from app.infrastructure.rabbitmq.schemas import (
     AnalysisEventType,
     AnalysisRequestedEvent,
+    TextAnalysisMethod,
 )
 
 
@@ -157,3 +158,98 @@ def test_factory_maps_failed_execution_without_message_content() -> None:
     assert event.payload.riskGrade is None
     assert event.payload.failureCode == "PIPELINE_FAILED"
     assert request.payload.content not in event.model_dump_json()
+
+
+def test_factory_uses_deterministic_result_event_id() -> None:
+    request = _request()
+    execution = AnalysisExecution(
+        status=AnalysisExecutionStatus.COMPLETED,
+        result=_result(),
+        failed_tracks=(),
+    )
+    factory = AnalysisResultEventFactory()
+
+    first = factory.create(
+        request=request,
+        execution=execution,
+    )
+    second = factory.create(
+        request=request,
+        execution=execution,
+    )
+
+    assert first.eventId == second.eventId
+
+
+def test_factory_maps_machine_readable_url_error_codes() -> None:
+    request = _request()
+    result = _result()
+    result.url_analysis[
+        "provider_error_codes"
+    ] = {
+        "VIRUSTOTAL": "RATE_LIMITED",
+        "GSB": "TIMEOUT",
+    }
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.PARTIAL,
+            result=result,
+            failed_tracks=(
+                "URL:GSB",
+                "URL:VIRUSTOTAL",
+            ),
+        ),
+    )
+
+    assert event.payload.urlAnalysis is not None
+    assert event.payload.urlAnalysis.errorCode == (
+        "GSB:TIMEOUT;VIRUSTOTAL:RATE_LIMITED"
+    )
+
+
+def test_factory_identifies_gemini_only_text_analysis() -> None:
+    request = _request()
+    result = _result()
+    result.text_analysis = {
+        "engine": "gemini",
+        "result": {
+            "risk_score": 55,
+            "grade": "SUSPICIOUS",
+            "evidence": [],
+        },
+    }
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    assert event.payload.textAnalysis is not None
+    assert event.payload.textAnalysis.method == (
+        TextAnalysisMethod.GEMINI
+    )
+
+
+def test_factory_maps_unit_url_score_to_one_hundred() -> None:
+    request = _request()
+    result = _result()
+    result.url_analysis["url_risk_score"] = 1
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    assert event.payload.rawScores.url == 100
+    assert event.payload.urlAnalysis is not None
+    assert event.payload.urlAnalysis.score == 100

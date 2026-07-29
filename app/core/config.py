@@ -70,6 +70,10 @@ class Settings(BaseSettings):
         default=30.0,
         gt=0,
     )
+    RABBITMQ_REQUEUE_BACKOFF_SECONDS: float = Field(
+        default=1.0,
+        ge=0,
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env", 

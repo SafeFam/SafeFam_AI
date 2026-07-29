@@ -5,6 +5,9 @@ from aio_pika import DeliveryMode, Message
 from aio_pika.abc import AbstractRobustExchange
 
 from app.core.config import Settings, settings
+from app.infrastructure.errors import (
+    RetryableProcessingError,
+)
 from app.infrastructure.rabbitmq.schemas import (
     AnalysisEventType,
     AnalysisResultEvent,
@@ -58,14 +61,29 @@ class AnalysisResultPublisher:
             },
         )
 
-        await asyncio.wait_for(
-            self.exchange.publish(
-                message,
-                routing_key=routing_key,
-                mandatory=True,
-            ),
-            timeout=(
-                self.settings
-                .RABBITMQ_PUBLISH_TIMEOUT_SECONDS
-            ),
-        )
+        try:
+            await asyncio.wait_for(
+                self.exchange.publish(
+                    message,
+                    routing_key=routing_key,
+                    mandatory=True,
+                ),
+                timeout=(
+                    self.settings
+                    .RABBITMQ_PUBLISH_TIMEOUT_SECONDS
+                ),
+            )
+        except TimeoutError as exception:
+            raise RetryableProcessingError(
+                message=(
+                    "Analysis result publication timed out"
+                ),
+                failure_code="RESULT_PUBLISH_TIMEOUT",
+            ) from exception
+        except Exception as exception:
+            raise RetryableProcessingError(
+                message=(
+                    "Failed to publish analysis result"
+                ),
+                failure_code="RESULT_PUBLISH_FAILED",
+            ) from exception

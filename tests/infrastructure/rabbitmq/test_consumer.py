@@ -1,4 +1,5 @@
 import json
+import asyncio
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -88,6 +89,7 @@ def create_message(
     message.body = body or create_valid_message_body()
     message.message_id = "rabbit-message-001"
     message.redelivered = redelivered
+    message.headers = {}
 
     return message
 
@@ -115,6 +117,7 @@ def create_consumer():
         result_publisher=result_publisher,
         result_factory=result_factory,
         dead_letter_publisher=dead_letter_publisher,
+        requeue_backoff_seconds=0,
     )
 
     return consumer, request_queue, handler
@@ -291,8 +294,8 @@ async def test_consumer_requeues_first_processing_failure():
     message.reject.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_consumer_does_not_treat_redelivery_as_retry_attempt():
-    """Broker redelivery is not an application retry attempt."""
+async def test_consumer_treats_redelivery_as_retry_attempt():
+    """Broker redelivery state survives restarts and bounds retries."""
     consumer, _, handler = create_consumer()
     message = create_message(redelivered=True)
 
@@ -303,11 +306,9 @@ async def test_consumer_does_not_treat_redelivery_as_retry_attempt():
     await consumer._on_message(message)
 
     handler.handle.assert_awaited_once()
-    message.nack.assert_awaited_once_with(
-        requeue=True
-    )
-    message.ack.assert_not_awaited()
-    message.reject.assert_not_awaited()
+    consumer.dead_letter_publisher.publish.assert_awaited_once()
+    message.ack.assert_awaited_once()
+    message.nack.assert_not_awaited()
 
 @pytest.mark.asyncio
 async def test_consumer_routes_to_dlq_after_retry_fails():
@@ -341,7 +342,6 @@ async def test_consumer_routes_to_dlq_after_retry_fails():
     assert dlq_arguments["request_event"].analysisId == 123
     second_message.ack.assert_awaited_once()
     second_message.reject.assert_not_awaited()
-    assert consumer.retry_attempts == {}
 
 
 @pytest.mark.asyncio
@@ -388,18 +388,19 @@ async def test_consumer_routes_non_retryable_processing_error_to_dlq():
     message.nack.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_consumer_clears_retry_state_after_success():
-    """Clear application retry state after successful processing."""
+async def test_consumer_uses_broker_delivery_count():
+    """Quorum queue delivery count is the authoritative retry state."""
     consumer, _, handler = create_consumer()
     message = create_message()
-    event_id = "1fb898fa-d89d-4d0b-a43f-a8b00daeb765"
+    message.headers = {"x-delivery-count": 1}
 
-    consumer.retry_attempts[event_id] = 1
-    handler.handle.return_value = create_success_result()
+    handler.handle.side_effect = RuntimeError(
+        "Temporary analysis failure"
+    )
 
     await consumer._on_message(message)
 
-    assert event_id not in consumer.retry_attempts
+    consumer.dead_letter_publisher.publish.assert_awaited_once()
     message.ack.assert_awaited_once()
 
 @pytest.mark.asyncio
@@ -455,3 +456,43 @@ async def test_consumer_stop_before_start_does_nothing():
     await consumer.stop()
 
     request_queue.cancel.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_consumer_stop_waits_for_in_flight_task():
+    consumer, request_queue, _ = create_consumer()
+    consumer.consumer_tag = "analysis-consumer-tag"
+    consumer.shutdown_timeout_seconds = 1
+
+    task = asyncio.create_task(asyncio.sleep(0))
+    consumer.in_flight_tasks.add(task)
+
+    await consumer.stop()
+
+    request_queue.cancel.assert_awaited_once_with(
+        "analysis-consumer-tag"
+    )
+    assert task.done()
+
+
+@pytest.mark.asyncio
+async def test_consumer_stop_returns_after_shutdown_timeout():
+    consumer, request_queue, _ = create_consumer()
+    consumer.consumer_tag = "analysis-consumer-tag"
+    consumer.shutdown_timeout_seconds = 0
+
+    blocker = asyncio.Event()
+    task = asyncio.create_task(blocker.wait())
+    consumer.in_flight_tasks.add(task)
+
+    try:
+        await consumer.stop()
+
+        request_queue.cancel.assert_awaited_once_with(
+            "analysis-consumer-tag"
+        )
+        assert not task.done()
+    finally:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task

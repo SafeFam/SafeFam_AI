@@ -81,6 +81,7 @@ class SmishingAnalysisService:
                     "available": False,
                     "failed_providers": [],
                     "pending_providers": [],
+                    "provider_error_codes": {},
                     "error_message": None,
                     "is_gsb_confirmed": False,
                     "is_vt_confirmed": False,
@@ -130,11 +131,15 @@ class SmishingAnalysisService:
                 or rule_result.get("has_malicious_domain_pattern", False)
             )
 
-            if (
+            no_reliable_signal = (
                 not text_available
                 and not url_available
-                and rule_result.get("rule_score", 0) == 0
-            ):
+                and (
+                    not rules_available
+                    or rule_result.get("rule_score", 0) == 0
+                )
+            )
+            if no_reliable_signal:
                 raise ValueError(
                     "No reliable analysis signal is available"
                 )
@@ -168,6 +173,10 @@ class SmishingAnalysisService:
                     "available": url_available,
                     "failed_providers": hybrid_res.get("failed_providers", []),
                     "pending_providers": hybrid_res.get("pending_providers", []),
+                    "provider_error_codes": hybrid_res.get(
+                        "provider_error_codes",
+                        {},
+                    ),
                     "error_message": hybrid_res.get("error_message"),
                 }
             else:

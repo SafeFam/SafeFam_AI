@@ -38,11 +38,20 @@ def classify_execution(
     text_result = text_analysis.get("result") or {}
     stage1_result = text_analysis.get("stage1_naive_bayes") or {}
 
-    if (
+    text_failed = (
         text_result.get("grade") == "UNKNOWN"
         or text_result.get("error_message")
-    ):
-        failed_tracks.append("TEXT")
+    )
+    stage1_failed = (
+        stage1_result.get("grade") == "UNKNOWN"
+        or stage1_result.get("error_message")
+    )
+
+    if text_failed:
+        if stage1_result and not stage1_failed:
+            failed_tracks.append("TEXT:GEMINI")
+        else:
+            failed_tracks.append("TEXT")
     elif stage1_result.get("error_message"):
         failed_tracks.append("TEXT:NAIVE_BAYES")
 

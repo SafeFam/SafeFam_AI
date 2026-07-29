@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import random
 from collections.abc import Awaitable, Callable
 
 import httpx
@@ -24,6 +26,29 @@ def is_retryable_status(status_code: int) -> bool:
     )
 
 
+async def _sleep_before_retry(
+    attempt: int,
+    retry_after: str | None = None,
+) -> None:
+    """지수 backoff와 jitter를 적용하고 Retry-After를 우선한다."""
+    delay: float | None = None
+
+    if retry_after is not None:
+        try:
+            delay = max(float(retry_after), 0.0)
+        except ValueError:
+            delay = None
+
+    if delay is None:
+        base_delay = min(0.25 * (2 ** attempt), 5.0)
+        delay = base_delay + random.uniform(
+            0.0,
+            base_delay * 0.1,
+        )
+
+    await asyncio.sleep(min(delay, 30.0))
+
+
 async def request_with_retry(
     operation: Callable[[], Awaitable[httpx.Response]],
     *,
@@ -47,6 +72,7 @@ async def request_with_retry(
                 max_retries,
                 type(exc).__name__,
             )
+            await _sleep_before_retry(attempt)
             continue
 
         # 기존 커넥션 정리 후 재시도
@@ -62,7 +88,14 @@ async def request_with_retry(
                 max_retries,
                 response.status_code,
             )
+            retry_after = response.headers.get(
+                "Retry-After"
+            )
             await response.aclose()
+            await _sleep_before_retry(
+                attempt,
+                retry_after=retry_after,
+            )
             continue
 
         return response

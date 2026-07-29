@@ -127,3 +127,27 @@ async def test_clean_url_is_not_gsb_confirmed():
 
     assert result["is_malicious"] is False
     assert result["is_gsb_confirmed"] is False
+
+@pytest.mark.asyncio
+async def test_single_vt_detection_is_not_malicious():
+    engine = HybridUrlAnalyzer()
+    engine.gsb_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "safe",
+        }
+    )
+    engine.vt_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "detected_count": 1,
+            "raw_score": 0.1,
+            "status": "safe",
+        }
+    )
+
+    result = await engine.scan_url(
+        "https://example.com"
+    )
+
+    assert result["is_malicious"] is False

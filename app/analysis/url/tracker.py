@@ -32,8 +32,6 @@ async def _is_public_host(
     hostname: Optional[str],
     dns_timeout: float | None = None,
 ) -> Optional[str]:
-    if dns_timeout is None:
-        dns_timeout = settings.URL_TRACE_TIMEOUT_SECONDS
     """
     SSRF 방어: 호스트가 실제로 가리키는 IP를 DNS로 확인해서 내부망/사설 대역이면 차단.
     도메인이 공개 주소처럼 보여도 리다이렉트 체인 중간에 내부망으로 우회할 수 있으므로
@@ -43,6 +41,9 @@ async def _is_public_host(
     응답이 바뀌는 DNS 리바인딩을 막을 수 있다. 그래서 bool이 아니라 검증에 사용한
     IP 문자열(고정할 주소)을 반환하고, 차단 시 None을 반환한다.
     """
+    if dns_timeout is None:
+        dns_timeout = settings.URL_TRACE_TIMEOUT_SECONDS
+
     if not hostname:
         return None
 
@@ -179,7 +180,7 @@ async def trace_url(
                 }
 
                 response = await request_with_retry(
-                    lambda: client.head(
+                    lambda current_url=current_url, headers=headers: client.head(
                         current_url,
                         headers=headers,
                         timeout=timeout,
@@ -191,7 +192,7 @@ async def trace_url(
                 # HEAD를 차단하거나 거부하는 서버(400, 404, 405)에 대응하기 위한 GET 폴백
                 if response.status_code in [400, 404, 405]:
                     response = await request_with_retry(
-                        lambda: client.get(
+                        lambda current_url=current_url, headers=headers: client.get(
                             current_url,
                             headers=headers,
                             timeout=timeout,

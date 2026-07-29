@@ -48,6 +48,9 @@ class AnalysisRequestConsumer:
         shutdown_timeout_seconds: float = (
             settings.RABBITMQ_SHUTDOWN_TIMEOUT_SECONDS
         ),
+        requeue_backoff_seconds: float = (
+            settings.RABBITMQ_REQUEUE_BACKOFF_SECONDS
+        ),
     ) -> None:
         self.request_queue = request_queue
         self.handler = handler
@@ -56,10 +59,11 @@ class AnalysisRequestConsumer:
         self.dead_letter_publisher = dead_letter_publisher
 
         self.consumer_tag: str | None = None
-        self.retry_attempts: dict[str, int] = {}
-
         self.shutdown_timeout_seconds = (
             shutdown_timeout_seconds
+        )
+        self.requeue_backoff_seconds = (
+            requeue_backoff_seconds
         )
         self.in_flight_tasks: set[asyncio.Task] = set()
 
@@ -201,11 +205,6 @@ class AnalysisRequestConsumer:
             )
             return
 
-        self.retry_attempts.pop(
-            str(event.eventId),
-            None,
-        )
-
         await message.ack()
 
         logger.info(
@@ -263,15 +262,9 @@ class AnalysisRequestConsumer:
         exception: Exception,
     ) -> None:
         """일시적 오류를 1회 재시도한 뒤 DLQ로 격리"""
-        event_id = str(event.eventId)
-        retry_attempt = self.retry_attempts.get(
-            event_id,
-            0,
-        )
+        retry_attempt = self._delivery_attempt(message)
 
         if retry_attempt >= self.MAX_RETRY_ATTEMPTS:
-            self.retry_attempts.pop(event_id, None)
-
             logger.error(
                 "Analysis request failed after retry. "
                 "Routing sanitized event to DLQ. "
@@ -294,10 +287,6 @@ class AnalysisRequestConsumer:
             )
             return
 
-        self.retry_attempts[event_id] = (
-            retry_attempt + 1
-        )
-
         logger.warning(
             "Analysis request processing failed. "
             "Requeueing for retry. "
@@ -312,6 +301,9 @@ class AnalysisRequestConsumer:
             exception.__class__.__name__,
         )
 
+        await asyncio.sleep(
+            self.requeue_backoff_seconds
+        )
         await message.nack(requeue=True)
 
     async def _route_to_dead_letter(
@@ -338,14 +330,11 @@ class AnalysisRequestConsumer:
                 exception.__class__.__name__,
             )
 
+            await asyncio.sleep(
+                self.requeue_backoff_seconds
+            )
             await message.nack(requeue=True)
             return
-
-        if event is not None:
-            self.retry_attempts.pop(
-                str(event.eventId),
-                None,
-            )
 
         await message.ack()
 
@@ -359,3 +348,27 @@ class AnalysisRequestConsumer:
             event.traceId if event else None,
             failure_code,
         )
+
+    @staticmethod
+    def _delivery_attempt(
+        message: AbstractIncomingMessage,
+    ) -> int:
+        """Broker가 보존한 전달 상태에서 현재 재시도 횟수를 계산한다."""
+        headers = message.headers or {}
+
+        delivery_count = headers.get(
+            "x-delivery-count"
+        )
+        if delivery_count is not None:
+            return int(delivery_count)
+
+        x_death = headers.get("x-death") or []
+        death_counts = [
+            int(entry.get("count", 0))
+            for entry in x_death
+            if isinstance(entry, dict)
+        ]
+        if death_counts:
+            return max(death_counts)
+
+        return 1 if message.redelivered else 0

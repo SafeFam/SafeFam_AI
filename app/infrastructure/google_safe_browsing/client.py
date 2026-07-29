@@ -12,7 +12,7 @@ class GoogleSafeBrowsingClient:
         self.api_key = settings.GOOGLE_SAFE_BROWSING_API_KEY
         self.api_url = (
             "https://safebrowsing.googleapis.com/v4/"
-            f"threatMatches:find?key={self.api_key}"
+            "threatMatches:find"
         )
 
     @staticmethod
@@ -76,10 +76,13 @@ class GoogleSafeBrowsingClient:
                 response = await request_with_retry(
                     lambda: client.post(
                         self.api_url,
+                        params={"key": self.api_key},
                         json=payload,
                         timeout=settings.GSB_TIMEOUT_SECONDS,
                     ),
-                    max_retries=settings.EXTERNAL_API_MAX_RETRIES,
+                    max_retries=(
+                        settings.EXTERNAL_API_MAX_RETRIES
+                    ),
                     operation_name="Google Safe Browsing",
                 )
                 response.raise_for_status()
@@ -111,9 +114,8 @@ class GoogleSafeBrowsingClient:
                 status_code = exc.response.status_code
 
                 logger.error(
-                    "[Google Safe Browsing] API 에러 (%s): %s",
+                    "[Google Safe Browsing] API 에러 (%s)",
                     status_code,
-                    exc,
                 )
 
                 if status_code == 429:
@@ -135,7 +137,7 @@ class GoogleSafeBrowsingClient:
             except httpx.RequestError as exc:
                 logger.error(
                     "[Google Safe Browsing] 네트워크 오류: %s",
-                    exc,
+                    type(exc).__name__,
                 )
                 return self._unavailable_result(
                     "NETWORK_ERROR"

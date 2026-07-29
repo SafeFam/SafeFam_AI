@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from app.analysis.execution import (
     AnalysisExecution,
@@ -39,11 +39,19 @@ class AnalysisResultEventFactory:
         }[execution.status]
 
         result = execution.result
+        result_event_id = uuid5(
+            NAMESPACE_URL,
+            (
+                "safefam:analysis-result:"
+                f"{request.eventId}:"
+                f"{event_type.value}"
+            ),
+        )
 
         # 원본 요청의 식별자를 포함하여 결과 이벤트 구성
         return AnalysisResultEvent(
             schemaVersion="1.0",
-            eventId=uuid4(),
+            eventId=result_event_id,
             causationId=request.eventId,
             analysisId=request.analysisId,
             clientMessageId=request.clientMessageId,
@@ -140,8 +148,10 @@ def _text_detail(
         method = TextAnalysisMethod.UNAVAILABLE
     elif stage1 is not None:
         method = TextAnalysisMethod.NAIVE_BAYES_GEMINI
-    else:
+    elif text.get("engine") == "naive_bayes":
         method = TextAnalysisMethod.NAIVE_BAYES
+    else:
+        method = TextAnalysisMethod.GEMINI
 
     return TextAnalysisDetail(
         method=method,
@@ -165,7 +175,7 @@ def _url_detail(url: dict) -> UrlAnalysisDetail:
         malicious=url.get("is_url_malicious"),
         score=_url_score(url.get("url_risk_score")),
         engineSource=url.get("engine_source"),
-        errorCode=url.get("error_message"),
+        errorCode=_url_error_code(url),
     )
 
 
@@ -187,7 +197,22 @@ def _rule_detail(rules: dict) -> RuleAnalysisDetail:
 def _integer_score(value) -> int | None:
     if value is None:
         return None
-    return max(0, min(100, int(round(float(value)))))
+    return max(0, min(100, round(float(value))))
+
+
+def _url_error_code(url: dict) -> str | None:
+    provider_codes = (
+        url.get("provider_error_codes") or {}
+    )
+
+    if not provider_codes:
+        return None
+
+    return ";".join(
+        f"{provider}:{code}"
+        for provider, code
+        in sorted(provider_codes.items())
+    )
 
 
 def _url_score(value) -> int | None:

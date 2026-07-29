@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import ClassVar
 
 from app.analysis.ports import UrlSecurityProvider
 from app.infrastructure.google_safe_browsing.client import (
@@ -24,10 +25,9 @@ class HybridUrlAnalyzer:
     #  다수 엔진이 동시에 일치하면 우연한 오탐일 가능성이 낮아짐)
     VT_CONFIRMED_ENGINE_THRESHOLD = 5
 
-    AVAILABLE_STATUSES = {
-        "safe",
-        "completed",
-    }
+    AVAILABLE_STATUSES: ClassVar[
+        frozenset[str]
+    ] = frozenset({"safe", "completed"})
 
     def __init__(
         self,
@@ -59,6 +59,7 @@ class HybridUrlAnalyzer:
                 "available": True,
                 "failed_providers": [],
                 "pending_providers": [],
+                "provider_error_codes": {},
                 "error_message": None,
                 "is_gsb_confirmed": True,
                 "is_vt_confirmed": False,
@@ -72,6 +73,7 @@ class HybridUrlAnalyzer:
         failed_providers: list[str] = []
         pending_providers: list[str] = []
         error_messages: list[str] = []
+        provider_error_codes: dict[str, str] = {}
 
         # 1차 분석: GSB
         gsb_result = await self._scan_gsb(traced_url)
@@ -89,6 +91,7 @@ class HybridUrlAnalyzer:
                 "error_code",
                 "UNKNOWN",
             )
+            provider_error_codes["GSB"] = error_code
             error_messages.append(
                 f"GSB unavailable ({error_code})"
             )
@@ -114,6 +117,7 @@ class HybridUrlAnalyzer:
                 "available": True,
                 "failed_providers": failed_providers,
                 "pending_providers": pending_providers,
+                "provider_error_codes": provider_error_codes,
                 "error_message": (
                     " | ".join(error_messages)
                     if error_messages
@@ -142,6 +146,9 @@ class HybridUrlAnalyzer:
                 "error_code",
                 "UNKNOWN",
             )
+            provider_error_codes[
+                "VIRUSTOTAL"
+            ] = error_code
             error_messages.append(
                 f"VirusTotal unavailable ({error_code})"
             )
@@ -192,7 +199,6 @@ class HybridUrlAnalyzer:
         is_final_malicious = (
             is_gsb_blocked
             or is_vt_malicious
-            or vt_malicious_count >= 1
         )
 
         # 두 제공자 중 하나라도 정상 결과를 반환하면 URL트랙은 사용 가능으로 판정
@@ -211,6 +217,7 @@ class HybridUrlAnalyzer:
             "available": available,
             "failed_providers": failed_providers,
             "pending_providers": pending_providers,
+            "provider_error_codes": provider_error_codes,
             "error_message": (
                 " | ".join(error_messages)
                 if error_messages
@@ -241,7 +248,6 @@ class HybridUrlAnalyzer:
                 "status": "unavailable",
                 "error_code": "UNEXPECTED_ERROR",
             }
-
     async def _scan_virustotal(
         self,
         traced_url: str,
@@ -251,18 +257,6 @@ class HybridUrlAnalyzer:
             return await self.vt_client.scan_url(
                 traced_url
             )
-
-        except Exception:
-            logger.exception(
-                "[Hybrid URL] VirusTotal 호출 중 예외 발생"
-            )
-            return {
-                "is_malicious": False,
-                "raw_score": 0.0,
-                "detected_count": 0,
-                "status": "unavailable",
-                "error_code": "UNEXPECTED_ERROR",
-            }
 
         except Exception:
             logger.exception(

@@ -11,6 +11,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.analysis.schemas import RiskGrade
+
 
 class AnalysisSource(str, Enum):
     """분석 요청이 생성된 경로를 정의"""
@@ -123,7 +125,7 @@ class AnalysisResultPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     finalScore: int | None = Field(default=None, ge=0, le=100)
-    riskGrade: str | None = None
+    riskGrade: RiskGrade | None = None
     phishingType: str | None = None
 
     rawScores: RawScores
@@ -135,6 +137,21 @@ class AnalysisResultPayload(BaseModel):
 
     failedTracks: list[str] = Field(default_factory=list)
     failureCode: str | None = None
+
+    @model_validator(mode="after")
+    def validate_failure_payload(
+        self,
+    ) -> "AnalysisResultPayload":
+        if self.failureCode is not None and (
+            self.finalScore is not None
+            or self.riskGrade is not None
+            or self.weightedContributions is not None
+        ):
+            raise ValueError(
+                "failure payload must not contain "
+                "successful score fields"
+            )
+        return self
 
 
 class AnalysisResultEvent(BaseModel):
@@ -163,6 +180,14 @@ class AnalysisResultEvent(BaseModel):
                 raise ValueError(
                     "completed event requires riskGrade"
                 )
+            if (
+                self.payload.failureCode is not None
+                or self.payload.failedTracks
+            ):
+                raise ValueError(
+                    "completed event must not contain "
+                    "failure indicators"
+                )
 
         if self.eventType == AnalysisEventType.PARTIAL:
             if not self.payload.failedTracks:
@@ -173,15 +198,30 @@ class AnalysisResultEvent(BaseModel):
                 raise ValueError(
                     "partial event requires finalScore"
                 )
+            if self.payload.riskGrade is None:
+                raise ValueError(
+                    "partial event requires riskGrade"
+                )
+            if self.payload.failureCode is not None:
+                raise ValueError(
+                    "partial event must not contain "
+                    "failureCode"
+                )
 
         if self.eventType == AnalysisEventType.FAILED:
             if not self.payload.failureCode:
                 raise ValueError(
                     "failed event requires failureCode"
                 )
-            if self.payload.riskGrade == "LOW":
+            if (
+                self.payload.finalScore is not None
+                or self.payload.riskGrade is not None
+                or self.payload.weightedContributions
+                is not None
+            ):
                 raise ValueError(
-                    "failed event must not be classified as LOW"
+                    "failed event must not contain "
+                    "successful score fields"
                 )
 
         return self
