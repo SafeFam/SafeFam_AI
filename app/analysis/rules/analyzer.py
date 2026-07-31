@@ -82,11 +82,11 @@ def analyze_text_with_rules(text: str, traced_url: Optional[str] = None) -> dict
         matched_rules.append(f"로컬 가드 도메인 룰 매치 ({traced_url})")
         score += MALICIOUS_DOMAIN_RULE_SCORE
 
-    if _RE_ACCOUNT_NUMBER.search(text):
+    if _RE_ACCOUNT_NUMBER.search(text) or "[ACCOUNT]" in text:
         matched_rules.append("계좌번호로 추정되는 숫자 패턴 발견")
         score += ACCOUNT_NUMBER_SCORE
 
-    if _RE_CARD_NUMBER.search(text):
+    if _RE_CARD_NUMBER.search(text) or "[CARD]" in text:
         matched_rules.append("카드번호로 추정되는 숫자 패턴 발견")
         score += CARD_NUMBER_SCORE
 
