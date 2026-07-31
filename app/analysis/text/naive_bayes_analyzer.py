@@ -16,10 +16,13 @@ VECTORIZER_PATH = Path(os.getenv("NAIVE_BAYES_VECTORIZER_PATH", str(_DEFAULT_MOD
 
 # --- 전처리 정규식 : data_science/SMSModel/train_sms.py의 정규화/피처 추출 로직과 반드시 동일하게 유지 ---
 # (학습 시 벡터라이저가 본 입력 분포와 서빙 시 입력 분포가 어긋나면 모델이 무의미해짐)
-_RE_URL = re.compile(r"https?://\S+|[a-zA-Z0-9.-]+\.(kr|com|net|cyou|xyz|me|io|cc)\S*")
-_RE_PHONE = re.compile(r"\d{2,4}-\d{3,4}-\d{4}")
-_RE_LONG_NUM = re.compile(r"\b\d{6,}\b")
-_RE_AMOUNT = re.compile(r"\d+[,\d]*원")
+_RE_URL     = re.compile(r"https?://\S+|[a-zA-Z0-9.-]+\.(kr|com|net|cyou|xyz|me|io|cc)\S*")
+_RE_RRN     = re.compile(r"\b\d{6}-[1-4]\d{6}\b")
+_RE_CARD    = re.compile(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b")
+_RE_PHONE   = re.compile(r"\d{2,4}-\d{3,4}-\d{4}")
+_RE_ACCOUNT = re.compile(r"\b\d{10,14}\b")
+_RE_EMAIL   = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
+_RE_AMOUNT  = re.compile(r"\d+[,\d]*원")
 _RE_FORMAT_ARTIFACT = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
 _RE_SHORT_URL = re.compile(r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly")
 _RE_WEB_TAG = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
@@ -40,10 +43,13 @@ _load_attempted = False
 
 
 def _normalize_text(text: str) -> str:
-    text = _RE_URL.sub("<URL>", text)
-    text = _RE_PHONE.sub("<전화번호>", text)
-    text = _RE_LONG_NUM.sub("<긴숫자>", text)
-    text = _RE_AMOUNT.sub("<금액>", text)
+    text = _RE_URL.sub("[URL]", text)
+    text = _RE_RRN.sub("[RRN]", text)
+    text = _RE_CARD.sub("[CARD]", text)
+    text = _RE_PHONE.sub("[PHONE]", text)
+    text = _RE_ACCOUNT.sub("[ACCOUNT]", text)
+    text = _RE_EMAIL.sub("[EMAIL]", text)
+    text = _RE_AMOUNT.sub("[AMOUNT]", text)
     text = _RE_FORMAT_ARTIFACT.sub(" ", text)
     return re.sub(r"\s+", " ", text).strip()
 
@@ -52,7 +58,7 @@ def _extract_struct_features(text: str) -> list:
     return [
         int(bool(_RE_URL.search(text))),
         int(bool(_RE_SHORT_URL.search(text))),
-        int(bool(_RE_PHONE.search(text))),
+        int(bool(_RE_PHONE.search(text) or "[PHONE]" in text)),
         int(bool(_RE_AMOUNT.search(text))),
         int(bool(_RE_WEB_TAG.search(text))),
         int(len(text) > 100),

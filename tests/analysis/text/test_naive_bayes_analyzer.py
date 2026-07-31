@@ -25,8 +25,8 @@ def test_normalize_text_masks_url_and_amount():
     text = "http://bit.ly/fake 계좌로 500,000원 즉시 입금하세요"
     normalized = nb._normalize_text(text)
 
-    assert "<URL>" in normalized
-    assert "<금액>" in normalized
+    assert "[URL]" in normalized
+    assert "[AMOUNT]" in normalized
     assert "http://" not in normalized
 
 

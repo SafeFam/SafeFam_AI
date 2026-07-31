@@ -61,34 +61,25 @@ THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 정규화 패턴
-# URL/전화번호/계좌번호(6자리+)/금액만 토큰화.
-# 날짜·수량 등 일반 숫자 유지 — 전체 치환 시 정규화 후 중복 폭증 확인(1797건).
+# Spring PiiMaskingService 토큰과 일치: [PHONE],[ACCOUNT],[CARD],[RRN],[EMAIL]
+# 마스킹 순서: RRN→CARD→PHONE→ACCOUNT→EMAIL (Spring과 동일하게 유지)
 # ─────────────────────────────────────────────────────────────────────────────
 
 _RE_URL      = re.compile(
     r"https?://\S+|[a-zA-Z0-9.-]+\.(kr|com|net|cyou|xyz|me|io|cc)\S*"
 )
+_RE_RRN      = re.compile(r"\b\d{6}-[1-4]\d{6}\b")
+_RE_CARD     = re.compile(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b")
 _RE_PHONE    = re.compile(r"\d{2,4}-\d{3,4}-\d{4}")
-_RE_LONG_NUM = re.compile(r"\b\d{6,}\b")
+_RE_ACCOUNT  = re.compile(r"\b\d{10,14}\b")
+_RE_EMAIL    = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 _RE_AMOUNT   = re.compile(r"\d+[,\d]*원")
 _RE_FORMAT_ARTIFACT = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
 
-# has_short_url: phishing 27.8% vs normal 0.4% — 가장 강한 단독 신호
 _RE_SHORT_URL = re.compile(
     r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly"
 )
 _RE_WEB_TAG  = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
-
-# _extract_struct_features()가 반환하는 배열의 열 순서와 정확히 일치해야 함.
-# SMSData.ipynb 피처 중요도 시각화에서 이 리스트를 그대로 import해서 쓴다.
-STRUCT_FEATURE_NAMES = [
-    "has_url",        # 0: URL 포함 여부
-    "has_short_url",  # 1: 단축 URL (phishing 27.8% vs normal 0.4% — 가장 강한 신호)
-    "has_phone",      # 2: 전화번호 포함 여부
-    "has_amount",     # 3: 금액 표현 포함 여부
-    "has_web_tag",    # 4: 통신사 태그 (정상에서 더 높음 — 역방향 신호)
-    "is_long_text",   # 5: 100자 초과 여부
-]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -96,10 +87,13 @@ STRUCT_FEATURE_NAMES = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _normalize_text(text: str) -> str:
-    text = _RE_URL.sub("<URL>", text)
-    text = _RE_PHONE.sub("<전화번호>", text)
-    text = _RE_LONG_NUM.sub("<긴숫자>", text)
-    text = _RE_AMOUNT.sub("<금액>", text)
+    text = _RE_URL.sub("[URL]", text)
+    text = _RE_RRN.sub("[RRN]", text)
+    text = _RE_CARD.sub("[CARD]", text)
+    text = _RE_PHONE.sub("[PHONE]", text)
+    text = _RE_ACCOUNT.sub("[ACCOUNT]", text)
+    text = _RE_EMAIL.sub("[EMAIL]", text)
+    text = _RE_AMOUNT.sub("[AMOUNT]", text)
     text = _RE_FORMAT_ARTIFACT.sub(" ", text)
     return re.sub(r"\s+", " ", text).strip()
 
@@ -112,7 +106,7 @@ def _extract_struct_features(texts: pd.Series, has_url: pd.Series) -> np.ndarray
     return np.column_stack([
         has_url.astype(int).values,                                         # 0: URL 포함
         texts.str.contains(_RE_SHORT_URL).astype(int).values,               # 1: 단축URL (강신호)
-        texts.str.contains(_RE_PHONE).astype(int).values,                   # 2: 전화번호
+        (texts.str.contains(_RE_PHONE) | texts.str.contains(r"\[PHONE\]", regex=True)).astype(int).values,                   # 2: 전화번호
         texts.str.contains(_RE_AMOUNT).astype(int).values,                  # 3: 금액
         texts.str.contains(_RE_WEB_TAG).astype(int).values,                 # 4: 통신사태그(역방향)
         (texts.str.len() > 100).astype(int).values,                         # 5: 100자 초과
@@ -443,7 +437,7 @@ def predict_risk_score(
     struct = np.array([[
         int(bool(_RE_URL.search(text))),
         int(bool(_RE_SHORT_URL.search(text))),
-        int(bool(_RE_PHONE.search(text))),
+        int(bool(_RE_PHONE.search(text) or "[PHONE]" in text)),
         int(bool(_RE_AMOUNT.search(text))),
         int(bool(_RE_WEB_TAG.search(text))),
         int(len(text) > 100),
