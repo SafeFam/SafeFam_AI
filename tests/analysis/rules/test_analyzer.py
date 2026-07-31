@@ -75,3 +75,18 @@ def test_rule_score_never_exceeds_100():
     result = analyze_text_with_rules(text, traced_url="https://scam.ru/phish")
 
     assert result["rule_score"] == 100
+
+def test_masked_account_token_is_detected():
+    """Spring이 마스킹한 [ACCOUNT] 토큰도 계좌번호로 탐지되어야 한다."""
+    result = analyze_text_with_rules("입금 계좌 [ACCOUNT] 으로 보내주세요")
+
+    assert result["rule_score"] >= 30
+    assert any("계좌번호" in r for r in result["matched_rules"])
+
+
+def test_masked_card_token_is_detected():
+    """Spring이 마스킹한 [CARD] 토큰도 카드번호로 탐지되어야 한다."""
+    result = analyze_text_with_rules("카드번호 [CARD] 을 입력해주세요")
+
+    assert result["rule_score"] >= 30
+    assert any("카드번호" in r for r in result["matched_rules"])
