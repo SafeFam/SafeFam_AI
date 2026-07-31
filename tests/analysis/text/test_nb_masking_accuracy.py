@@ -55,8 +55,12 @@ async def test_nb_masking_accuracy():
         original_result = await analyze_text_with_naive_bayes(text)
         masked_result = await analyze_text_with_naive_bayes(masked)
 
-        original_score = original_result.get("result", {}).get("risk_score", 0)
-        masked_score = masked_result.get("result", {}).get("risk_score", 0)
+        assert original_result["is_available"], "NB 모델 로드 실패 — 원문 추론 불가"
+        assert masked_result["is_available"], "NB 모델 로드 실패 — 마스킹 추론 불가"
+
+        original_score = original_result["result"]["risk_score"]
+        masked_score = masked_result["result"]["risk_score"]
+
         diff = abs(original_score - masked_score)
 
         results.append({

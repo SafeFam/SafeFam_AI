@@ -65,21 +65,16 @@ THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 # 마스킹 순서: RRN→CARD→PHONE→ACCOUNT→EMAIL (Spring과 동일하게 유지)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_RE_URL      = re.compile(
-    r"https?://\S+|[a-zA-Z0-9.-]+\.(kr|com|net|cyou|xyz|me|io|cc)\S*"
-)
-_RE_RRN      = re.compile(r"\b\d{6}-[1-4]\d{6}\b")
-_RE_CARD     = re.compile(r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b")
-_RE_PHONE    = re.compile(r"\d{2,4}-\d{3,4}-\d{4}")
-_RE_ACCOUNT  = re.compile(r"\b\d{10,14}\b")
-_RE_EMAIL    = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
-_RE_AMOUNT   = re.compile(r"\d+[,\d]*원")
+_RE_URL     = re.compile(r"(?i)(?<!@)(?:https?://|www\.)[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+;=%]+")
+_RE_RRN     = re.compile(r"(?<!\d)\d{6}[- ]\d{7}(?!\d)")
+_RE_CARD    = re.compile(r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)")
+_RE_PHONE   = re.compile(r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)")
+_RE_ACCOUNT = re.compile(r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)|(?<!\d)\d{10,14}(?!\d)")
+_RE_EMAIL   = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
+_RE_AMOUNT  = re.compile(r"\d+[,\d]*원")
 _RE_FORMAT_ARTIFACT = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
-
-_RE_SHORT_URL = re.compile(
-    r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly"
-)
-_RE_WEB_TAG  = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
+_RE_SHORT_URL = re.compile(r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly")
+_RE_WEB_TAG = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -87,15 +82,25 @@ _RE_WEB_TAG  = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _normalize_text(text: str) -> str:
-    text = _RE_URL.sub("[URL]", text)
+    parts = []
+    last_end = 0
+    for m in _RE_URL.finditer(text):
+        parts.append(_mask_pii(text[last_end:m.start()]))
+        parts.append("[URL]")
+        last_end = m.end()
+    parts.append(_mask_pii(text[last_end:]))
+    text = "".join(parts)
+    text = _RE_AMOUNT.sub("[AMOUNT]", text)
+    text = _RE_FORMAT_ARTIFACT.sub(" ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+def _mask_pii(text: str) -> str:
     text = _RE_RRN.sub("[RRN]", text)
     text = _RE_CARD.sub("[CARD]", text)
     text = _RE_PHONE.sub("[PHONE]", text)
     text = _RE_ACCOUNT.sub("[ACCOUNT]", text)
     text = _RE_EMAIL.sub("[EMAIL]", text)
-    text = _RE_AMOUNT.sub("[AMOUNT]", text)
-    text = _RE_FORMAT_ARTIFACT.sub(" ", text)
-    return re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 def _extract_struct_features(texts: pd.Series, has_url: pd.Series) -> np.ndarray:
