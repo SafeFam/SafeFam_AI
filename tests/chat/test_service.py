@@ -10,11 +10,11 @@ def _request(messages=None) -> ChatRequest:
     return ChatRequest(
         analysisContext=AnalysisContext(
             riskScore=90,
-            riskGrade="HIGH",
-            phishingType="기관 사칭형",
-            summary="국민건강보험을 사칭한 스미싱 문자",
+            riskLevel="HIGH",
+            category="FINANCIAL_INSTITUTION",
+            explanation="국민건강보험을 사칭한 스미싱 문자",
+            indicators=[{"type": "URGENCY_KEYWORD", "description": "즉시 확인 유도"}],
         ),
-        indicators=["즉시 확인 유도"],
         messages=messages
         or [ChatMessage(role=ChatRole.USER, content="이거 진짜인가요?")],
     )

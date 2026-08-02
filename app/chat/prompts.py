@@ -22,11 +22,16 @@ SYSTEM_PROMPT_TEMPLATE = """당신은 SafeFam 스미싱 탐지 서비스에 내�
 6. 답변은 한국어로, 간결하고 실행 가능한 안내 위주로 작성한다."""
 
 
-def build_system_prompt(analysis_context: AnalysisContext, indicators: list[str]) -> str:
+def build_system_prompt(analysis_context: AnalysisContext) -> str:
+    indicators = analysis_context.indicators
     return SYSTEM_PROMPT_TEMPLATE.format(
         risk_score=analysis_context.riskScore,
-        risk_grade=analysis_context.riskGrade.value,
-        phishing_type=analysis_context.phishingType or "미분류",
-        summary=analysis_context.summary,
-        indicators=", ".join(indicators) if indicators else "없음",
+        risk_grade=analysis_context.riskLevel.value,
+        phishing_type=analysis_context.category,
+        summary=analysis_context.explanation,
+        indicators=(
+            ", ".join(f"{i.type}: {i.description}" for i in indicators)
+            if indicators
+            else "없음"
+        ),
     )
