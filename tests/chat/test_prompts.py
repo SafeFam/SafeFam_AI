@@ -5,29 +5,34 @@ from app.chat.schemas import AnalysisContext
 def test_build_system_prompt_includes_context_fields():
     context = AnalysisContext(
         riskScore=90,
-        riskGrade="HIGH",
-        phishingType="기관 사칭형",
-        summary="국민건강보험을 사칭한 스미싱 문자",
+        riskLevel="HIGH",
+        category="FINANCIAL_INSTITUTION",
+        explanation="국민건강보험을 사칭한 스미싱 문자",
+        indicators=[
+            {"type": "MALICIOUS_URL", "description": "악성 이력이 확인된 URL"},
+            {"type": "URGENCY_KEYWORD", "description": "즉시 확인 유도 문구"},
+        ],
     )
 
-    prompt = build_system_prompt(context, ["국민건강보험 언급", "즉시 확인 유도"])
+    prompt = build_system_prompt(context)
 
     assert "90/100" in prompt
     assert "HIGH" in prompt
     assert "RiskGrade" not in prompt
-    assert "기관 사칭형" in prompt
+    assert "FINANCIAL_INSTITUTION" in prompt
     assert "국민건강보험을 사칭한 스미싱 문자" in prompt
-    assert "국민건강보험 언급, 즉시 확인 유도" in prompt
+    assert "MALICIOUS_URL: 악성 이력이 확인된 URL" in prompt
+    assert "URGENCY_KEYWORD: 즉시 확인 유도 문구" in prompt
 
 
-def test_build_system_prompt_handles_missing_phishing_type_and_indicators():
+def test_build_system_prompt_handles_empty_indicators():
     context = AnalysisContext(
         riskScore=10,
-        riskGrade="LOW",
-        summary="일상적인 대화",
+        riskLevel="LOW",
+        category="ETC",
+        explanation="일상적인 대화",
     )
 
-    prompt = build_system_prompt(context, [])
+    prompt = build_system_prompt(context)
 
-    assert "미분류" in prompt
     assert "탐지 근거: 없음" in prompt

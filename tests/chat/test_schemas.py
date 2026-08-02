@@ -7,9 +7,12 @@ from app.chat.schemas import AnalysisContext, ChatMessage, ChatRequest
 def _analysis_context(**overrides) -> AnalysisContext:
     defaults = {
         "riskScore": 90,
-        "riskGrade": "HIGH",
-        "phishingType": "기관 사칭형",
-        "summary": "국민건강보험을 사칭한 스미싱 문자",
+        "riskLevel": "HIGH",
+        "category": "FINANCIAL_INSTITUTION",
+        "explanation": "국민건강보험을 사칭한 스미싱 문자",
+        "indicators": [
+            {"type": "MALICIOUS_URL", "description": "악성 이력이 확인된 URL입니다."}
+        ],
     }
     defaults.update(overrides)
     return AnalysisContext(**defaults)
@@ -18,7 +21,6 @@ def _analysis_context(**overrides) -> AnalysisContext:
 def test_chat_request_accepts_valid_payload():
     request = ChatRequest(
         analysisContext=_analysis_context(),
-        indicators=["국민건강보험 언급", "즉시 확인 유도"],
         messages=[{"role": "user", "content": "이거 진짜인가요?"}],
     )
 
@@ -26,18 +28,19 @@ def test_chat_request_accepts_valid_payload():
     assert request.messages[0].role.value == "user"
 
 
-def test_chat_request_defaults_indicators_to_empty_list():
-    request = ChatRequest(
-        analysisContext=_analysis_context(),
-        messages=[{"role": "user", "content": "질문입니다"}],
+def test_analysis_context_defaults_indicators_to_empty_list():
+    context = AnalysisContext(
+        riskScore=90,
+        riskLevel="HIGH",
+        category="FINANCIAL_INSTITUTION",
+        explanation="국민건강보험을 사칭한 스미싱 문자",
     )
-
-    assert request.indicators == []
+    assert context.indicators == []
 
 
 def test_chat_request_rejects_empty_message_history():
     with pytest.raises(ValidationError):
-        ChatRequest(analysisContext=_analysis_context(), indicators=[], messages=[])
+        ChatRequest(analysisContext=_analysis_context(), messages=[])
 
 
 def test_chat_message_rejects_invalid_role():
@@ -50,14 +53,16 @@ def test_chat_message_rejects_blank_content():
         ChatMessage(role="user", content="   ")
 
 
-def test_analysis_context_rejects_blank_summary():
+def test_analysis_context_rejects_blank_explanation():
     with pytest.raises(ValidationError):
-        _analysis_context(summary="   ")
+        _analysis_context(explanation="   ")
 
 
-def test_analysis_context_phishing_type_is_optional():
-    context = _analysis_context(phishingType=None)
-    assert context.phishingType is None
+def test_analysis_context_indicator_requires_type_and_description():
+    with pytest.raises(ValidationError):
+        _analysis_context(indicators=[{"type": "MALICIOUS_URL"}])
+    with pytest.raises(ValidationError):
+        _analysis_context(indicators=[{"description": "악성 이력이 확인된 URL입니다."}])
 
 
 def test_chat_request_rejects_unknown_fields():
