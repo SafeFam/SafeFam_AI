@@ -1,8 +1,8 @@
 import logging
-import os
 from typing import ClassVar
 
 from app.analysis.ports import UrlSecurityProvider
+from app.core.config import settings
 from app.infrastructure.google_safe_browsing.client import (
     GoogleSafeBrowsingClient,
 )
@@ -12,10 +12,7 @@ from app.infrastructure.virustotal.client import (
 
 logger = logging.getLogger(__name__)
 
-MOCK_ENABLED = (
-    os.getenv("MOCK_SECURITY_API", "False").lower()
-    in ("true", "1", "t")
-)
+MOCK_ENABLED = settings.MOCK_SECURITY_API
 
 # Google Safe Browsing(1차)과 VirusTotal(2차 백업)을 제어하는 하이브리드 URL 분석 코어 엔진
 class HybridUrlAnalyzer:
@@ -50,7 +47,7 @@ class HybridUrlAnalyzer:
     async def scan_url(self, traced_url: str) -> dict:
         # 쉘 환경변수에 따른 MOCK 모드 분기 로직 정상화
         if MOCK_ENABLED:
-            logger.info(f"[MOCK MODE] 하이브리드 URL 스캔 -> Target: {traced_url}")
+            logger.info("[MOCK MODE] 하이브리드 URL 스캔 시작")
             return {
                 "is_malicious": True,
                 "url_risk_score": 0.85,
@@ -237,9 +234,10 @@ class HybridUrlAnalyzer:
                 traced_url
             )
 
-        except Exception:
-            logger.exception(
-                "[Hybrid URL] GSB 호출 중 예외 발생"
+        except Exception as exception:
+            logger.error(
+                "[Hybrid URL] GSB 호출 중 예외 발생. error_type=%s",
+                type(exception).__name__,
             )
             return {
                 "is_malicious": False,
@@ -258,9 +256,10 @@ class HybridUrlAnalyzer:
                 traced_url
             )
 
-        except Exception:
-            logger.exception(
-                "[Hybrid URL] VirusTotal 호출 중 예외 발생"
+        except Exception as exception:
+            logger.error(
+                "[Hybrid URL] VirusTotal 호출 중 예외 발생. error_type=%s",
+                type(exception).__name__,
             )
             return {
                 "is_malicious": False,

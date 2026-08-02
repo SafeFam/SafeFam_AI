@@ -101,8 +101,11 @@ class SmishingAnalysisService:
             # 로컬 규칙 기반 트랙: 금융기관 DB 대조 + 금융 키워드 + 계좌/카드번호 패턴 + 도메인 룰(.ru 등)
             try:
                 rule_result = self.rule_analyzer(text, traced_url)
-            except Exception:
-                logger.exception("[Analysis Service] 규칙 분석 중 오류 발생")
+            except Exception as exception:
+                logger.error(
+                    "[Analysis Service] 규칙 분석 중 오류 발생. error_type=%s",
+                    type(exception).__name__,
+                )
                 rule_result = {
                     "rule_score": 0,
                     "has_malicious_domain_pattern": False,
@@ -189,8 +192,11 @@ class SmishingAnalysisService:
                 url_analysis=real_url_analysis,
                 rule_analysis=rule_result
             )
-        except Exception as e:
-            logger.error(f"파이프라인 에러: {str(e)}")
+        except Exception as exception:
+            logger.error(
+                "파이프라인 오류. error_type=%s",
+                type(exception).__name__,
+            )
             # 파이프라인이 통째로 죽어 어떤 트랙도 실행되지 못한 경우, final_score=0/LOW를
             # 반환하면 "분석 실패"가 "안전 확인됨"으로 읽혀 fail-open이 된다 (텍스트 트랙
             # 양쪽 엔진이 동시에 실패한 경우를 막는 BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE와
@@ -198,7 +204,7 @@ class SmishingAnalysisService:
             # 최소 MEDIUM으로 강제한다.
             return SmishingAnalysisResponse(
                 status="ERROR",
-                message=str(e),
+                message="분석 파이프라인 처리 중 오류가 발생했습니다.",
                 final_score=RiskScoringEngine.PIPELINE_FAILURE_FALLBACK_SCORE,
                 risk_grade=RiskGrade.MEDIUM,
                 contribution_breakdown=ContributionBreakdown(llm=0, hybrid_url=0, rules=0),

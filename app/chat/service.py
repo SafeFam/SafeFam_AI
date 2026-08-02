@@ -1,22 +1,19 @@
-import os
 import logging
 
 import httpx
-from dotenv import load_dotenv
 
 from app.chat.prompts import build_system_prompt
 from app.chat.schemas import ChatMessage, ChatRequest, ChatResponse, ChatRole
+from app.core.config import settings
 from app.infrastructure.gemini.client import GeminiClient
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_API_KEY = settings.GEMINI_API_KEY
+GEMINI_MODEL = settings.GEMINI_MODEL
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
-MOCK_ENABLED = os.getenv("MOCK_SECURITY_API", "False").lower() in ("true", "1", "t")
+MOCK_ENABLED = settings.MOCK_SECURITY_API
 
 MOCK_RESPONSE_MESSAGE = (
     "[시연용 응답] 해당 문자는 위험도가 높게 분석되었습니다. "

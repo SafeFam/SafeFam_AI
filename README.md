@@ -67,3 +67,48 @@ docker compose up --build
 서버가 켜지면 브라우저를 열고 아래 주소로 접속하여 정상 작동하는지 확인합니다.
 
 - **Swagger UI (API 문서)**: http://127.0.0.1:8000/docs
+
+## 운영 환경
+
+운영 환경에서는 `docker-compose.prod.yml`과 Git Commit SHA로 고정된 이미지를
+사용합니다. `--reload`, 소스 코드 바인드 마운트, 호스트 포트 공개는 사용하지
+않습니다.
+
+```bash
+cp .env.prod.example .env.runtime
+docker compose -f docker-compose.prod.yml --env-file .env.runtime up -d
+```
+
+`.env.runtime`의 실제 값은 저장소에 커밋하지 않습니다. EC2 IAM Role로 AWS
+Parameter Store의 `SecureString`을 조회하여 배포 시점에 생성합니다.
+
+### 운영 필수 Secret
+
+- `GEMINI_API_KEY`
+- `VIRUSTOTAL_API_KEY`
+- `GOOGLE_SAFE_BROWSING_API_KEY`
+- `RABBITMQ_URL`
+
+권장 Parameter Store 경로는 다음과 같습니다.
+
+```text
+/safefam/prod/ai/GEMINI_API_KEY
+/safefam/prod/ai/VIRUSTOTAL_API_KEY
+/safefam/prod/ai/GOOGLE_SAFE_BROWSING_API_KEY
+```
+
+운영에서 필수 Secret이 누락되거나 `MOCK_SECURITY_API=true`이면 애플리케이션은
+시작하지 않습니다.
+
+### 모델 파일
+
+운영 이미지에는 아래 두 개의 검증된 학습 산출물만 포함합니다.
+
+```text
+/app/models/phishing_model_artifact.pkl
+/app/models/phishing_vectorizer.pkl
+```
+
+컨테이너 시작 시 두 파일이 없으면 애플리케이션이 즉시 실패합니다. Pickle은
+임의 파일을 실행할 위험이 있으므로 저장소에서 관리하는 신뢰된 산출물만
+사용해야 합니다.

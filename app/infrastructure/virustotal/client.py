@@ -165,9 +165,8 @@ class VirusTotalClient:
                 status_code = exc.response.status_code
 
                 logger.error(
-                    "[VirusTotal] API 에러 (%s): %s",
+                    "[VirusTotal] API 에러. status_code=%s",
                     status_code,
-                    exc,
                 )
 
                 if status_code == 429:
@@ -187,16 +186,17 @@ class VirusTotalClient:
 
             except httpx.RequestError as exc:
                 logger.error(
-                    "[VirusTotal] 네트워크 오류: %s",
-                    exc,
+                    "[VirusTotal] 네트워크 오류. error_type=%s",
+                    type(exc).__name__,
                 )
                 return self._unavailable_result(
                     "NETWORK_ERROR"
                 )
 
-            except Exception:
-                logger.exception(
-                    "[VirusTotal] 연동 중 비정상 오류 발생"
+            except Exception as exception:
+                logger.error(
+                    "[VirusTotal] 연동 중 비정상 오류 발생. error_type=%s",
+                    type(exception).__name__,
                 )
                 return self._unavailable_result(
                     "UNEXPECTED_ERROR"
@@ -211,8 +211,7 @@ class VirusTotalClient:
         """기존 보고서가 없는 URL에 대해 VT에 신규 스캔 분석 요청"""
         logger.info(
             "[VirusTotal] 기존 보고서 없음. "
-            "신규 스캔 요청 시작: %s",
-            url,
+            "신규 스캔 요청 시작",
         )
 
         scan_url = f"{self.base_url}/urls"
@@ -238,7 +237,6 @@ class VirusTotalClient:
         scan_response.raise_for_status()
 
         logger.info(
-            "[VirusTotal] 신규 스캔 요청 완료: %s",
-            url,
+            "[VirusTotal] 신규 스캔 요청 완료",
         )
         return self._scanning_result()

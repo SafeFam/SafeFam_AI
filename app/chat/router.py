@@ -25,13 +25,19 @@ async def chat(
     chat_service: ChatService = Depends(get_chat_service),
 ) -> ChatResponse:
     # 대화 내용/분석 컨텍스트는 로그에 원문으로 남기지 않음
-    logger.info(f"[Router] 챗봇 요청 진입 - 메시지 수: {len(payload.messages)}")
+    logger.info(
+        "[Router] 챗봇 요청 진입. message_count=%d",
+        len(payload.messages),
+    )
 
     try:
         return await chat_service.get_response(payload)
-    except ChatServiceError as e:
-        logger.error(f"[Router] 챗봇 응답 생성 실패: {str(e)}")
+    except ChatServiceError as exception:
+        logger.error(
+            "[Router] 챗봇 응답 생성 실패. error_type=%s",
+            type(exception).__name__,
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="챗봇 응답 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        )
+        ) from exception

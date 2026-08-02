@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +29,24 @@ from app.infrastructure.rabbitmq.dead_letter import (
 )
 
 
+def validate_model_files() -> None:
+    """운영 시작 전에 필수 모델 파일이 존재하고 읽을 수 있는지 검증한다."""
+    required_files: tuple[Path, ...] = (
+        settings.NAIVE_BAYES_MODEL_PATH,
+        settings.NAIVE_BAYES_VECTORIZER_PATH,
+    )
+    missing = [
+        str(path)
+        for path in required_files
+        if not path.is_file()
+    ]
+    if missing:
+        raise RuntimeError(
+            "Required AI model files are missing: "
+            + ", ".join(missing)
+        )
+
+
 def create_lifespan(
     rabbitmq_consumer_enabled: bool,
 ):
@@ -36,6 +55,9 @@ def create_lifespan(
     async def lifespan(
         application: FastAPI,
     ) -> AsyncIterator[None]:
+        if settings.ENV == "prod":
+            validate_model_files()
+
         if not rabbitmq_consumer_enabled:
             yield
             return

@@ -21,13 +21,19 @@ async def analyze_smishing(
     analysis_service: SmishingAnalysisService = Depends(get_analysis_service)
 ) -> SmishingAnalysisResponse:
     
-    logger.info(f"[Router] 통합 스미싱 분석 마스터 파이프라인 진입: {payload.text[:15]}...")
+    logger.info(
+        "[Router] 통합 스미싱 분석 요청 수신. text_length=%d",
+        len(payload.text),
+    )
 
     try:
         return await analysis_service.analyze_pipeline(payload.text)
-    except Exception as e:
-        logger.error(f"[Router] 스캔 처리 중 장애 발생: {str(e)}")
+    except Exception as exception:
+        logger.error(
+            "[Router] 스캔 처리 중 장애 발생. error_type=%s",
+            type(exception).__name__,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"서버 내부 스캔 파이프라인 연산 중 오류: {str(e)}"
-        )
+            detail="서버 내부 스캔 파이프라인 연산 중 오류가 발생했습니다.",
+        ) from exception
