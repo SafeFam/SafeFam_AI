@@ -29,7 +29,12 @@ def test_chat_request_accepts_valid_payload():
 
 
 def test_analysis_context_defaults_indicators_to_empty_list():
-    context = _analysis_context(indicators=[])
+    context = AnalysisContext(
+        riskScore=90,
+        riskLevel="HIGH",
+        category="FINANCIAL_INSTITUTION",
+        explanation="국민건강보험을 사칭한 스미싱 문자",
+    )
     assert context.indicators == []
 
 
@@ -56,6 +61,8 @@ def test_analysis_context_rejects_blank_explanation():
 def test_analysis_context_indicator_requires_type_and_description():
     with pytest.raises(ValidationError):
         _analysis_context(indicators=[{"type": "MALICIOUS_URL"}])
+    with pytest.raises(ValidationError):
+        _analysis_context(indicators=[{"description": "악성 이력이 확인된 URL입니다."}])
 
 
 def test_chat_request_rejects_unknown_fields():
