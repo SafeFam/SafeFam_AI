@@ -1,18 +1,13 @@
-import os
 import re
 import logging
-from pathlib import Path
 
 from app.analysis.risk_policy import determine_text_risk_grade
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# 프로젝트 루트 기준 사전 학습된 아티팩트 위치 (data_science/SMSModel/train_sms.py 산출물)
-_BASE_DIR = Path(__file__).resolve().parents[3]
-_DEFAULT_MODEL_DIR = _BASE_DIR / "data_science" / "SMSModel"
-
-MODEL_PATH = Path(os.getenv("NAIVE_BAYES_MODEL_PATH", str(_DEFAULT_MODEL_DIR / "phishing_model_artifact.pkl")))
-VECTORIZER_PATH = Path(os.getenv("NAIVE_BAYES_VECTORIZER_PATH", str(_DEFAULT_MODEL_DIR / "phishing_vectorizer.pkl")))
+MODEL_PATH = settings.NAIVE_BAYES_MODEL_PATH
+VECTORIZER_PATH = settings.NAIVE_BAYES_VECTORIZER_PATH
 
 # --- 전처리 정규식 : data_science/SMSModel/train_sms.py의 정규화/피처 추출 로직과 반드시 동일하게 유지 ---
 # (학습 시 벡터라이저가 본 입력 분포와 서빙 시 입력 분포가 어긋나면 모델이 무의미해짐)
@@ -92,9 +87,12 @@ def _load_artifacts() -> None:
         _classes = artifact["classes"]
         _vectorizer = joblib.load(VECTORIZER_PATH)
         logger.info(f"[NaiveBayes] 모델 로드 완료 (threshold={_threshold})")
-    except Exception as e:
-        _load_error = str(e)
-        logger.error(f"[NaiveBayes] 모델 로드 실패: {_load_error}")
+    except Exception as exception:
+        _load_error = type(exception).__name__
+        logger.error(
+            "[NaiveBayes] 모델 로드 실패. error_type=%s",
+            _load_error,
+        )
 
 
 def is_model_loaded() -> bool:
@@ -139,8 +137,11 @@ async def analyze_text_with_naive_bayes(text: str) -> dict:
                 "error_message": None
             }
         }
-    except Exception as e:
-        logger.error(f"[NaiveBayes] 추론 중 비정상 에러 발생: {str(e)}")
+    except Exception as exception:
+        logger.error(
+            "[NaiveBayes] 추론 중 비정상 오류 발생. error_type=%s",
+            type(exception).__name__,
+        )
         return {
             "engine": "naive_bayes",
             "is_available": False,

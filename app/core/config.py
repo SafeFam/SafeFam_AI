@@ -1,13 +1,28 @@
-from pydantic import Field
+from pathlib import Path
+from typing import Literal
+
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
+    ENV: Literal["local", "test", "prod"] = "local"
     PROJECT_NAME: str = "SafeFam-AI"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
-    
+
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-flash-latest"
     VIRUSTOTAL_API_KEY: str | None = None
     GOOGLE_SAFE_BROWSING_API_KEY: str | None = None
+    MOCK_SECURITY_API: bool = False
+
+    NAIVE_BAYES_MODEL_PATH: Path = Path(
+        "data_science/SMSModel/phishing_model_artifact.pkl"
+    )
+    NAIVE_BAYES_VECTORIZER_PATH: Path = Path(
+        "data_science/SMSModel/phishing_vectorizer.pkl"
+    )
 
     GEMINI_TIMEOUT_SECONDS: float = Field(
         default=10.0,
@@ -75,10 +90,50 @@ class Settings(BaseSettings):
         ge=0,
     )
 
+    @model_validator(mode="after")
+    def validate_production_settings(self):
+        if self.ENV != "prod":
+            return self
+
+        required_values = {
+            "GEMINI_API_KEY": self.GEMINI_API_KEY,
+            "VIRUSTOTAL_API_KEY": self.VIRUSTOTAL_API_KEY,
+            "GOOGLE_SAFE_BROWSING_API_KEY": (
+                self.GOOGLE_SAFE_BROWSING_API_KEY
+            ),
+            "RABBITMQ_URL": self.RABBITMQ_URL,
+        }
+        missing = [
+            name
+            for name, value in required_values.items()
+            if value is None or not str(value).strip()
+        ]
+
+        local_rabbitmq_url = (
+            "amqp://safefam:safefam-local@localhost:5672/"
+        )
+        if self.RABBITMQ_URL == local_rabbitmq_url:
+            missing.append("RABBITMQ_URL")
+
+        if missing:
+            raise ValueError(
+                "Missing required production settings: "
+                + ", ".join(sorted(set(missing)))
+            )
+
+        if self.MOCK_SECURITY_API:
+            raise ValueError(
+                "MOCK_SECURITY_API must be false in production"
+            )
+
+        return self
+
     model_config = SettingsConfigDict(
-        env_file=".env", 
+        env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore" 
+        extra="ignore",
+        hide_input_in_errors=True,
     )
+
 
 settings = Settings()

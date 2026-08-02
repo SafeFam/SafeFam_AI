@@ -31,7 +31,7 @@ class MockSecurityProvider:
         [상용 인터페이스 구현]
         가상 DB를 매칭하여 상용 엔진과 동일한 규격의 딕셔너리를 반환합니다.
         """
-        logger.info(f"🚨 [MOCK SECURITY ENGINE] Sandbox API 우회 매칭 -> {url}")
+        logger.info("[MOCK SECURITY ENGINE] Sandbox API 우회 매칭")
         
         # URL이 DB에 없으면 안전한 상태인 default_safe 적용
         data = self.mock_db.get(url, self.default_safe)

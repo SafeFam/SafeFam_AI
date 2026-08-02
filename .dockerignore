@@ -15,3 +15,13 @@ requirements-dev.txt
 
 *.log
 .DS_Store
+
+secrets
+data_science/**
+!data_science/SMSModel/
+!data_science/SMSModel/phishing_model_artifact.pkl
+!data_science/SMSModel/phishing_vectorizer.pkl
+*.ipynb
+*.csv
+*.png
+*.log

@@ -59,7 +59,9 @@ async def _is_public_host(
             loop.getaddrinfo(hostname, None), timeout=dns_timeout
         )
     except (socket.gaierror, OSError, asyncio.TimeoutError):
-        logger.warning(f"[SSRF Guard] DNS 조회 실패/타임아웃으로 안전하게 차단: {hostname}")
+        logger.warning(
+            "[SSRF Guard] DNS 조회 실패 또는 타임아웃으로 요청 차단"
+        )
         return None
 
     pinned_ip = None
@@ -163,7 +165,9 @@ async def trace_url(
             hostname = urlparse(current_url).hostname
             pinned_ip = await _is_public_host(hostname, dns_timeout=timeout)
             if not pinned_ip:
-                logger.warning(f"[SSRF Guard] 내부망/사설 주소로 판단되어 요청 차단: {current_url}")
+                logger.warning(
+                    "[SSRF Guard] 내부망 또는 사설 주소로 판단되어 요청 차단"
+                )
                 break
 
             # 검증에 쓴 IP를 그대로 연결에 고정(pin)한다. 홉마다 호스트가 바뀔 수 있으므로
@@ -212,18 +216,30 @@ async def trace_url(
                     location = urljoin(current_url, location)
 
                 current_url = location
-                logger.info(f"Redirect {attempt + 1}: -> {current_url}")
+                logger.info(
+                    "URL redirect followed. redirect_count=%d",
+                    attempt + 1,
+                )
             else:
                 break
 
         except httpx.TimeoutException:
-            logger.warning(f"URL 추적 타임아웃 발생 ({timeout}초 초과): {current_url}")
+            logger.warning(
+                "URL 추적 타임아웃 발생. timeout_seconds=%s",
+                timeout,
+            )
             break
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP 에러 발생 ({e.response.status_code}): {current_url}")
+        except httpx.HTTPStatusError as exception:
+            logger.error(
+                "URL 추적 HTTP 오류. status_code=%s",
+                exception.response.status_code,
+            )
             break
-        except Exception as e:
-            logger.error(f"비정상 URL 추적 실패 ({str(e)}): {current_url}")
+        except Exception as exception:
+            logger.error(
+                "URL 추적 실패. error_type=%s",
+                type(exception).__name__,
+            )
             break
     else:
         logger.warning(f"최대 리다이렉트 횟수({max_redirects}회)를 초과했습니다. 루프 위험 감지.")

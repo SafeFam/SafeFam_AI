@@ -1,20 +1,17 @@
-import os
 import json
 import logging
 import httpx
-from dotenv import load_dotenv
 from app.analysis.risk_policy import determine_text_risk_grade
+from app.core.config import settings
 from app.infrastructure.gemini.client import GeminiClient
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_API_KEY = settings.GEMINI_API_KEY
+GEMINI_MODEL = settings.GEMINI_MODEL
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
-MOCK_ENABLED = os.getenv("MOCK_SECURITY_API", "False").lower() in ("true", "1", "t")
+MOCK_ENABLED = settings.MOCK_SECURITY_API
 
 # Gemini에게 구조화된 JSON 응답을 강제하기 위한 응답 스키마
 RESPONSE_SCHEMA = {
@@ -174,10 +171,16 @@ async def analyze_text_with_gemini(text: str) -> dict:
         logger.error("Gemini API 요청 타임아웃 발생")
         return _build_result(DEFAULT_ANALYSIS_RESULT, is_mock=False, error="Timeout")
 
-    except (KeyError, IndexError, json.JSONDecodeError) as e:
-        logger.error(f"Gemini 응답 파싱 실패: {str(e)}")
+    except (KeyError, IndexError, json.JSONDecodeError) as exception:
+        logger.error(
+            "Gemini 응답 파싱 실패. error_type=%s",
+            type(exception).__name__,
+        )
         return _build_result(DEFAULT_ANALYSIS_RESULT, is_mock=False, error="Parse Error")
 
-    except Exception as e:
-        logger.error(f"Gemini 연동 중 비정상 에러 발생: {str(e)}")
+    except Exception as exception:
+        logger.error(
+            "Gemini 연동 중 비정상 오류 발생. error_type=%s",
+            type(exception).__name__,
+        )
         return _build_result(DEFAULT_ANALYSIS_RESULT, is_mock=False, error="Unknown Error")

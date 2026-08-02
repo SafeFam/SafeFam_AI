@@ -93,8 +93,7 @@ class GoogleSafeBrowsingClient:
                 # 매칭되는 위험 요소가 있는 경우 악성 URL로 처리
                 if matches:
                     logger.warning(
-                        "[Google Safe Browsing] 악성 URL 감지됨: %s",
-                        url,
+                        "[Google Safe Browsing] 악성 URL 감지됨"
                     )
                     return {
                         "is_malicious": True,
@@ -105,8 +104,7 @@ class GoogleSafeBrowsingClient:
                     }
 
                 logger.info(
-                    "[Google Safe Browsing] 안전한 URL: %s",
-                    url,
+                    "[Google Safe Browsing] URL 분석 완료"
                 )
                 return self._safe_result()
 
@@ -143,10 +141,11 @@ class GoogleSafeBrowsingClient:
                     "NETWORK_ERROR"
                 )
 
-            except Exception:
-                logger.exception(
+            except Exception as exception:
+                logger.error(
                     "[Google Safe Browsing] "
-                    "연동 중 비정상 오류 발생"
+                    "연동 중 비정상 오류 발생. error_type=%s",
+                    type(exception).__name__,
                 )
                 return self._unavailable_result(
                     "UNEXPECTED_ERROR"
