@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.analysis import router as analyze
 from app.analysis.service import SmishingAnalysisService
+from app.chat import router as chat
 from app.core.config import settings
 from app.infrastructure.rabbitmq.connection import (
     RabbitMQConnection,
@@ -111,6 +112,7 @@ def create_app(
     )
 
     application.include_router(analyze.router, prefix="/api")
+    application.include_router(chat.router, prefix="/api")
 
     @application.get("/", tags=["Root"])
     def root_check():
