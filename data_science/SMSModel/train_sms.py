@@ -18,6 +18,10 @@ from app.analysis.text.preprocessing import (
     extract_struct_feature_matrix,
     normalize_text,
 )
+from data_science.SMSModel.template_grouping import (
+    TemplateGroupingConfig,
+    prepare_template_groups,
+)
 
 warnings.filterwarnings("ignore")
 
@@ -55,28 +59,45 @@ ALPHA_GRID     = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 유사 템플릿 그룹화 CONFIG
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 유사도 임계값
+TEMPLATE_SIMILARITY_THRESHOLD = 0.88
+
+# n-gram 범위
+TEMPLATE_NGRAM_RANGE = (2, 5)
+
+# TF-IDF 최대 피처 수
+TEMPLATE_MAX_FEATURES = 50_000
+
+def build_template_grouping_config() -> TemplateGroupingConfig:
+    """현재 학습 실행에서 사용할 템플릿 그룹화 설정을 반환"""
+    return TemplateGroupingConfig(
+        similarity_threshold=TEMPLATE_SIMILARITY_THRESHOLD,
+        ngram_range=TEMPLATE_NGRAM_RANGE,
+        min_df=1,
+        max_features=TEMPLATE_MAX_FEATURES,
+    )
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 데이터 로드
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    source가 synthetic_new_holdout 또는 synthetic_fp_stress인 행은
-    학습/검증/테스트 분할 대상에서 제외
-
-    Returns:
-        df_pool:
-            학습, 검증, 테스트 분할에 사용할 데이터.
-
-        df_holdout:
-            완전 신규 시나리오 평가에만 사용할 데이터.
-    """
+    """CSV를 읽고 학습용 데이터와 별도 holdout 데이터를 반환"""
     df = pd.read_csv(path)
 
-    required_cols = {"text", "label", "type", "has_url"}
-    missing = required_cols - set(df.columns)
+    required_columns = {
+        "text",
+        "label",
+        "type",
+        "has_url",
+    }
+    missing_columns = required_columns - set(df.columns)
 
-    if missing:
-        raise ValueError(f"누락 컬럼: {missing}")
+    if missing_columns:
+        raise ValueError(f"누락 컬럼: {missing_columns}")
 
     if df.isnull().any().any():
         raise ValueError("결측치가 존재합니다.")
@@ -85,14 +106,16 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     actual_labels = set(df["label"].unique())
 
     if not allowed_labels.issuperset(actual_labels):
-        raise ValueError(f"예상치 못한 label 값: {df['label'].unique()}")
+        raise ValueError(
+            f"예상치 못한 label 값: {df['label'].unique()}"
+        )
 
     print(
         f"[Load] 원본 {len(df)}건 | "
         f"{df['label'].value_counts().to_dict()}"
     )
 
-    # 학습과 API가 동일한 공통 전처리를 사용
+    # 학습과 API가 공유하는 공통 정규화 함수를 사용
     df["text_norm"] = df["text"].apply(normalize_text)
 
     source = df.get(
@@ -101,24 +124,60 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     )
 
     is_new_holdout = source.isin(
-        ["synthetic_new_holdout", "synthetic_fp_stress"]
+        [
+            "synthetic_new_holdout",
+            "synthetic_fp_stress",
+        ]
     )
 
-    df_holdout = df[is_new_holdout].reset_index(drop=True)
-    df_pool = df[~is_new_holdout].reset_index(drop=True)
-
-    before = len(df_pool)
-
-    # 동일한 정규화 결과를 가진 메시지는 한 건만 남김
-    df_pool = (
-        df_pool
-        .drop_duplicates(subset="text_norm")
+    # 신규 시나리오 holdout은 학습 데이터 그룹화 대상에서도 제외
+    df_holdout = (
+        df[is_new_holdout]
+        .copy()
         .reset_index(drop=True)
     )
 
+    df_pool = (
+        df[~is_new_holdout]
+        .copy()
+        .reset_index(drop=True)
+    )
+
+    before_deduplication = len(df_pool)
+
+    # fingerprint 생성 → label 충돌 검사 → 완전 중복 제거 → 유사 그룹화
+    df_pool = prepare_template_groups(
+        df_pool,
+        config=build_template_grouping_config(),
+        text_column="text_norm",
+        label_column="label",
+    )
+
+    removed_duplicates = before_deduplication - len(df_pool)
+    template_group_count = df_pool["template_group_id"].nunique()
+
+    group_sizes = df_pool["template_group_id"].value_counts()
+    similar_group_count = int((group_sizes > 1).sum())
+    largest_group_size = (
+        int(group_sizes.max())
+        if not group_sizes.empty
+        else 0
+    )
+
     print(
-        f"[Dedup] text_norm 기준 중복 제거: "
-        f"{before} → {len(df_pool)}건 | "
+        f"[Dedup] fingerprint 기준 완전 중복 제거: "
+        f"{before_deduplication} → {len(df_pool)}건 "
+        f"(제거 {removed_duplicates}건)"
+    )
+
+    print(
+        f"[Template Grouping] 전체 그룹={template_group_count} | "
+        f"유사 메시지 그룹={similar_group_count} | "
+        f"최대 그룹 크기={largest_group_size}"
+    )
+
+    print(
+        f"[Pool] label 분포: "
         f"{df_pool['label'].value_counts().to_dict()}"
     )
 
