@@ -11,7 +11,6 @@ from scipy.sparse import csr_matrix, hstack
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.naive_bayes import ComplementNB
 
 from app.analysis.text.preprocessing import (
@@ -21,6 +20,13 @@ from app.analysis.text.preprocessing import (
 from data_science.SMSModel.template_grouping import (
     TemplateGroupingConfig,
     prepare_template_groups,
+)
+from data_science.SMSModel.dataset_splitting import (
+    DatasetSplitConfig,
+    load_split_manifest,
+    save_split_manifest,
+    split_grouped_dataset,
+    validate_dataset_splits,
 )
 
 warnings.filterwarnings("ignore")
@@ -39,6 +45,11 @@ DATA_PATH = (
 )
 MODEL_PATH = SMS_MODEL_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = SMS_MODEL_DIR / "phishing_vectorizer.pkl"
+SPLIT_MANIFEST_PATH = (
+    SMS_MODEL_DIR
+    / "splits"
+    / "sms_split_v1.csv"
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 학습 CONFIG
@@ -78,6 +89,16 @@ def build_template_grouping_config() -> TemplateGroupingConfig:
         ngram_range=TEMPLATE_NGRAM_RANGE,
         min_df=1,
         max_features=TEMPLATE_MAX_FEATURES,
+    )
+
+def build_dataset_split_config() -> DatasetSplitConfig:
+    """현재 SMS 모델 학습에서 사용할 데이터 분할 설정"""
+    return DatasetSplitConfig(
+        train_size=0.70,
+        val_size=0.15,
+        test_size=0.15,
+        random_state=42,
+        candidate_count=500,
     )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -193,42 +214,72 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 # Train / Test 분리
 # ─────────────────────────────────────────────────────────────────────────────
 
-def split_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    StratifiedShuffleSplit 2단계: label 비율 유지하며 train/val/test 분리.
+def split_data(
+    df: pd.DataFrame,
+    *,
+    create_manifest: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
-    1단계) 전체 → (train+val) / test
-    2단계) (train+val) → train / val  (val 비율을 전체 기준 VAL_SIZE로 재조정)
+    """저장된 manifest를 사용하거나 새로운 그룹 split을 생성"""
+    config = build_dataset_split_config()
 
-    val: 하이퍼파라미터(alpha/threshold) 튜닝 전용
-    test: 최종 평가 1회 전용 — 튜닝에 재사용하면 지표가 낙관적으로 부풀려짐(test set 누수)
-    """
-    sss_test = StratifiedShuffleSplit(
-        n_splits=1, test_size=TEST_SIZE, random_state=RANDOM_STATE
-    )
-    trainval_idx, test_idx = next(sss_test.split(df, df["label"]))
-    df_trainval = df.iloc[trainval_idx].reset_index(drop=True)
-    df_test     = df.iloc[test_idx].reset_index(drop=True)
-
-    val_ratio = VAL_SIZE / (1 - TEST_SIZE)  # trainval 내 비중으로 재조정
-    sss_val = StratifiedShuffleSplit(
-        n_splits=1, test_size=val_ratio, random_state=RANDOM_STATE
-    )
-    train_idx, val_idx = next(sss_val.split(df_trainval, df_trainval["label"]))
-    df_train = df_trainval.iloc[train_idx].reset_index(drop=True)
-    df_val   = df_trainval.iloc[val_idx].reset_index(drop=True)
-
-    def _fmt(d: pd.DataFrame) -> str:
-        vc = d["label"].value_counts()
-        return (
-            f"phishing={vc.get('phishing', 0)} ({vc.get('phishing', 0)/len(d):.1%}) | "
-            f"normal={vc.get('normal', 0)} ({vc.get('normal', 0)/len(d):.1%})"
+    if SPLIT_MANIFEST_PATH.exists() and not create_manifest:
+        splits = load_split_manifest(
+            df,
+            SPLIT_MANIFEST_PATH,
+            config=config,
         )
 
-    print(f"[Split] Train {len(df_train)}건: {_fmt(df_train)}")
-    print(f"[Split] Val   {len(df_val)}건:  {_fmt(df_val)}")
-    print(f"[Split] Test  {len(df_test)}건:  {_fmt(df_test)}")
-    return df_train, df_val, df_test
+        print(
+            f"[Split] 기존 manifest 사용: "
+            f"{SPLIT_MANIFEST_PATH}"
+        )
+    else:
+        splits = split_grouped_dataset(
+            df,
+            config=config,
+        )
+
+        validate_dataset_splits(
+            df,
+            splits,
+            config=config,
+        )
+
+        save_split_manifest(
+            splits,
+            SPLIT_MANIFEST_PATH,
+            # create_manifest가 명시된 경우만 기존 파일 변경을 허용합니다.
+            overwrite=create_manifest,
+        )
+
+        print(
+            f"[Split] 새 manifest 저장: "
+            f"{SPLIT_MANIFEST_PATH}"
+        )
+
+    def describe_split(
+        name: str,
+        split_df: pd.DataFrame,
+    ) -> None:
+        label_counts = split_df["label"].value_counts()
+        group_count = split_df["template_group_id"].nunique()
+
+        print(
+            f"[Split] {name:<10} "
+            f"rows={len(split_df)} | "
+            f"groups={group_count} | "
+            f"phishing={label_counts.get('phishing', 0)} "
+            f"({(split_df['label'] == 'phishing').mean():.1%}) | "
+            f"normal={label_counts.get('normal', 0)} "
+            f"({(split_df['label'] == 'normal').mean():.1%})"
+        )
+
+    describe_split("Train", splits.train)
+    describe_split("Validation", splits.validation)
+    describe_split("Test", splits.test)
+
+    return splits.train, splits.validation, splits.test
 
 
 # ─────────────────────────────────────────────────────────────────────────────
