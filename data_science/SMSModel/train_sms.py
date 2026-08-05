@@ -23,10 +23,14 @@ from data_science.SMSModel.template_grouping import (
 )
 from data_science.SMSModel.dataset_splitting import (
     DatasetSplitConfig,
+    DatasetSplits,
     load_split_manifest,
     save_split_manifest,
     split_grouped_dataset,
     validate_dataset_splits,
+)
+from data_science.SMSModel.reporting import (
+    generate_dataset_split_reports,
 )
 
 warnings.filterwarnings("ignore")
@@ -43,12 +47,26 @@ DATA_PATH = (
     / "SMSData"
     / "phishing_total_dataset_2705.csv"
 )
-MODEL_PATH = SMS_MODEL_DIR / "phishing_model_artifact.pkl"
-VECTORIZER_PATH = SMS_MODEL_DIR / "phishing_vectorizer.pkl"
+ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
+MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
+VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
 SPLIT_MANIFEST_PATH = (
     SMS_MODEL_DIR
     / "splits"
     / "sms_split_v1.csv"
+)
+
+# 보고서 경로
+REPORTS_DIR = SMS_MODEL_DIR / "reports"
+
+DATASET_SPLIT_JSON_REPORT_PATH = (
+    REPORTS_DIR
+    / "dataset_split_summary.json"
+)
+
+DATASET_SPLIT_MARKDOWN_REPORT_PATH = (
+    REPORTS_DIR
+    / "dataset_split_summary.md"
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -218,16 +236,16 @@ def split_data(
     df: pd.DataFrame,
     *,
     create_manifest: bool = False,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-
+) -> DatasetSplits:
     """저장된 manifest를 사용하거나 새로운 그룹 split을 생성"""
-    config = build_dataset_split_config()
+    split_config = build_dataset_split_config()
+    grouping_config = build_template_grouping_config()
 
     if SPLIT_MANIFEST_PATH.exists() and not create_manifest:
         splits = load_split_manifest(
             df,
             SPLIT_MANIFEST_PATH,
-            config=config,
+            config=split_config,
         )
 
         print(
@@ -237,13 +255,13 @@ def split_data(
     else:
         splits = split_grouped_dataset(
             df,
-            config=config,
+            config=split_config,
         )
 
         validate_dataset_splits(
             df,
             splits,
-            config=config,
+            config=split_config,
         )
 
         save_split_manifest(
@@ -257,6 +275,19 @@ def split_data(
             f"[Split] 새 manifest 저장: "
             f"{SPLIT_MANIFEST_PATH}"
         )
+
+    # manifest를 로드한 경우에도 학습 직전에 다시 검증합니다. 실패 시 예외가
+    # 전파되어 모델 학습과 잘못된 보고서 생성을 모두 중단합니다.
+    validate_dataset_splits(df, splits, config=split_config)
+
+    summary = generate_dataset_split_reports(
+        df,
+        splits,
+        split_config=split_config,
+        grouping_config=grouping_config,
+        json_path=DATASET_SPLIT_JSON_REPORT_PATH,
+        markdown_path=DATASET_SPLIT_MARKDOWN_REPORT_PATH,
+    )
 
     def describe_split(
         name: str,
@@ -279,7 +310,18 @@ def split_data(
     describe_split("Validation", splits.validation)
     describe_split("Test", splits.test)
 
-    return splits.train, splits.validation, splits.test
+    print(
+        "[Split Validation] "
+        f"passed={summary['validation']['passed']} | "
+        f"group_overlap={summary['validation']['group_overlap_count']} | "
+        "fingerprint_overlap="
+        f"{summary['validation']['fingerprint_overlap_count']}"
+    )
+    print(f"[Dataset] fingerprint={summary['dataset_fingerprint']}")
+    print(f"[Report] {DATASET_SPLIT_JSON_REPORT_PATH}")
+    print(f"[Report] {DATASET_SPLIT_MARKDOWN_REPORT_PATH}")
+
+    return splits
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -450,6 +492,7 @@ def evaluate(model, threshold: float, X_test, y_test: pd.Series) -> None:
 
 def save_artifacts(model, vectorizer: CountVectorizer, threshold: float) -> None:
     """model + threshold + classes를 단일 아티팩트로 저장 (FastAPI 로드용)."""
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(
         {"model": model, "threshold": threshold, "classes": list(model.classes_)},
         MODEL_PATH,
@@ -526,7 +569,10 @@ def predict_risk_score(
 def main() -> None:
     df, df_holdout = load_data(DATA_PATH)
 
-    df_train, df_val, df_test = split_data(df)
+    splits = split_data(df)
+    df_train = splits.train
+    df_val = splits.validation
+    df_test = splits.test
 
     struct_train = extract_struct_feature_matrix(df_train["text"], df_train["has_url"])
     struct_val = extract_struct_feature_matrix(df_val["text"], df_val["has_url"])

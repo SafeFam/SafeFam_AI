@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     MOCK_SECURITY_API: bool = False
 
     NAIVE_BAYES_MODEL_PATH: Path = Path(
-        "data_science/SMSModel/phishing_model_artifact.pkl"
+        "data_science/SMSModel/artifacts/phishing_model_artifact.pkl"
     )
     NAIVE_BAYES_VECTORIZER_PATH: Path = Path(
-        "data_science/SMSModel/phishing_vectorizer.pkl"
+        "data_science/SMSModel/artifacts/phishing_vectorizer.pkl"
     )
 
     GEMINI_TIMEOUT_SECONDS: float = Field(

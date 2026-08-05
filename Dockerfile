@@ -11,8 +11,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app app
-COPY data_science/SMSModel/phishing_model_artifact.pkl models/phishing_model_artifact.pkl
-COPY data_science/SMSModel/phishing_vectorizer.pkl models/phishing_vectorizer.pkl
+COPY data_science/SMSModel/artifacts/phishing_model_artifact.pkl models/phishing_model_artifact.pkl
+COPY data_science/SMSModel/artifacts/phishing_vectorizer.pkl models/phishing_vectorizer.pkl
 
 RUN useradd --create-home --shell /usr/sbin/nologin safefam \
     && chown -R safefam:safefam /app
