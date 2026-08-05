@@ -1,21 +1,6 @@
-"""
-SafeFam — SMS 피싱 탐지 베이즈 분류기 학습 파이프라인 v2
-train_sms.py
-==========================================================
-v2 변경사항:
-  - CalibratedClassifierCV(method='isotonic') 추가
-    → ComplementNB 확률이 0/1 양극단으로 몰리는 문제 해결
-    → risk_score가 0~100 구간에 고르게 분산되어 상/중/하 의미있는 구분 가능
-
-탐지 파이프라인 내 위치:
-  URL 있음  → 베이즈(텍스트) + VirusTotal(URL) 병렬 → 종합 risk_score (Spring Boot 조율)
-  URL 없음  → 베이즈 단독 risk_score
-  MEDIUM    → Claude API 에스컬레이션 (40~69점 구간)
-"""
-
+# SMS 피싱 탐지 베이즈 분류기 학습 파이프라인
 from __future__ import annotations
 
-import re
 import warnings
 from pathlib import Path
 
@@ -23,22 +8,33 @@ import joblib
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, hstack
-from sklearn.calibration import CalibratedClassifierCV   # ← v2 추가
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.naive_bayes import ComplementNB
 
+from app.analysis.text.preprocessing import (
+    extract_struct_feature_matrix,
+    normalize_text,
+)
+
 warnings.filterwarnings("ignore")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 경로 CONFIG — 환경에 따라 이 블록만 수정
+# 경로 CONFIG — 실행 위치가 아니라 이 파일의 위치를 기준으로 계산
 # ─────────────────────────────────────────────────────────────────────────────
 
-DATA_PATH       = Path("../Data/SMSData/phishing_total_dataset_2705.csv")
-MODEL_PATH      = Path("phishing_model_artifact.pkl")
-VECTORIZER_PATH = Path("phishing_vectorizer.pkl")
+SMS_MODEL_DIR = Path(__file__).resolve().parent
+DATA_PATH = (
+    SMS_MODEL_DIR.parent
+    / "Data"
+    / "SMSData"
+    / "phishing_total_dataset_2705.csv"
+)
+MODEL_PATH = SMS_MODEL_DIR / "phishing_model_artifact.pkl"
+VECTORIZER_PATH = SMS_MODEL_DIR / "phishing_vectorizer.pkl"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 학습 CONFIG
@@ -58,107 +54,78 @@ RISK_MEDIUM_THRESHOLD = 40   # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
 ALPHA_GRID     = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 정규화 패턴
-# Spring PiiMaskingService 토큰과 일치: [PHONE],[ACCOUNT],[CARD],[RRN],[EMAIL]
-# 마스킹 순서: RRN→CARD→PHONE→ACCOUNT→EMAIL (Spring과 동일하게 유지)
-# ─────────────────────────────────────────────────────────────────────────────
-
-_RE_URL     = re.compile(r"(?i)(?<!@)(?:https?://|www\.)[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+;=%]+")
-_RE_RRN     = re.compile(r"(?<!\d)\d{6}[- ]\d{7}(?!\d)")
-_RE_CARD    = re.compile(r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)")
-_RE_PHONE   = re.compile(r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)")
-_RE_ACCOUNT = re.compile(r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)|(?<!\d)\d{10,14}(?!\d)")
-_RE_EMAIL   = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
-_RE_AMOUNT  = re.compile(r"\d+[,\d]*원")
-_RE_FORMAT_ARTIFACT = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
-_RE_SHORT_URL = re.compile(r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly")
-_RE_WEB_TAG = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 전처리
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _normalize_text(text: str) -> str:
-    parts = []
-    last_end = 0
-    for m in _RE_URL.finditer(text):
-        parts.append(_mask_pii(text[last_end:m.start()]))
-        parts.append("[URL]")
-        last_end = m.end()
-    parts.append(_mask_pii(text[last_end:]))
-    text = "".join(parts)
-    text = _RE_AMOUNT.sub("[AMOUNT]", text)
-    text = _RE_FORMAT_ARTIFACT.sub(" ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-def _mask_pii(text: str) -> str:
-    text = _RE_RRN.sub("[RRN]", text)
-    text = _RE_CARD.sub("[CARD]", text)
-    text = _RE_PHONE.sub("[PHONE]", text)
-    text = _RE_ACCOUNT.sub("[ACCOUNT]", text)
-    text = _RE_EMAIL.sub("[EMAIL]", text)
-    return text
-
-
-def _extract_struct_features(texts: pd.Series, has_url: pd.Series) -> np.ndarray:
-    """
-    텍스트 n-gram으로 포착하기 어려운 구조적 신호 6개를 boolean 피처로 추출.
-    반환 shape: (n_samples, 6)
-    """
-    return np.column_stack([
-        has_url.astype(int).values,                                         # 0: URL 포함
-        texts.str.contains(_RE_SHORT_URL).astype(int).values,               # 1: 단축URL (강신호)
-        (texts.str.contains(_RE_PHONE) | texts.str.contains(r"\[PHONE\]", regex=True)).astype(int).values,                   # 2: 전화번호
-        texts.str.contains(_RE_AMOUNT).astype(int).values,                  # 3: 금액
-        texts.str.contains(_RE_WEB_TAG).astype(int).values,                 # 4: 통신사태그(역방향)
-        (texts.str.len() > 100).astype(int).values,                         # 5: 100자 초과
-    ])
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # 데이터 로드
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    CSV 로드 → 무결성 검증 → 정규화 → text_norm 기준 중복 제거.
-
-    source == 'synthetic_new_holdout' / 'synthetic_fp_stress' 행은 학습/분리
-    대상에서 제외하고 df_holdout으로 따로 반환 (voice 모델과 동일 패턴).
+    source가 synthetic_new_holdout 또는 synthetic_fp_stress인 행은
+    학습/검증/테스트 분할 대상에서 제외
 
     Returns:
-        (df, df_holdout)
+        df_pool:
+            학습, 검증, 테스트 분할에 사용할 데이터.
+
+        df_holdout:
+            완전 신규 시나리오 평가에만 사용할 데이터.
     """
     df = pd.read_csv(path)
 
     required_cols = {"text", "label", "type", "has_url"}
-    if missing := required_cols - set(df.columns):
+    missing = required_cols - set(df.columns)
+
+    if missing:
         raise ValueError(f"누락 컬럼: {missing}")
+
     if df.isnull().any().any():
         raise ValueError("결측치가 존재합니다.")
-    if not {"phishing", "normal"}.issuperset(set(df["label"].unique())):
+
+    allowed_labels = {"phishing", "normal"}
+    actual_labels = set(df["label"].unique())
+
+    if not allowed_labels.issuperset(actual_labels):
         raise ValueError(f"예상치 못한 label 값: {df['label'].unique()}")
 
-    print(f"[Load] 원본 {len(df)}건 | {df['label'].value_counts().to_dict()}")
+    print(
+        f"[Load] 원본 {len(df)}건 | "
+        f"{df['label'].value_counts().to_dict()}"
+    )
 
-    df["text_norm"] = df["text"].apply(_normalize_text)
+    # 학습과 API가 동일한 공통 전처리를 사용
+    df["text_norm"] = df["text"].apply(normalize_text)
 
-    is_new_holdout = df.get("source", pd.Series("original", index=df.index)).isin(
+    source = df.get(
+        "source",
+        pd.Series("original", index=df.index),
+    )
+
+    is_new_holdout = source.isin(
         ["synthetic_new_holdout", "synthetic_fp_stress"]
     )
+
     df_holdout = df[is_new_holdout].reset_index(drop=True)
-    df_pool    = df[~is_new_holdout].reset_index(drop=True)
+    df_pool = df[~is_new_holdout].reset_index(drop=True)
 
     before = len(df_pool)
-    df_pool = df_pool.drop_duplicates(subset="text_norm").reset_index(drop=True)
+
+    # 동일한 정규화 결과를 가진 메시지는 한 건만 남김
+    df_pool = (
+        df_pool
+        .drop_duplicates(subset="text_norm")
+        .reset_index(drop=True)
+    )
+
     print(
-        f"[Dedup] text_norm 기준 중복 제거: {before} → {len(df_pool)}건 | "
+        f"[Dedup] text_norm 기준 중복 제거: "
+        f"{before} → {len(df_pool)}건 | "
         f"{df_pool['label'].value_counts().to_dict()}"
     )
-    print(f"[Holdout] 완전 신규 시나리오 {len(df_holdout)}건 분리 (학습에 전혀 사용 안 됨)")
+
+    print(
+        f"[Holdout] 완전 신규 시나리오 {len(df_holdout)}건 분리 "
+        f"(학습에 전혀 사용 안 됨)"
+    )
 
     return df_pool, df_holdout
 
@@ -417,60 +384,43 @@ def predict_risk_score(
     classes: list,
 ) -> dict:
     """
-    단일 문자 텍스트 → risk_score(0~100), risk_level(HIGH/MEDIUM/LOW) 반환.
+    단일 SMS를 분석해 위험 점수와 위험 등급을 반환
 
-    v2: CalibratedClassifierCV 보정으로 prob_phishing이 0~1 고르게 분산됨
-    → risk_score가 실제 위험도를 반영하는 연속적 점수로 의미있게 동작
-
-    Args:
-        text      : 원문 SMS 텍스트
-        model     : CalibratedClassifierCV (ComplementNB + isotonic 보정)
-        vectorizer: 학습된 CountVectorizer
-        threshold : 최적화된 분류 임계값
-        classes   : model.classes_ 리스트
-
-    Returns:
-        {
-          "risk_score"     : int  (0~100, 보정된 피싱 확률 × 100)
-          "risk_level"     : str  ("HIGH" | "MEDIUM" | "LOW")
-          "text_score_only": bool (True = VirusTotal 결합 전 텍스트 단독 점수)
-        }
+    학습과 운영 API 모두 공통 normalize_text()와 extract_struct_feature_matrix()를 사용
     """
-    text_norm = _normalize_text(text)
+    text_norm = normalize_text(text)
 
-    # 단일 샘플 구조적 피처 (shape: 1 × 6)
-    struct = np.array([[
-        int(bool(_RE_URL.search(text))),
-        int(bool(_RE_SHORT_URL.search(text))),
-        int(bool(_RE_PHONE.search(text) or "[PHONE]" in text)),
-        int(bool(_RE_AMOUNT.search(text))),
-        int(bool(_RE_WEB_TAG.search(text))),
-        int(len(text) > 100),
-    ]])
+    struct = extract_struct_feature_matrix([text])
 
-    X          = build_feature_matrix(vectorizer, pd.Series([text_norm]), struct, fit=False)
-    prob_phish = model.predict_proba(X)[0][classes.index("phishing")]
-    risk_score = int(prob_phish * 100)
+    X = build_feature_matrix(
+        vectorizer,
+        pd.Series([text_norm]),
+        struct,
+        fit=False,
+    )
+
+    phishing_index = classes.index("phishing")
+    phishing_probability = model.predict_proba(X)[0][phishing_index]
+    risk_score = int(phishing_probability * 100)
 
     return {
-        "risk_score"     : risk_score,
-        "risk_level"     : _map_risk_level(risk_score),
-        "text_score_only": True,   # VirusTotal 결합 전 텍스트 단독 점수
+        "risk_score": risk_score,
+        "risk_level": _map_risk_level(risk_score),
+        "text_score_only": True,
     }
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 진입점
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    df, df_holdout = load_data(DATA_PATH)              # 반환값 2개로 변경
+    df, df_holdout = load_data(DATA_PATH)
 
     df_train, df_val, df_test = split_data(df)
 
-    struct_train = _extract_struct_features(df_train["text"], df_train["has_url"])
-    struct_val   = _extract_struct_features(df_val["text"],   df_val["has_url"])
-    struct_test  = _extract_struct_features(df_test["text"],  df_test["has_url"])
+    struct_train = extract_struct_feature_matrix(df_train["text"], df_train["has_url"])
+    struct_val = extract_struct_feature_matrix(df_val["text"], df_val["has_url"])
+    struct_test = extract_struct_feature_matrix(df_test["text"], df_test["has_url"])
 
     vectorizer = build_vectorizer()
     X_train = build_feature_matrix(vectorizer, df_train["text_norm"], struct_train, fit=True)
@@ -491,7 +441,6 @@ def main() -> None:
     verify_probability_distribution(best["model"], X_test, df_test["label"])
     evaluate(best["model"], best["threshold"], X_test, df_test["label"])
 
-    # ★ 추가: 완전 신규 시나리오 일반화 + 오탐 검증
     evaluate_new_holdout(best["model"], vectorizer, best["threshold"], df_holdout)
 
     save_artifacts(best["model"], vectorizer, best["threshold"])
@@ -506,8 +455,8 @@ def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
         print("\n[SKIP] 신규 holdout 데이터 없음")
         return
 
-    text_norm = df_holdout["text"].apply(_normalize_text)
-    struct = _extract_struct_features(df_holdout["text"], df_holdout["has_url"])
+    text_norm = df_holdout["text"].apply(normalize_text)
+    struct = extract_struct_feature_matrix(df_holdout["text"], df_holdout["has_url"])
     X = build_feature_matrix(vectorizer, text_norm, struct, fit=False)
 
     y_prob = model.predict_proba(X)[:, _phishing_idx(model)]
