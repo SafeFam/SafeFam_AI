@@ -85,8 +85,9 @@ def train_and_evaluate_model(
             "model score type changed between validation and test"
         )
 
-    test_predictions = model.predict(
-        test_df,
+    # 이미 계산한 test score를 재사용
+    test_predictions = model.labels_from_scores(
+        test_scores.values,
         threshold=threshold_selection.threshold,
     )
 
