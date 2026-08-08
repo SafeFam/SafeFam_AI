@@ -56,14 +56,3 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t safefam-ai:test .
-
-  deploy:
-    name: Deploy AI
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    needs:
-      - test
-      - docker-build
-    permissions:
-      contents: read
-      id-token: write
-    uses: ./.github/workflows/ai-cd.yml

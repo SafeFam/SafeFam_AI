@@ -1,7 +1,13 @@
 name: AI CD
 
 on:
-  workflow_call:
+  workflow_run:
+    workflows:
+      - AI CI
+    types:
+      - completed
+    branches:
+      - develop
 
 permissions:
   contents: read
@@ -14,6 +20,10 @@ concurrency:
 jobs:
   deploy:
     name: Deploy AI to EC2
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'develop'
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
@@ -21,7 +31,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           allowed-account-ids: "351284653057"
           mask-aws-account-id: true
@@ -32,7 +42,7 @@ jobs:
         env:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}
-          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
 
