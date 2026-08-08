@@ -25,9 +25,9 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
-git fetch origin develop
-git switch develop
-git pull --ff-only origin develop
+git fetch origin develop:refs/remotes/origin/develop
+git switch -C develop --track origin/develop
+git merge --ff-only origin/develop
 
 DEPLOY_SHA="$(git rev-parse HEAD)"
 echo "[deploy] Deploying commit: ${DEPLOY_SHA}"
@@ -37,6 +37,18 @@ echo "[deploy] Building fastapi-ai"
 cd "${BE_DIR}"
 
 docker compose config --quiet
+
+PREVIOUS_IMAGE_ID="$(
+  docker inspect --format='{{.Image}}' "${CONTAINER_NAME}" 2>/dev/null || true
+)"
+PREVIOUS_IMAGE_REF="$(
+  docker inspect --format='{{.Config.Image}}' "${CONTAINER_NAME}" 2>/dev/null || true
+)"
+
+if [ -n "${PREVIOUS_IMAGE_ID}" ]; then
+  echo "[deploy] Previous image: ${PREVIOUS_IMAGE_ID}"
+fi
+
 docker compose build fastapi-ai
 
 echo "[deploy] Replacing fastapi-ai only"
@@ -45,23 +57,25 @@ docker compose up -d --no-deps fastapi-ai
 
 echo "[deploy] Waiting for health check"
 
-for attempt in $(seq 1 30); do
+for attempt in $(seq 1 60); do
   health_status="$(
     docker inspect \
       --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
       "${CONTAINER_NAME}" 2>/dev/null || true
   )"
 
-  echo "[deploy] Attempt ${attempt}/30: ${health_status:-not-found}"
+  echo "[deploy] Attempt ${attempt}/60: ${health_status:-not-found}"
 
-  if [ "${health_status}" = "healthy" ]; then
+  if [ "${health_status}" = "healthy" ] || [ "${health_status}" = "running" ]; then
     echo "[deploy] AI deployment succeeded: ${DEPLOY_SHA}"
     docker image prune -f
     docker builder prune -f --filter "until=168h"
     exit 0
   fi
 
-  if [ "${health_status}" = "unhealthy" ]; then
+  if [ "${health_status}" = "unhealthy" ] || \
+     [ "${health_status}" = "exited" ] || \
+     [ "${health_status}" = "dead" ]; then
     break
   fi
 
@@ -70,4 +84,18 @@ done
 
 echo "[deploy] AI health check failed"
 docker logs --tail 100 "${CONTAINER_NAME}" || true
+
+if [ -n "${PREVIOUS_IMAGE_ID}" ] && [ -n "${PREVIOUS_IMAGE_REF}" ]; then
+  echo "[deploy] Rolling back to ${PREVIOUS_IMAGE_ID}"
+
+  if docker tag "${PREVIOUS_IMAGE_ID}" "${PREVIOUS_IMAGE_REF}" && \
+     docker compose up -d --no-deps --force-recreate fastapi-ai; then
+    echo "[deploy] Previous AI image restored"
+  else
+    echo "[deploy] Failed to restore previous AI image"
+  fi
+else
+  echo "[deploy] No previous AI image is available for rollback"
+fi
+
 exit 1

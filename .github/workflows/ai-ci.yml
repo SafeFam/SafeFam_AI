@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: ai-ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
 
 jobs:
   test:
@@ -60,7 +60,7 @@ jobs:
   deploy:
     name: Deploy AI to EC2
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     needs:
       - test
@@ -96,7 +96,7 @@ jobs:
           parameters="$(
             jq -cn \
               --arg command "${remote_command}" \
-              '{commands: [$command]}'
+              '{commands: [$command], executionTimeout: ["1800"]}'
           )"
 
           command_id="$(
@@ -109,6 +109,11 @@ jobs:
               --query "Command.CommandId" \
               --output text
           )"
+
+          if [ -z "${command_id}" ] || [ "${command_id}" = "None" ]; then
+            echo "Failed to obtain an SSM command ID"
+            exit 1
+          fi
 
           echo "command_id=${command_id}" >> "${GITHUB_OUTPUT}"
           echo "SSM command sent: ${command_id}"
