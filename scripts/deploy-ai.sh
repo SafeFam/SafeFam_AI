@@ -7,12 +7,19 @@ BE_DIR="${DEPLOY_ROOT}/SafeFam_BE"
 LOCK_FILE="${DEPLOY_ROOT}/.deploy.lock"
 CONTAINER_NAME="safefam-ai-server"
 
+EXPECTED_SHA="${1:?Expected Git commit SHA is required}"
+
 echo "[deploy] Waiting for deployment lock"
 
 exec 9>"${LOCK_FILE}"
 
 if ! flock -w 600 9; then
   echo "[deploy] Another deployment is still running"
+  exit 1
+fi
+
+if ! [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "[deploy] Invalid commit SHA: ${EXPECTED_SHA}"
   exit 1
 fi
 
@@ -30,6 +37,14 @@ git switch -C develop --track origin/develop
 git merge --ff-only origin/develop
 
 DEPLOY_SHA="$(git rev-parse HEAD)"
+
+if [ "${DEPLOY_SHA}" != "${EXPECTED_SHA}" ]; then
+  echo "[deploy] Commit mismatch"
+  echo "[deploy] Expected: ${EXPECTED_SHA}"
+  echo "[deploy] Actual:   ${DEPLOY_SHA}"
+  exit 1
+fi
+
 echo "[deploy] Deploying commit: ${DEPLOY_SHA}"
 
 echo "[deploy] Building fastapi-ai"
