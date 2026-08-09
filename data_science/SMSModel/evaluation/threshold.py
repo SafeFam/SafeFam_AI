@@ -44,8 +44,11 @@ def _validate_binary_inputs(
 
     allowed_labels = {"normal", "phishing"}
 
-    if not set(y_true).issubset(allowed_labels):
-        raise ValueError(f"unsupported labels: {set(y_true) - allowed_labels}")
+    labels = set(y_true)
+    if not labels.issubset(allowed_labels):
+        raise ValueError(f"unsupported labels: {labels - allowed_labels}")
+    if labels != allowed_labels:
+        raise ValueError("y_true must contain both normal and phishing labels")
 
 
 def _candidate_thresholds(

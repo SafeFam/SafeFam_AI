@@ -24,3 +24,8 @@
 
 ```bash
 python -m data_science.SMSModel.train_sms
+```
+
+커밋된 split manifest는 최종 test set을 고정합니다. 일반적인 재학습에서는
+덮어쓰지 말고, 데이터셋·전처리·그룹화·분할 정책이 의도적으로 변경될 때만
+새 manifest 버전을 생성하세요.

@@ -109,3 +109,50 @@ def test_manifest_does_not_overwrite_by_default(tmp_path):
     save_split_manifest(splits, path)
     with pytest.raises(FileExistsError):
         save_split_manifest(splits, path)
+
+
+def test_manifest_round_trip_with_custom_column_names(tmp_path):
+    config = DatasetSplitConfig(
+        group_column="group_key",
+        label_column="target",
+        fingerprint_column="fingerprint_key",
+    )
+    df = make_dataset().rename(
+        columns={
+            "template_group_id": config.group_column,
+            "label": config.label_column,
+            "text_fingerprint": config.fingerprint_column,
+        }
+    )
+    expected = split_grouped_dataset(df, config=config)
+    path = tmp_path / "custom-split.csv"
+
+    save_split_manifest(expected, path, config=config)
+    actual = load_split_manifest(df, path, config=config)
+
+    for split_name in ("train", "validation", "test"):
+        expected_keys = set(getattr(expected, split_name)[config.fingerprint_column])
+        actual_keys = set(getattr(actual, split_name)[config.fingerprint_column])
+        assert actual_keys == expected_keys
+
+
+def test_unequal_group_sizes_are_optimized_for_row_ratios():
+    rows = []
+    group_sizes = [30, 20, 12, 10, 8, 6, 4, 4, 3, 3, 2, 2]
+    for group_index, group_size in enumerate(group_sizes):
+        label = "phishing" if group_index % 2 == 0 else "normal"
+        for member_index in range(group_size):
+            rows.append(
+                {
+                    "text_fingerprint": f"unequal-{group_index}-{member_index}",
+                    "template_group_id": f"unequal-group-{group_index}",
+                    "label": label,
+                    "type": "test-type",
+                }
+            )
+    df = pd.DataFrame(rows)
+
+    splits = split_grouped_dataset(df)
+
+    assert abs(len(splits.test) / len(df) - 0.15) <= 0.05
+    assert abs(len(splits.validation) / len(df) - 0.15) <= 0.05

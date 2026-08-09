@@ -154,3 +154,12 @@ def test_extract_struct_feature_matrix_handles_empty_input():
     matrix = extract_struct_feature_matrix([])
 
     assert matrix.shape == (0, len(STRUCT_FEATURE_NAMES))
+
+
+def test_single_and_batch_url_features_use_the_same_signal():
+    text = "https://example.com에서 확인하세요"
+
+    single = extract_struct_features(text)
+    batch = extract_struct_feature_matrix([text])[0].tolist()
+
+    assert batch == single

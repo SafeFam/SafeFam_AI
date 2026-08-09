@@ -55,3 +55,12 @@ def test_rejects_invalid_target_recall(target):
 def test_rejects_invalid_validation_inputs(labels, scores, message):
     with pytest.raises(ValueError, match=message):
         select_validation_threshold(labels, scores)
+
+
+@pytest.mark.parametrize(
+    "labels",
+    [["normal", "normal"], ["phishing", "phishing"]],
+)
+def test_rejects_single_class_validation_data(labels):
+    with pytest.raises(ValueError, match="both normal and phishing"):
+        select_validation_threshold(labels, [0.1, 0.9])

@@ -157,7 +157,6 @@ class NaiveBayesPhishingClassifier(BasePhishingClassifier):
 
         structural_features = extract_struct_feature_matrix(
             df["text"],
-            df["has_url"],
         )
 
         return hstack(

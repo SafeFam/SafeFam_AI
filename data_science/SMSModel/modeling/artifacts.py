@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import os
+import uuid
 from pathlib import Path
 
 import joblib
@@ -18,7 +21,7 @@ def save_operational_naive_bayes_artifacts(
     model_path: Path,
     vectorizer_path: Path,
 ) -> None:
-    """structural NB 모델을 기존 운영 artifact 형식으로 저장"""
+    """두 운영 artifact를 한 세대로 저장하고 포인터를 원자적으로 교체"""
 
     classifier._require_fitted()
 
@@ -33,15 +36,16 @@ def save_operational_naive_bayes_artifacts(
 
     model_path = Path(model_path)
     vectorizer_path = Path(vectorizer_path)
+    if model_path.parent.resolve() != vectorizer_path.parent.resolve():
+        raise ValueError("model and vectorizer artifacts must share a directory")
 
-    model_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-    vectorizer_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    artifact_root = model_path.parent
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    generation = uuid.uuid4().hex
+    version_dir = artifact_root / "versions" / generation
+    version_dir.mkdir(parents=True, exist_ok=False)
+    versioned_model_path = version_dir / model_path.name
+    versioned_vectorizer_path = version_dir / vectorizer_path.name
 
     # 기존 API와 완전히 같은 key만 저장
     joblib.dump(
@@ -50,11 +54,30 @@ def save_operational_naive_bayes_artifacts(
             "threshold": float(threshold),
             "classes": list(classifier.classes_),
         },
-        model_path,
+        versioned_model_path,
     )
 
     # 기존 API는 vectorizer를 별도 pkl로 읽음
     joblib.dump(
         classifier.vectorizer,
-        vectorizer_path,
+        versioned_vectorizer_path,
     )
+
+    # 포인터를 바꾸기 전에 두 파일이 모두 정상적으로 역직렬화되는지 확인합니다.
+    joblib.load(versioned_model_path)
+    joblib.load(versioned_vectorizer_path)
+
+    pointer_path = artifact_root / "current.json"
+    temporary_pointer_path = artifact_root / f".current-{generation}.tmp"
+    temporary_pointer_path.write_text(
+        json.dumps(
+            {
+                "generation": generation,
+                "model": model_path.name,
+                "vectorizer": vectorizer_path.name,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    os.replace(temporary_pointer_path, pointer_path)

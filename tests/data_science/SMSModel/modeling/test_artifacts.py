@@ -1,5 +1,7 @@
 """Naive Bayes 운영 artifact와 기존 API 호환 테스트."""
 
+import json
+
 import joblib
 import pytest
 
@@ -8,6 +10,12 @@ from data_science.SMSModel.modeling import (
     NaiveBayesPhishingClassifier,
     save_operational_naive_bayes_artifacts,
 )
+
+
+def resolve_saved_paths(tmp_path):
+    pointer = json.loads((tmp_path / "current.json").read_text(encoding="utf-8"))
+    version_dir = tmp_path / "versions" / pointer["generation"]
+    return version_dir / pointer["model"], version_dir / pointer["vectorizer"]
 
 
 @pytest.fixture(autouse=True)
@@ -49,13 +57,16 @@ def test_structural_artifact_keeps_existing_api_schema(
         vectorizer_path=vectorizer_path,
     )
 
-    artifact = joblib.load(model_path)
-    vectorizer = joblib.load(vectorizer_path)
+    saved_model_path, saved_vectorizer_path = resolve_saved_paths(tmp_path)
+    artifact = joblib.load(saved_model_path)
+    vectorizer = joblib.load(saved_vectorizer_path)
     assert set(artifact) == {"model", "threshold", "classes"}
     assert artifact["threshold"] == 0.4
     assert artifact["classes"] == ["normal", "phishing"]
     assert hasattr(artifact["model"], "predict_proba")
     assert hasattr(vectorizer, "transform")
+    assert not model_path.exists()
+    assert not vectorizer_path.exists()
 
 
 @pytest.mark.asyncio
@@ -76,8 +87,14 @@ async def test_saved_structural_artifact_loads_in_existing_api(
         model_path=model_path,
         vectorizer_path=vectorizer_path,
     )
+    saved_model_path, saved_vectorizer_path = resolve_saved_paths(tmp_path)
     monkeypatch.setattr(api_analyzer, "MODEL_PATH", model_path)
     monkeypatch.setattr(api_analyzer, "VECTORIZER_PATH", vectorizer_path)
+
+    assert api_analyzer.resolve_artifact_paths() == (
+        saved_model_path,
+        saved_vectorizer_path,
+    )
 
     result = await api_analyzer.analyze_text_with_naive_bayes(
         "계좌 정지 확인 필요 http://bit.ly/fake99"

@@ -42,7 +42,7 @@ def _candidate_score(
     target_size: float,
     label_column: str,
     labels: list[str],
-) -> float:
+) -> tuple[float, float]:
     """목표 행 비율과 전체 클래스 비율에 가까울수록 낮은 점수 제공"""
     size_error = abs((len(selected) / len(full_data)) - target_size)
     class_error = np.abs(
@@ -57,7 +57,9 @@ def _candidate_score(
             labels=labels,
         )
     ).sum()
-    return size_error + (class_error * 2.0)
+    # 행 비율을 우선 최적화하고, 같은 크기 오차에서는 클래스 분포가
+    # 전체 데이터에 더 가까운 후보를 선택합니다.
+    return size_error, float(class_error)
 
 
 def _contains_all_labels(
@@ -81,26 +83,20 @@ def _select_best_group_split(
     required_labels = set(labels)
     n_groups = df[config.group_column].nunique()
     best: tuple[pd.DataFrame, pd.DataFrame] | None = None
-    best_score = float("inf")
+    best_score = (float("inf"), float("inf"))
 
-    for candidate_index in range(config.candidate_count):
-        # GroupShuffleSplit의 test_size는 '행 수'가 아닌 '그룹 수' 비율로 작동
-        # 그룹별 행 개수가 편중되어 있을 때 목표 행 비율을 충족할 수 있도록
-        # 후보 탐색 시 test_size 그룹 비율에 약간의 변동을 부여
-        if config.candidate_count > 1:
-            scale = 0.8 + 0.4 * (candidate_index / (config.candidate_count - 1))
-            candidate_test_size = selected_size * scale
-            # 최소 1개 그룹, 최대 (n_groups - 1)개 그룹 범위 보장
-            candidate_test_size = max(
-                1 / n_groups,
-                min((n_groups - 1) / n_groups, candidate_test_size),
-            )
-        else:
-            candidate_test_size = selected_size
-
+    # GroupShuffleSplit의 test_size는 행 비율이 아닌 그룹 개수를 뜻합니다.
+    # 불균등한 그룹에서도 행 비율 목표를 찾을 수 있도록 가능한 그룹 개수를
+    # 고르게 탐색하고 각 개수에서 결정적인 후보를 평가합니다.
+    feasible_group_counts = np.arange(1, n_groups)
+    candidate_group_counts = np.resize(
+        feasible_group_counts,
+        max(config.candidate_count, len(feasible_group_counts)),
+    )
+    for candidate_index, selected_group_count in enumerate(candidate_group_counts):
         splitter = GroupShuffleSplit(
             n_splits=1,
-            test_size=candidate_test_size,
+            test_size=int(selected_group_count),
             random_state=(config.random_state + random_state_offset + candidate_index),
         )
         remaining_indices, selected_indices = next(

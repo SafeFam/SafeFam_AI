@@ -568,9 +568,9 @@ def main() -> None:
     df_val = splits.validation
     df_test = splits.test
 
-    struct_train = extract_struct_feature_matrix(df_train["text"], df_train["has_url"])
-    struct_val = extract_struct_feature_matrix(df_val["text"], df_val["has_url"])
-    struct_test = extract_struct_feature_matrix(df_test["text"], df_test["has_url"])
+    struct_train = extract_struct_feature_matrix(df_train["text"])
+    struct_val = extract_struct_feature_matrix(df_val["text"])
+    struct_test = extract_struct_feature_matrix(df_test["text"])
 
     vectorizer = build_vectorizer()
     X_train = build_feature_matrix(
@@ -612,7 +612,7 @@ def evaluate_new_holdout(
         return
 
     text_norm = df_holdout["text"].apply(normalize_text)
-    struct = extract_struct_feature_matrix(df_holdout["text"], df_holdout["has_url"])
+    struct = extract_struct_feature_matrix(df_holdout["text"])
     X = build_feature_matrix(vectorizer, text_norm, struct, fit=False)
 
     y_prob = model.predict_proba(X)[:, _phishing_idx(model)]

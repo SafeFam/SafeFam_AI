@@ -1,8 +1,10 @@
 # 사전 학습된 Naive Bayes 모델을 이용한 SMS 피싱 분석기
 from __future__ import annotations
 
+import json
 import logging
 import threading
+from pathlib import Path
 
 import numpy as np
 from scipy.sparse import csr_matrix, hstack
@@ -40,6 +42,24 @@ _load_attempted = False
 _load_lock = threading.Lock()
 
 
+def resolve_artifact_paths(
+    model_path: Path | None = None,
+    vectorizer_path: Path | None = None,
+) -> tuple[Path, Path]:
+    """공유 포인터가 있으면 같은 세대의 모델과 벡터라이저 경로를 반환"""
+    model_path = Path(MODEL_PATH if model_path is None else model_path)
+    vectorizer_path = Path(
+        VECTORIZER_PATH if vectorizer_path is None else vectorizer_path
+    )
+    pointer_path = model_path.parent / "current.json"
+    if not pointer_path.is_file():
+        return model_path, vectorizer_path
+
+    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    version_dir = model_path.parent / "versions" / pointer["generation"]
+    return version_dir / pointer["model"], version_dir / pointer["vectorizer"]
+
+
 def _load_artifacts() -> None:
     """
     모델과 벡터라이저를 프로세스당 한 번만 로드
@@ -67,8 +87,9 @@ def _load_artifacts() -> None:
         try:
             import joblib
 
-            artifact = joblib.load(MODEL_PATH)
-            vectorizer = joblib.load(VECTORIZER_PATH)
+            model_path, vectorizer_path = resolve_artifact_paths()
+            artifact = joblib.load(model_path)
+            vectorizer = joblib.load(vectorizer_path)
 
             # 모든 값이 정상적으로 읽힌 이후 전역 상태를 갱신
             _model = artifact["model"]
@@ -81,7 +102,7 @@ def _load_artifacts() -> None:
                 "[NaiveBayes] 모델 로드 완료 (threshold=%s)",
                 _threshold,
             )
-        except Exception as exception:
+        except Exception as exception:  # noqa: BLE001 - artifact 오류는 fail-safe 처리
             _load_error = type(exception).__name__
 
             logger.error(
@@ -147,7 +168,7 @@ async def analyze_text_with_naive_bayes(text: str) -> dict:
                 "error_message": None,
             },
         }
-    except Exception as exception:
+    except Exception as exception:  # noqa: BLE001 - 추론 오류는 fail-safe 처리
         logger.error(
             "[NaiveBayes] 추론 중 비정상 오류 발생. error_type=%s",
             type(exception).__name__,
