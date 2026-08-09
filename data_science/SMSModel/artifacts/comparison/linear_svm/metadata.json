@@ -1,0 +1,54 @@
+{
+  "artifact_id": "3192693058c2430b900d3f4b585b9a64",
+  "classes": [
+    "normal",
+    "phishing"
+  ],
+  "created_at": "2026-08-09T12:49:57.333018+00:00",
+  "dataset_fingerprint": "1db45d5f2c3d3d17726888b05cd625e0d0a51deef3dc8ab94016a9ee97af18f5",
+  "feature_count": 9174,
+  "library_versions": {
+    "joblib": "1.5.3",
+    "kiwipiepy": "0.23.2",
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "python": "3.12.13",
+    "scikit_learn": "1.8.0"
+  },
+  "model_configuration": {
+    "classifier": {
+      "C": 1.0,
+      "class_weight": "balanced",
+      "dual": "auto",
+      "max_iter": 10000,
+      "random_state": 42,
+      "type": "LinearSVC"
+    },
+    "default_threshold": 0.0,
+    "model_name": "linear_svm_char_tfidf",
+    "preprocessing": {
+      "input_column": "text_norm",
+      "normalization": "app.analysis.text.preprocessing.normalize_text"
+    },
+    "score_type": "decision",
+    "vectorizer": {
+      "analyzer": "char_wb",
+      "lowercase": false,
+      "max_df": 0.95,
+      "max_features": 30000,
+      "min_df": 2,
+      "ngram_range": [
+        3,
+        5
+      ],
+      "sublinear_tf": true,
+      "type": "TfidfVectorizer"
+    }
+  },
+  "model_name": "linear_svm_char_tfidf",
+  "model_sha256": "0f5f1aef1261c6d0a1e2824f9998ce686dd4871d20b50581285909baff8e201c",
+  "schema_version": 1,
+  "score_type": "decision",
+  "split_manifest_version": "sms_split_v1",
+  "threshold": -0.3223016234331708
+}

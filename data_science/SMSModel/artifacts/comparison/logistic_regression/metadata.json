@@ -1,0 +1,54 @@
+{
+  "artifact_id": "71dac7be4d65468296507295ad9ceb1e",
+  "classes": [
+    "normal",
+    "phishing"
+  ],
+  "created_at": "2026-08-09T12:49:57.110953+00:00",
+  "dataset_fingerprint": "1db45d5f2c3d3d17726888b05cd625e0d0a51deef3dc8ab94016a9ee97af18f5",
+  "feature_count": 2360,
+  "library_versions": {
+    "joblib": "1.5.3",
+    "kiwipiepy": "0.23.2",
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "python": "3.12.13",
+    "scikit_learn": "1.8.0"
+  },
+  "model_configuration": {
+    "classifier": {
+      "C": 1.0,
+      "class_weight": "balanced",
+      "max_iter": 1000,
+      "random_state": 42,
+      "solver": "liblinear",
+      "type": "LogisticRegression"
+    },
+    "default_threshold": 0.5,
+    "model_name": "logistic_regression_morph_tfidf",
+    "preprocessing": {
+      "normalizer": "app.analysis.text.preprocessing.normalize_text",
+      "tokenizer": "data_science.SMSModel.tokenization.kiwi_tokenizer.kiwi_tokenize"
+    },
+    "score_type": "probability",
+    "vectorizer": {
+      "lowercase": false,
+      "max_df": 0.95,
+      "max_features": 20000,
+      "min_df": 2,
+      "ngram_range": [
+        1,
+        2
+      ],
+      "sublinear_tf": true,
+      "token_pattern": null,
+      "type": "TfidfVectorizer"
+    }
+  },
+  "model_name": "logistic_regression_morph_tfidf",
+  "model_sha256": "ba916be60ddc1bba6fdb53cf5da4fe31e56c0953f5e83611ad41c15f79eef349",
+  "schema_version": 1,
+  "score_type": "probability",
+  "split_manifest_version": "sms_split_v1",
+  "threshold": 0.36906453927566446
+}
