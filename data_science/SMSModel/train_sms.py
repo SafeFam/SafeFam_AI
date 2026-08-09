@@ -397,12 +397,25 @@ def train_and_tune(
 
             print(f"{alpha:>6} | {threshold:>6.2f} | {rec_p:>10.4f} | {rec_n:>10.4f}")
 
-            if (
-                rec_p >= TARGET_PHISHING_RECALL
-                and rec_n > best["recall_normal"]
-                or best["model"] is None
-                and rec_p > best["recall_phishing"]
-            ):
+            candidate_meets_target = rec_p >= TARGET_PHISHING_RECALL
+            best_meets_target = (
+                best["model"] is not None
+                and best["recall_phishing"] >= TARGET_PHISHING_RECALL
+            )
+            should_replace = (
+                best["model"] is None
+                or (
+                    candidate_meets_target
+                    and (not best_meets_target or rec_n > best["recall_normal"])
+                )
+                or (
+                    not candidate_meets_target
+                    and not best_meets_target
+                    and rec_p > best["recall_phishing"]
+                )
+            )
+
+            if should_replace:
                 best.update(
                     {
                         "model": calibrated,

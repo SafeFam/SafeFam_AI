@@ -121,6 +121,9 @@ class RiskScoringEngine:
             llm_score=llm_score,
             llm_available=llm_available,
         )
+        effective_text_available = text_available or (
+            naive_bayes_score is None and not llm_available
+        )
 
         # URL 유무에 따른 기본 가중치 설정
         if has_url:
@@ -142,13 +145,13 @@ class RiskScoringEngine:
             text_weight=text_weight,
             url_weight=url_weight,
             rules_weight=rules_weight,
-            text_available=text_available,
+            text_available=effective_text_available,
             url_available=url_available,
             rules_available=rules_available,
         )
 
         # 텍스트 트랙 점수 기여도 계산
-        if text_available:
+        if effective_text_available:
             llm_contrib = round(text_track_score * text_weight)
         else:
             llm_contrib = 0

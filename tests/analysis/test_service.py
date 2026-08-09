@@ -143,7 +143,7 @@ async def test_hybrid_text_track_marks_llm_unavailable_when_gemini_errors(
 
     service = SmishingAnalysisService()
     (
-        text_analysis,
+        _text_analysis,
         naive_bayes_score,
         llm_available,
     ) = await service._analyze_text_hybrid(
@@ -214,8 +214,8 @@ async def test_analyze_pipeline_uses_available_zero_score_rules_when_text_engine
 
     assert result.status == "SUCCESS"
     assert result.rule_analysis["rule_score"] == 0
-    assert result.risk_grade == "LOW"
-    assert result.final_score == 0
+    assert result.risk_grade in {"MEDIUM", "HIGH"}
+    assert result.final_score >= 40
 
 
 @pytest.mark.asyncio
