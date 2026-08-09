@@ -4,7 +4,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import platform
 from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
@@ -67,6 +69,29 @@ COMPARISON_RUN_SCHEMA_VERSION = 1
 
 # 현재 committed split manifest의 파일명 기반 버전
 EXPECTED_SPLIT_MANIFEST_VERSION = "sms_split_v1"
+
+
+def _get_package_version(package_name: str) -> str:
+    """보고서에 기록할 설치 패키지 버전을 반환합니다."""
+    try:
+        return version(package_name)
+    except PackageNotFoundError:
+        return "not-installed"
+
+
+def _collect_execution_environment() -> dict[str, Any]:
+    """latency 해석에 필요한 실행환경을 개인정보 없이 수집합니다."""
+    return {
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "machine": platform.machine(),
+        "library_versions": {
+            "numpy": _get_package_version("numpy"),
+            "pandas": _get_package_version("pandas"),
+            "scikit_learn": _get_package_version("scikit-learn"),
+            "kiwipiepy": _get_package_version("kiwipiepy"),
+        },
+    }
 
 
 def _calculate_sha256(path: Path) -> str:
@@ -391,14 +416,19 @@ def _build_run_report(
             ),
             "test_used_for_hyperparameter_tuning": False,
         },
+        "execution_environment": _collect_execution_environment(),
         "dataset": {
-            "source_path": str(DATA_PATH),
+            "source_path": DATA_PATH.relative_to(
+                SMS_MODEL_DIR.parent
+            ).as_posix(),
             "dataset_fingerprint": (
                 dataset_fingerprint
             ),
         },
         "split_manifest": {
-            "path": str(SPLIT_MANIFEST_PATH),
+            "path": SPLIT_MANIFEST_PATH.relative_to(
+                SMS_MODEL_DIR
+            ).as_posix(),
             "version": split_manifest_version,
             "sha256": manifest_sha256,
             "counts": {

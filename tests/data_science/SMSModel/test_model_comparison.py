@@ -201,3 +201,36 @@ def test_only_new_models_are_saved_as_comparison_artifacts(
         "logistic_regression_morph_tfidf",
         "linear_svm_char_tfidf",
     ]
+
+
+def test_run_report_uses_portable_paths_and_records_environment() -> None:
+    """버전 관리되는 보고서에는 로컬 절대 경로를 기록하지 않습니다."""
+    report = comparison._build_run_report(
+        results=[],
+        dataset_fingerprint="a" * 64,
+        manifest_sha256="b" * 64,
+        split_manifest_version="sms_split_v1",
+        train_count=10,
+        validation_count=2,
+        test_count=2,
+    )
+
+    assert report["dataset"]["source_path"] == (
+        "Data/SMSData/phishing_total_dataset_2705.csv"
+    )
+    assert report["split_manifest"]["path"] == (
+        "splits/sms_split_v1.csv"
+    )
+    assert not Path(report["dataset"]["source_path"]).is_absolute()
+    assert not Path(report["split_manifest"]["path"]).is_absolute()
+
+    environment = report["execution_environment"]
+    assert environment["python"]
+    assert environment["platform"]
+    assert environment["machine"]
+    assert set(environment["library_versions"]) == {
+        "numpy",
+        "pandas",
+        "scikit_learn",
+        "kiwipiepy",
+    }

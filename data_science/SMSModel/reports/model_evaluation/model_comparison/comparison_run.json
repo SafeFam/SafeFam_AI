@@ -1,0 +1,223 @@
+{
+  "created_at": "2026-08-09T12:49:56.953464+00:00",
+  "dataset": {
+    "dataset_fingerprint": "1db45d5f2c3d3d17726888b05cd625e0d0a51deef3dc8ab94016a9ee97af18f5",
+    "source_path": "Data/SMSData/phishing_total_dataset_2705.csv"
+  },
+  "evaluation_policy": {
+    "final_metric_data": "test only",
+    "latency_sample_count": 100,
+    "target_phishing_recall": 0.96,
+    "test_used_for_hyperparameter_tuning": false,
+    "threshold_selection_data": "validation only",
+    "training_data": "train only"
+  },
+  "execution_environment": {
+    "library_versions": {
+      "kiwipiepy": "0.23.2",
+      "numpy": "2.4.6",
+      "pandas": "2.3.3",
+      "scikit_learn": "1.8.0"
+    },
+    "machine": "AMD64",
+    "platform": "Windows-11-10.0.26100-SP0",
+    "python": "3.12.13"
+  },
+  "models": [
+    {
+      "latency": {
+        "average_ms": 4.002750000000001,
+        "maximum_ms": 8.2602,
+        "median_ms": 3.7297000000000002,
+        "minimum_ms": 3.1243,
+        "p95_ms": 5.41409,
+        "sample_count": 100,
+        "warmup_count": 5
+      },
+      "metadata": {
+        "alpha": 0.01,
+        "calibration_cv": 5,
+        "calibration_method": "isotonic",
+        "classifier": "ComplementNB",
+        "default_threshold": 0.5,
+        "include_structural_features": true,
+        "model_name": "naive_bayes_structural",
+        "score_type": "probability",
+        "structural_feature_count": 6,
+        "vectorizer": {
+          "analyzer": "char_wb",
+          "max_df": 0.95,
+          "max_features": 8000,
+          "min_df": 2,
+          "ngram_range": [
+            2,
+            4
+          ],
+          "type": "CountVectorizer"
+        }
+      },
+      "model_name": "naive_bayes_structural",
+      "score_type": "probability",
+      "selected_threshold": 0.05692328389331719,
+      "test_metrics": {
+        "f1": 0.7052631578947368,
+        "f2": 0.8567774936061381,
+        "false_negative": 0,
+        "false_positive": 56,
+        "precision": 0.5447154471544715,
+        "recall": 1.0,
+        "sample_count": 123,
+        "true_negative": 0,
+        "true_positive": 67
+      },
+      "validation": {
+        "f2": 0.8567774936061381,
+        "false_negative_count": 0,
+        "precision": 0.5447154471544715,
+        "recall": 1.0,
+        "target_recall": 0.96,
+        "target_recall_met": true,
+        "threshold": 0.05692328389331719
+      }
+    },
+    {
+      "latency": {
+        "average_ms": 4.917706000000001,
+        "maximum_ms": 22.2488,
+        "median_ms": 2.6346,
+        "minimum_ms": 1.3812,
+        "p95_ms": 18.89889,
+        "sample_count": 100,
+        "warmup_count": 5
+      },
+      "metadata": {
+        "classifier": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "max_iter": 1000,
+          "random_state": 42,
+          "solver": "liblinear",
+          "type": "LogisticRegression"
+        },
+        "default_threshold": 0.5,
+        "model_name": "logistic_regression_morph_tfidf",
+        "preprocessing": {
+          "normalizer": "app.analysis.text.preprocessing.normalize_text",
+          "tokenizer": "data_science.SMSModel.tokenization.kiwi_tokenizer.kiwi_tokenize"
+        },
+        "score_type": "probability",
+        "vectorizer": {
+          "lowercase": false,
+          "max_df": 0.95,
+          "max_features": 20000,
+          "min_df": 2,
+          "ngram_range": [
+            1,
+            2
+          ],
+          "sublinear_tf": true,
+          "token_pattern": null,
+          "type": "TfidfVectorizer"
+        }
+      },
+      "model_name": "logistic_regression_morph_tfidf",
+      "score_type": "probability",
+      "selected_threshold": 0.36906453927566446,
+      "test_metrics": {
+        "f1": 0.8387096774193549,
+        "f2": 0.9129213483146067,
+        "false_negative": 2,
+        "false_positive": 23,
+        "precision": 0.7386363636363636,
+        "recall": 0.9701492537313433,
+        "sample_count": 123,
+        "true_negative": 33,
+        "true_positive": 65
+      },
+      "validation": {
+        "f2": 0.9766763848396501,
+        "false_negative_count": 0,
+        "precision": 0.8933333333333333,
+        "recall": 1.0,
+        "target_recall": 0.96,
+        "target_recall_met": true,
+        "threshold": 0.36906453927566446
+      }
+    },
+    {
+      "latency": {
+        "average_ms": 1.5964239999999998,
+        "maximum_ms": 4.9196,
+        "median_ms": 1.3916,
+        "minimum_ms": 0.9312,
+        "p95_ms": 2.529049999999999,
+        "sample_count": 100,
+        "warmup_count": 5
+      },
+      "metadata": {
+        "classifier": {
+          "C": 1.0,
+          "class_weight": "balanced",
+          "dual": "auto",
+          "max_iter": 10000,
+          "random_state": 42,
+          "type": "LinearSVC"
+        },
+        "default_threshold": 0.0,
+        "model_name": "linear_svm_char_tfidf",
+        "preprocessing": {
+          "input_column": "text_norm",
+          "normalization": "app.analysis.text.preprocessing.normalize_text"
+        },
+        "score_type": "decision",
+        "vectorizer": {
+          "analyzer": "char_wb",
+          "lowercase": false,
+          "max_df": 0.95,
+          "max_features": 30000,
+          "min_df": 2,
+          "ngram_range": [
+            3,
+            5
+          ],
+          "sublinear_tf": true,
+          "type": "TfidfVectorizer"
+        }
+      },
+      "model_name": "linear_svm_char_tfidf",
+      "score_type": "decision",
+      "selected_threshold": -0.3223016234331708,
+      "test_metrics": {
+        "f1": 0.8441558441558441,
+        "f2": 0.9154929577464789,
+        "false_negative": 2,
+        "false_positive": 22,
+        "precision": 0.7471264367816092,
+        "recall": 0.9701492537313433,
+        "sample_count": 123,
+        "true_negative": 34,
+        "true_positive": 65
+      },
+      "validation": {
+        "f2": 0.9626436781609196,
+        "false_negative_count": 0,
+        "precision": 0.8375,
+        "recall": 1.0,
+        "target_recall": 0.96,
+        "target_recall_met": true,
+        "threshold": -0.3223016234331708
+      }
+    }
+  ],
+  "schema_version": 1,
+  "split_manifest": {
+    "counts": {
+      "test": 123,
+      "train": 571,
+      "validation": 123
+    },
+    "path": "splits/sms_split_v1.csv",
+    "sha256": "43a7c2ab76f2521bce300a70ed1e61d176226185fa5e4702b796d8d6620ea847",
+    "version": "sms_split_v1"
+  }
+}
