@@ -1,0 +1,3 @@
+model_name,score_type,threshold,precision,recall,f1,f2,false_positive,false_negative,true_positive,true_negative,average_inference_ms,p95_inference_ms
+naive_bayes_text_only,probability,0.06384636081639411,0.5447154471544715,1.0,0.7052631578947368,0.8567774936061381,56,0,67,0,3.184648,4.11453
+naive_bayes_structural,probability,0.05692328389331719,0.5447154471544715,1.0,0.7052631578947368,0.8567774936061381,56,0,67,0,3.4682509999999995,4.868885

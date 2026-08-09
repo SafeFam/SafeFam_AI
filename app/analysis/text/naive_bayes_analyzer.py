@@ -1,131 +1,162 @@
-import re
+# 사전 학습된 Naive Bayes 모델을 이용한 SMS 피싱 분석기
+from __future__ import annotations
+
+import json
 import logging
+import threading
+from pathlib import Path
+
+import numpy as np
+from scipy.sparse import csr_matrix, hstack
 
 from app.analysis.risk_policy import determine_text_risk_grade
+from app.analysis.text.preprocessing import (
+    extract_struct_features,
+    normalize_text,
+)
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+
 MODEL_PATH = settings.NAIVE_BAYES_MODEL_PATH
 VECTORIZER_PATH = settings.NAIVE_BAYES_VECTORIZER_PATH
 
-# --- 전처리 정규식 : data_science/SMSModel/train_sms.py의 정규화/피처 추출 로직과 반드시 동일하게 유지 ---
-# (학습 시 벡터라이저가 본 입력 분포와 서빙 시 입력 분포가 어긋나면 모델이 무의미해짐)
-_RE_URL     = re.compile(r"(?i)(?<!@)(?:https?://|www\.)[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+;=%]+")
-_RE_RRN     = re.compile(r"(?<!\d)\d{6}[- ]\d{7}(?!\d)")
-_RE_CARD    = re.compile(r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)")
-_RE_PHONE   = re.compile(r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)")
-_RE_ACCOUNT = re.compile(r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)|(?<!\d)\d{10,14}(?!\d)")
-_RE_EMAIL   = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
-_RE_AMOUNT  = re.compile(r"\d+[,\d]*원")
-_RE_FORMAT_ARTIFACT = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
-_RE_SHORT_URL = re.compile(r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly")
-_RE_WEB_TAG = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
 
 DEFAULT_ANALYSIS_RESULT = {
     "grade": "UNKNOWN",
     "risk_score": 0,
     "is_suspected_phishing": False,
-    "error_message": "나이브 베이즈 모델을 로드하지 못해 위험도를 판정할 수 없습니다."
+    "error_message": (
+        "나이브 베이즈 모델을 로드하지 못해 위험도를 판정할 수 없습니다."
+    ),
 }
 
 _model = None
 _vectorizer = None
 _threshold = None
 _classes = None
+
 _load_error: str | None = None
 _load_attempted = False
+_load_lock = threading.Lock()
 
 
-def _normalize_text(text: str) -> str:
-    parts = []
-    last_end = 0
-    for m in _RE_URL.finditer(text):
-        parts.append(_mask_pii(text[last_end:m.start()]))
-        parts.append("[URL]")
-        last_end = m.end()
-    parts.append(_mask_pii(text[last_end:]))
-    text = "".join(parts)
-    text = _RE_AMOUNT.sub("[AMOUNT]", text)
-    text = _RE_FORMAT_ARTIFACT.sub(" ", text)
-    return re.sub(r"\s+", " ", text).strip()
+def resolve_artifact_paths(
+    model_path: Path | None = None,
+    vectorizer_path: Path | None = None,
+) -> tuple[Path, Path]:
+    """공유 포인터가 있으면 같은 세대의 모델과 벡터라이저 경로를 반환"""
+    model_path = Path(MODEL_PATH if model_path is None else model_path)
+    vectorizer_path = Path(
+        VECTORIZER_PATH if vectorizer_path is None else vectorizer_path
+    )
+    pointer_path = model_path.parent / "current.json"
+    if not pointer_path.is_file():
+        return model_path, vectorizer_path
 
-def _mask_pii(text: str) -> str:
-    text = _RE_RRN.sub("[RRN]", text)
-    text = _RE_CARD.sub("[CARD]", text)
-    text = _RE_PHONE.sub("[PHONE]", text)
-    text = _RE_ACCOUNT.sub("[ACCOUNT]", text)
-    text = _RE_EMAIL.sub("[EMAIL]", text)
-    return text
-
-
-def _extract_struct_features(text: str) -> list:
-    return [
-        int(bool(_RE_URL.search(text))),
-        int(bool(_RE_SHORT_URL.search(text))),
-        int(bool(_RE_PHONE.search(text) or "[PHONE]" in text)),
-        int(bool(_RE_AMOUNT.search(text))),
-        int(bool(_RE_WEB_TAG.search(text))),
-        int(len(text) > 100),
-    ]
+    pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
+    version_dir = model_path.parent / "versions" / pointer["generation"]
+    return version_dir / pointer["model"], version_dir / pointer["vectorizer"]
 
 
 def _load_artifacts() -> None:
-    """FastAPI 프로세스 당 1회만 시도. 실패 시 재시도하지 않고 fail-safe 응답으로 대체."""
-    global _model, _vectorizer, _threshold, _classes, _load_error, _load_attempted
+    """
+    모델과 벡터라이저를 프로세스당 한 번만 로드
 
+    로드에 실패해도 API 서버 전체를 중단시키지 않고, 이후 분석 요청에서
+    UNKNOWN 결과를 반환할 수 있도록 오류 상태만 저장
+    """
+    global _model
+    global _vectorizer
+    global _threshold
+    global _classes
+    global _load_error
+    global _load_attempted
+
+    # 1차 체크
     if _load_attempted:
         return
-    _load_attempted = True
 
-    try:
-        import joblib
+    # 스레드 락 적용
+    with _load_lock:
+        # 2차 체크
+        if _load_attempted:
+            return
 
-        artifact = joblib.load(MODEL_PATH)
-        _model = artifact["model"]
-        _threshold = artifact["threshold"]
-        _classes = artifact["classes"]
-        _vectorizer = joblib.load(VECTORIZER_PATH)
-        logger.info(f"[NaiveBayes] 모델 로드 완료 (threshold={_threshold})")
-    except Exception as exception:
-        _load_error = type(exception).__name__
-        logger.error(
-            "[NaiveBayes] 모델 로드 실패. error_type=%s",
-            _load_error,
-        )
+        try:
+            import joblib
+
+            model_path, vectorizer_path = resolve_artifact_paths()
+            artifact = joblib.load(model_path)
+            vectorizer = joblib.load(vectorizer_path)
+
+            # 모든 값이 정상적으로 읽힌 이후 전역 상태를 갱신
+            _model = artifact["model"]
+            _threshold = artifact["threshold"]
+            _classes = artifact["classes"]
+            _vectorizer = vectorizer
+            _load_error = None
+
+            logger.info(
+                "[NaiveBayes] 모델 로드 완료 (threshold=%s)",
+                _threshold,
+            )
+        except Exception as exception:  # noqa: BLE001 - artifact 오류는 fail-safe 처리
+            _load_error = type(exception).__name__
+
+            logger.error(
+                "[NaiveBayes] 모델 로드 실패. error_type=%s",
+                _load_error,
+            )
+        finally:
+            _load_attempted = True
 
 
 def is_model_loaded() -> bool:
+    """Naive Bayes 모델을 사용할 수 있는지 반환"""
     _load_artifacts()
     return _model is not None
 
 
-# 사전 학습된 나이브 베이즈(ComplementNB + isotonic 보정) 모델로 문자 메시지의 1차 위험도를 산출
 async def analyze_text_with_naive_bayes(text: str) -> dict:
+    """사전 학습된 Naive Bayes 모델로 SMS의 피싱 위험도를 분석"""
     _load_artifacts()
 
     if _model is None:
         return {
             "engine": "naive_bayes",
             "is_available": False,
-            "result": dict(DEFAULT_ANALYSIS_RESULT, error_message=_load_error or DEFAULT_ANALYSIS_RESULT["error_message"])
+            "result": dict(DEFAULT_ANALYSIS_RESULT),
         }
 
     try:
-        import numpy as np
-        from scipy.sparse import csr_matrix, hstack
+        # 학습과 동일한 공통 전처리를 적용
+        normalized_text = normalize_text(text)
 
-        text_norm = _normalize_text(text)
-        struct = np.array([_extract_struct_features(text)])
+        struct_features = np.asarray(
+            [extract_struct_features(text)],
+            dtype=np.int8,
+        )
 
-        X_text = _vectorizer.transform([text_norm])
-        X = hstack([X_text, csr_matrix(struct)])
+        # 기존 artifact가 기대하는 입력 구조를 유지
+        text_features = _vectorizer.transform([normalized_text])
+        feature_matrix = hstack(
+            [
+                text_features,
+                csr_matrix(struct_features),
+            ]
+        )
 
-        phishing_idx = _classes.index("phishing")
-        prob_phishing = _model.predict_proba(X)[0][phishing_idx]
-        risk_score = int(prob_phishing * 100)
+        phishing_index = _classes.index("phishing")
+        phishing_probability = _model.predict_proba(feature_matrix)[0][phishing_index]
 
-        logger.info(f"[NaiveBayes] 문자 분석 완료 - 위험도 점수: {risk_score}")
+        risk_score = int(phishing_probability * 100)
+
+        logger.info(
+            "[NaiveBayes] 문자 분석 완료 - 위험도 점수: %s",
+            risk_score,
+        )
 
         return {
             "engine": "naive_bayes",
@@ -133,17 +164,21 @@ async def analyze_text_with_naive_bayes(text: str) -> dict:
             "result": {
                 "grade": determine_text_risk_grade(risk_score),
                 "risk_score": risk_score,
-                "is_suspected_phishing": bool(prob_phishing >= _threshold),
-                "error_message": None
-            }
+                "is_suspected_phishing": bool(phishing_probability >= _threshold),
+                "error_message": None,
+            },
         }
-    except Exception as exception:
+    except Exception as exception:  # noqa: BLE001 - 추론 오류는 fail-safe 처리
         logger.error(
             "[NaiveBayes] 추론 중 비정상 오류 발생. error_type=%s",
             type(exception).__name__,
         )
+
         return {
             "engine": "naive_bayes",
             "is_available": False,
-            "result": dict(DEFAULT_ANALYSIS_RESULT, error_message="Inference Error")
+            "result": dict(
+                DEFAULT_ANALYSIS_RESULT,
+                error_message="Inference Error",
+            ),
         }

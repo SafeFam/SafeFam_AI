@@ -21,6 +21,7 @@ from app.infrastructure.rabbitmq.schemas import (
 
 class AnalysisResultEventFactory:
     """내부 분석 실행 결과를 메시징 규격 이벤트로 변환"""
+
     def create(
         self,
         request: AnalysisRequestedEvent,
@@ -30,22 +31,15 @@ class AnalysisResultEventFactory:
 
         # 내부 분석 상태(COMPLETED, PARTIAL, FAILED)를 외부 메시징 이벤트 타입으로 맵핑
         event_type = {
-            AnalysisExecutionStatus.COMPLETED:
-                AnalysisEventType.COMPLETED,
-            AnalysisExecutionStatus.PARTIAL:
-                AnalysisEventType.PARTIAL,
-            AnalysisExecutionStatus.FAILED:
-                AnalysisEventType.FAILED,
+            AnalysisExecutionStatus.COMPLETED: AnalysisEventType.COMPLETED,
+            AnalysisExecutionStatus.PARTIAL: AnalysisEventType.PARTIAL,
+            AnalysisExecutionStatus.FAILED: AnalysisEventType.FAILED,
         }[execution.status]
 
         result = execution.result
         result_event_id = uuid5(
             NAMESPACE_URL,
-            (
-                "safefam:analysis-result:"
-                f"{request.eventId}:"
-                f"{event_type.value}"
-            ),
+            (f"safefam:analysis-result:{request.eventId}:{event_type.value}"),
         )
 
         # 원본 요청의 식별자를 포함하여 결과 이벤트 구성
@@ -75,22 +69,14 @@ def build_payload(
     url = result.url_analysis or {}
     rules = result.rule_analysis or {}
 
-    text_score = _integer_score(
-        text_result.get("risk_score")
-    )
-    url_score = _url_score(
-        url.get("url_risk_score")
-    )
-    rule_score = _integer_score(
-        rules.get("rule_score")
-    )
+    text_score = _integer_score(text_result.get("risk_score"))
+    url_score = _url_score(url.get("url_risk_score"))
+    rule_score = _integer_score(rules.get("rule_score"))
 
     is_failed = result.status == "ERROR"
 
     return AnalysisResultPayload(
-        finalScore=(
-            None if is_failed else result.final_score
-        ),
+        finalScore=(None if is_failed else result.final_score),
         riskGrade=(
             None
             if is_failed
@@ -116,24 +102,12 @@ def build_payload(
             )
         ),
         textAnalysis=(
-            None
-            if is_failed or not text
-            else _text_detail(text, failed_tracks)
+            None if is_failed or not text else _text_detail(text, failed_tracks)
         ),
-        urlAnalysis=(
-            None
-            if is_failed or not url
-            else _url_detail(url)
-        ),
-        ruleAnalysis=(
-            None
-            if is_failed or not rules
-            else _rule_detail(rules)
-        ),
+        urlAnalysis=(None if is_failed or not url else _url_detail(url)),
+        ruleAnalysis=(None if is_failed or not rules else _rule_detail(rules)),
         failedTracks=list(failed_tracks),
-        failureCode=(
-            "PIPELINE_FAILED" if is_failed else None
-        ),
+        failureCode=("PIPELINE_FAILED" if is_failed else None),
     )
 
 
@@ -181,9 +155,7 @@ def _url_detail(url: dict) -> UrlAnalysisDetail:
 
 def _rule_detail(rules: dict) -> RuleAnalysisDetail:
     return RuleAnalysisDetail(
-        score=_integer_score(
-            rules.get("rule_score")
-        ) or 0,
+        score=_integer_score(rules.get("rule_score")) or 0,
         matchedRules=rules.get("matched_rules") or [],
         maliciousDomainPattern=bool(
             rules.get(
@@ -201,17 +173,13 @@ def _integer_score(value) -> int | None:
 
 
 def _url_error_code(url: dict) -> str | None:
-    provider_codes = (
-        url.get("provider_error_codes") or {}
-    )
+    provider_codes = url.get("provider_error_codes") or {}
 
     if not provider_codes:
         return None
 
     return ";".join(
-        f"{provider}:{code}"
-        for provider, code
-        in sorted(provider_codes.items())
+        f"{provider}:{code}" for provider, code in sorted(provider_codes.items())
     )
 
 

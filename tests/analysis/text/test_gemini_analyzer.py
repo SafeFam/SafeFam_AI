@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from app.analysis.risk_policy import determine_text_risk_grade
 from app.analysis.text.gemini_analyzer import analyze_text_with_gemini
 

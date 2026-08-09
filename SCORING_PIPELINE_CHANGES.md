@@ -23,7 +23,7 @@
 
 **`app/service/security/naive_bayes_text_analyzer.py`** (신규)
 
-- 기존에 학습돼 저장소에 커밋되어 있던 `data_science/SMSModel/phishing_model_artifact.pkl`(CalibratedClassifierCV + ComplementNB), `phishing_vectorizer.pkl`을 로드
+- 기존에 학습돼 저장소에 커밋되어 있던 `data_science/SMSModel/artifacts/phishing_model_artifact.pkl`(CalibratedClassifierCV + ComplementNB), `phishing_vectorizer.pkl`을 로드
 - 전처리(URL/전화번호/금액 마스킹, 6개 구조적 피처)는 학습 스크립트(`train_sms.py`)와 동일하게 재구현 — 학습/서빙 피처 불일치 방지
 - 모델 로드 실패 시 `UNKNOWN` 등급 + 에러 메시지로 fail-safe 처리 (SAFE로 오판하지 않음)
 - `requirements.txt`에 `scikit-learn`, `scipy`, `numpy`, `joblib` 추가

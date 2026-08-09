@@ -1,6 +1,8 @@
-import pytest
+from unittest.mock import AsyncMock, patch
+
 import httpx
-from unittest.mock import patch, AsyncMock
+import pytest
+
 from app.analysis.url.tracker import trace_url
 
 
@@ -10,8 +12,14 @@ async def test_normal_url_no_redirect():
     url = "https://example.com/page"
     final_response = httpx.Response(200, request=httpx.Request("HEAD", url))
 
-    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
-         patch("app.analysis.url.tracker._is_public_host", new_callable=AsyncMock, return_value=True):
+    with (
+        patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head,
+        patch(
+            "app.analysis.url.tracker._is_public_host",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+    ):
         mock_head.return_value = final_response
         result = await trace_url(url)
 
@@ -30,8 +38,14 @@ async def test_tinyurl_resolution():
     )
     final_response = httpx.Response(200, request=httpx.Request("HEAD", final_url))
 
-    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
-         patch("app.analysis.url.tracker._is_public_host", new_callable=AsyncMock, return_value=True):
+    with (
+        patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head,
+        patch(
+            "app.analysis.url.tracker._is_public_host",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+    ):
         mock_head.side_effect = [redirect_response, final_response]
         result = await trace_url(short_url)
 
@@ -49,8 +63,14 @@ async def test_broken_url_graceful_handling():
     """
     invalid_url = "https://this-is-completely-broken-domain-12345.com"
 
-    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
-         patch("app.analysis.url.tracker._is_public_host", new_callable=AsyncMock, return_value=None):
+    with (
+        patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head,
+        patch(
+            "app.analysis.url.tracker._is_public_host",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
         result = await trace_url(invalid_url, timeout=2.0)
 
     assert result == invalid_url
@@ -88,8 +108,14 @@ async def test_relative_redirect_without_leading_slash_is_resolved():
         request=httpx.Request("HEAD", "https://short.example/a/next-page"),
     )
 
-    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
-         patch("app.analysis.url.tracker._is_public_host", new_callable=AsyncMock, return_value=True):
+    with (
+        patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head,
+        patch(
+            "app.analysis.url.tracker._is_public_host",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+    ):
         mock_head.side_effect = [redirect_response, final_response]
         result = await trace_url("https://short.example/a/b")
 
@@ -109,8 +135,14 @@ async def test_protocol_relative_redirect_is_resolved():
         request=httpx.Request("HEAD", "https://other.example/landing"),
     )
 
-    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
-         patch("app.analysis.url.tracker._is_public_host", new_callable=AsyncMock, return_value=True):
+    with (
+        patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head,
+        patch(
+            "app.analysis.url.tracker._is_public_host",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+    ):
         mock_head.side_effect = [redirect_response, final_response]
         result = await trace_url("https://short.example/a")
 
@@ -164,8 +196,14 @@ async def test_ssrf_guard_blocks_redirect_that_pivots_to_internal_ip():
         request=httpx.Request("HEAD", "https://short.example/a"),
     )
 
-    with patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head, \
-         patch("app.analysis.url.tracker._is_public_host", new_callable=AsyncMock, side_effect=[True, False]):
+    with (
+        patch.object(httpx.AsyncClient, "head", new_callable=AsyncMock) as mock_head,
+        patch(
+            "app.analysis.url.tracker._is_public_host",
+            new_callable=AsyncMock,
+            side_effect=[True, False],
+        ),
+    ):
         mock_head.side_effect = [redirect_response]
         result = await trace_url("https://short.example/a")
 

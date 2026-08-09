@@ -1,21 +1,6 @@
-"""
-SafeFam — SMS 피싱 탐지 베이즈 분류기 학습 파이프라인 v2
-train_sms.py
-==========================================================
-v2 변경사항:
-  - CalibratedClassifierCV(method='isotonic') 추가
-    → ComplementNB 확률이 0/1 양극단으로 몰리는 문제 해결
-    → risk_score가 0~100 구간에 고르게 분산되어 상/중/하 의미있는 구분 가능
-
-탐지 파이프라인 내 위치:
-  URL 있음  → 베이즈(텍스트) + VirusTotal(URL) 병렬 → 종합 risk_score (Spring Boot 조율)
-  URL 없음  → 베이즈 단독 risk_score
-  MEDIUM    → Claude API 에스컬레이션 (40~69점 구간)
-"""
-
+# SMS 피싱 탐지 베이즈 분류기 학습 파이프라인
 from __future__ import annotations
 
-import re
 import warnings
 from pathlib import Path
 
@@ -23,142 +8,193 @@ import joblib
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, hstack
-from sklearn.calibration import CalibratedClassifierCV   # ← v2 추가
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.naive_bayes import ComplementNB
+
+from app.analysis.text.preprocessing import (
+    extract_struct_feature_matrix,
+    normalize_text,
+)
+from data_science.SMSModel.dataset_splitting import (
+    DatasetSplitConfig,
+    DatasetSplits,
+    load_split_manifest,
+    save_split_manifest,
+    split_grouped_dataset,
+    validate_dataset_splits,
+)
+from data_science.SMSModel.reporting import (
+    generate_dataset_split_reports,
+)
+from data_science.SMSModel.template_grouping import (
+    TemplateGroupingConfig,
+    prepare_template_groups,
+)
 
 warnings.filterwarnings("ignore")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 경로 CONFIG — 환경에 따라 이 블록만 수정
+# 경로 CONFIG — 실행 위치가 아니라 이 파일의 위치를 기준으로 계산
 # ─────────────────────────────────────────────────────────────────────────────
 
-DATA_PATH       = Path("../Data/SMSData/phishing_total_dataset_2705.csv")
-MODEL_PATH      = Path("phishing_model_artifact.pkl")
-VECTORIZER_PATH = Path("phishing_vectorizer.pkl")
+SMS_MODEL_DIR = Path(__file__).resolve().parent
+DATA_PATH = (
+    SMS_MODEL_DIR.parent / "Data" / "SMSData" / "phishing_total_dataset_2705.csv"
+)
+ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
+MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
+VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v1.csv"
+
+# 보고서 경로
+REPORTS_DIR = SMS_MODEL_DIR / "reports"
+
+DATASET_SPLIT_JSON_REPORT_PATH = REPORTS_DIR / "dataset_split_summary.json"
+
+DATASET_SPLIT_MARKDOWN_REPORT_PATH = REPORTS_DIR / "dataset_split_summary.md"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 학습 CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-RANDOM_STATE           = 42
-VAL_SIZE               = 0.15   # 튜닝(alpha/threshold) 전용
-TEST_SIZE              = 0.15   # 최종 평가 전용 — 튜닝에 절대 사용하지 않음
+RANDOM_STATE = 42
+VAL_SIZE = 0.15  # 튜닝(alpha/threshold) 전용
+TEST_SIZE = 0.15  # 최종 평가 전용 — 튜닝에 절대 사용하지 않음
 TARGET_PHISHING_RECALL = 0.96
 
 # risk_level 구간 — 종합 점수(베이즈 + VirusTotal)에도 동일하게 적용
-RISK_HIGH_THRESHOLD   = 70   # HIGH   : 70점 이상
-RISK_MEDIUM_THRESHOLD = 40   # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
-                              # LOW    : 40점 미만
+RISK_HIGH_THRESHOLD = 70  # HIGH   : 70점 이상
+RISK_MEDIUM_THRESHOLD = 40  # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
+# LOW    : 40점 미만
 
 # 격자 탐색 범위
-ALPHA_GRID     = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
+ALPHA_GRID = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# 정규화 패턴
-# Spring PiiMaskingService 토큰과 일치: [PHONE],[ACCOUNT],[CARD],[RRN],[EMAIL]
-# 마스킹 순서: RRN→CARD→PHONE→ACCOUNT→EMAIL (Spring과 동일하게 유지)
+# 유사 템플릿 그룹화 CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-_RE_URL     = re.compile(r"(?i)(?<!@)(?:https?://|www\.)[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+;=%]+")
-_RE_RRN     = re.compile(r"(?<!\d)\d{6}[- ]\d{7}(?!\d)")
-_RE_CARD    = re.compile(r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)")
-_RE_PHONE   = re.compile(r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)")
-_RE_ACCOUNT = re.compile(r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)|(?<!\d)\d{10,14}(?!\d)")
-_RE_EMAIL   = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
-_RE_AMOUNT  = re.compile(r"\d+[,\d]*원")
-_RE_FORMAT_ARTIFACT = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
-_RE_SHORT_URL = re.compile(r"bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly")
-_RE_WEB_TAG = re.compile(r"\[Web발신\]|\[국외발신\]|\[국제발신\]")
+# 유사도 임계값
+TEMPLATE_SIMILARITY_THRESHOLD = 0.88
+
+# n-gram 범위
+TEMPLATE_NGRAM_RANGE = (2, 5)
+
+# TF-IDF 최대 피처 수
+TEMPLATE_MAX_FEATURES = 50_000
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 전처리
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _normalize_text(text: str) -> str:
-    parts = []
-    last_end = 0
-    for m in _RE_URL.finditer(text):
-        parts.append(_mask_pii(text[last_end:m.start()]))
-        parts.append("[URL]")
-        last_end = m.end()
-    parts.append(_mask_pii(text[last_end:]))
-    text = "".join(parts)
-    text = _RE_AMOUNT.sub("[AMOUNT]", text)
-    text = _RE_FORMAT_ARTIFACT.sub(" ", text)
-    return re.sub(r"\s+", " ", text).strip()
-
-def _mask_pii(text: str) -> str:
-    text = _RE_RRN.sub("[RRN]", text)
-    text = _RE_CARD.sub("[CARD]", text)
-    text = _RE_PHONE.sub("[PHONE]", text)
-    text = _RE_ACCOUNT.sub("[ACCOUNT]", text)
-    text = _RE_EMAIL.sub("[EMAIL]", text)
-    return text
+def build_template_grouping_config() -> TemplateGroupingConfig:
+    """현재 학습 실행에서 사용할 템플릿 그룹화 설정을 반환"""
+    return TemplateGroupingConfig(
+        similarity_threshold=TEMPLATE_SIMILARITY_THRESHOLD,
+        ngram_range=TEMPLATE_NGRAM_RANGE,
+        min_df=1,
+        max_features=TEMPLATE_MAX_FEATURES,
+    )
 
 
-def _extract_struct_features(texts: pd.Series, has_url: pd.Series) -> np.ndarray:
-    """
-    텍스트 n-gram으로 포착하기 어려운 구조적 신호 6개를 boolean 피처로 추출.
-    반환 shape: (n_samples, 6)
-    """
-    return np.column_stack([
-        has_url.astype(int).values,                                         # 0: URL 포함
-        texts.str.contains(_RE_SHORT_URL).astype(int).values,               # 1: 단축URL (강신호)
-        (texts.str.contains(_RE_PHONE) | texts.str.contains(r"\[PHONE\]", regex=True)).astype(int).values,                   # 2: 전화번호
-        texts.str.contains(_RE_AMOUNT).astype(int).values,                  # 3: 금액
-        texts.str.contains(_RE_WEB_TAG).astype(int).values,                 # 4: 통신사태그(역방향)
-        (texts.str.len() > 100).astype(int).values,                         # 5: 100자 초과
-    ])
+def build_dataset_split_config() -> DatasetSplitConfig:
+    """현재 SMS 모델 학습에서 사용할 데이터 분할 설정"""
+    return DatasetSplitConfig(
+        train_size=0.70,
+        val_size=0.15,
+        test_size=0.15,
+        random_state=42,
+        candidate_count=500,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 데이터 로드
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    CSV 로드 → 무결성 검증 → 정규화 → text_norm 기준 중복 제거.
-
-    source == 'synthetic_new_holdout' / 'synthetic_fp_stress' 행은 학습/분리
-    대상에서 제외하고 df_holdout으로 따로 반환 (voice 모델과 동일 패턴).
-
-    Returns:
-        (df, df_holdout)
-    """
+    """CSV를 읽고 학습용 데이터와 별도 holdout 데이터를 반환"""
     df = pd.read_csv(path)
 
-    required_cols = {"text", "label", "type", "has_url"}
-    if missing := required_cols - set(df.columns):
-        raise ValueError(f"누락 컬럼: {missing}")
+    required_columns = {
+        "text",
+        "label",
+        "type",
+        "has_url",
+    }
+    missing_columns = required_columns - set(df.columns)
+
+    if missing_columns:
+        raise ValueError(f"누락 컬럼: {missing_columns}")
+
     if df.isnull().any().any():
         raise ValueError("결측치가 존재합니다.")
-    if not {"phishing", "normal"}.issuperset(set(df["label"].unique())):
+
+    allowed_labels = {"phishing", "normal"}
+    actual_labels = set(df["label"].unique())
+
+    if not allowed_labels.issuperset(actual_labels):
         raise ValueError(f"예상치 못한 label 값: {df['label'].unique()}")
 
     print(f"[Load] 원본 {len(df)}건 | {df['label'].value_counts().to_dict()}")
 
-    df["text_norm"] = df["text"].apply(_normalize_text)
+    # 학습과 API가 공유하는 공통 정규화 함수를 사용
+    df["text_norm"] = df["text"].apply(normalize_text)
 
-    is_new_holdout = df.get("source", pd.Series("original", index=df.index)).isin(
-        ["synthetic_new_holdout", "synthetic_fp_stress"]
+    source = df.get(
+        "source",
+        pd.Series("original", index=df.index),
     )
-    df_holdout = df[is_new_holdout].reset_index(drop=True)
-    df_pool    = df[~is_new_holdout].reset_index(drop=True)
 
-    before = len(df_pool)
-    df_pool = df_pool.drop_duplicates(subset="text_norm").reset_index(drop=True)
+    is_new_holdout = source.isin(
+        [
+            "synthetic_new_holdout",
+            "synthetic_fp_stress",
+        ]
+    )
+
+    # 신규 시나리오 holdout은 학습 데이터 그룹화 대상에서도 제외
+    df_holdout = df[is_new_holdout].copy().reset_index(drop=True)
+
+    df_pool = df[~is_new_holdout].copy().reset_index(drop=True)
+
+    before_deduplication = len(df_pool)
+
+    # fingerprint 생성 → label 충돌 검사 → 완전 중복 제거 → 유사 그룹화
+    df_pool = prepare_template_groups(
+        df_pool,
+        config=build_template_grouping_config(),
+        text_column="text_norm",
+        label_column="label",
+    )
+
+    removed_duplicates = before_deduplication - len(df_pool)
+    template_group_count = df_pool["template_group_id"].nunique()
+
+    group_sizes = df_pool["template_group_id"].value_counts()
+    similar_group_count = int((group_sizes > 1).sum())
+    largest_group_size = int(group_sizes.max()) if not group_sizes.empty else 0
+
     print(
-        f"[Dedup] text_norm 기준 중복 제거: {before} → {len(df_pool)}건 | "
-        f"{df_pool['label'].value_counts().to_dict()}"
+        f"[Dedup] fingerprint 기준 완전 중복 제거: "
+        f"{before_deduplication} → {len(df_pool)}건 "
+        f"(제거 {removed_duplicates}건)"
     )
-    print(f"[Holdout] 완전 신규 시나리오 {len(df_holdout)}건 분리 (학습에 전혀 사용 안 됨)")
+
+    print(
+        f"[Template Grouping] 전체 그룹={template_group_count} | "
+        f"유사 메시지 그룹={similar_group_count} | "
+        f"최대 그룹 크기={largest_group_size}"
+    )
+
+    print(f"[Pool] label 분포: {df_pool['label'].value_counts().to_dict()}")
+
+    print(
+        f"[Holdout] 완전 신규 시나리오 {len(df_holdout)}건 분리 "
+        f"(학습에 전혀 사용 안 됨)"
+    )
 
     return df_pool, df_holdout
 
@@ -167,47 +203,97 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 # Train / Test 분리
 # ─────────────────────────────────────────────────────────────────────────────
 
-def split_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    StratifiedShuffleSplit 2단계: label 비율 유지하며 train/val/test 분리.
 
-    1단계) 전체 → (train+val) / test
-    2단계) (train+val) → train / val  (val 비율을 전체 기준 VAL_SIZE로 재조정)
+def split_data(
+    df: pd.DataFrame,
+    *,
+    create_manifest: bool = False,
+) -> DatasetSplits:
+    """저장된 manifest를 사용하거나 새로운 그룹 split을 생성"""
+    split_config = build_dataset_split_config()
+    grouping_config = build_template_grouping_config()
 
-    val: 하이퍼파라미터(alpha/threshold) 튜닝 전용
-    test: 최종 평가 1회 전용 — 튜닝에 재사용하면 지표가 낙관적으로 부풀려짐(test set 누수)
-    """
-    sss_test = StratifiedShuffleSplit(
-        n_splits=1, test_size=TEST_SIZE, random_state=RANDOM_STATE
-    )
-    trainval_idx, test_idx = next(sss_test.split(df, df["label"]))
-    df_trainval = df.iloc[trainval_idx].reset_index(drop=True)
-    df_test     = df.iloc[test_idx].reset_index(drop=True)
-
-    val_ratio = VAL_SIZE / (1 - TEST_SIZE)  # trainval 내 비중으로 재조정
-    sss_val = StratifiedShuffleSplit(
-        n_splits=1, test_size=val_ratio, random_state=RANDOM_STATE
-    )
-    train_idx, val_idx = next(sss_val.split(df_trainval, df_trainval["label"]))
-    df_train = df_trainval.iloc[train_idx].reset_index(drop=True)
-    df_val   = df_trainval.iloc[val_idx].reset_index(drop=True)
-
-    def _fmt(d: pd.DataFrame) -> str:
-        vc = d["label"].value_counts()
-        return (
-            f"phishing={vc.get('phishing', 0)} ({vc.get('phishing', 0)/len(d):.1%}) | "
-            f"normal={vc.get('normal', 0)} ({vc.get('normal', 0)/len(d):.1%})"
+    if SPLIT_MANIFEST_PATH.exists() and not create_manifest:
+        splits = load_split_manifest(
+            df,
+            SPLIT_MANIFEST_PATH,
+            config=split_config,
         )
 
-    print(f"[Split] Train {len(df_train)}건: {_fmt(df_train)}")
-    print(f"[Split] Val   {len(df_val)}건:  {_fmt(df_val)}")
-    print(f"[Split] Test  {len(df_test)}건:  {_fmt(df_test)}")
-    return df_train, df_val, df_test
+        print(f"[Split] 기존 manifest 사용: {SPLIT_MANIFEST_PATH}")
+    else:
+        splits = split_grouped_dataset(
+            df,
+            config=split_config,
+        )
+
+        validate_dataset_splits(
+            df,
+            splits,
+            config=split_config,
+        )
+
+        save_split_manifest(
+            splits,
+            SPLIT_MANIFEST_PATH,
+            # create_manifest가 명시된 경우만 기존 파일 변경을 허용합니다.
+            overwrite=create_manifest,
+        )
+
+        print(f"[Split] 새 manifest 저장: {SPLIT_MANIFEST_PATH}")
+
+    # manifest를 로드한 경우에도 학습 직전에 다시 검증합니다. 실패 시 예외가
+    # 전파되어 모델 학습과 잘못된 보고서 생성을 모두 중단합니다.
+    validate_dataset_splits(df, splits, config=split_config)
+
+    summary = generate_dataset_split_reports(
+        df,
+        splits,
+        split_config=split_config,
+        grouping_config=grouping_config,
+        json_path=DATASET_SPLIT_JSON_REPORT_PATH,
+        markdown_path=DATASET_SPLIT_MARKDOWN_REPORT_PATH,
+    )
+
+    def describe_split(
+        name: str,
+        split_df: pd.DataFrame,
+    ) -> None:
+        label_counts = split_df["label"].value_counts()
+        group_count = split_df["template_group_id"].nunique()
+
+        print(
+            f"[Split] {name:<10} "
+            f"rows={len(split_df)} | "
+            f"groups={group_count} | "
+            f"phishing={label_counts.get('phishing', 0)} "
+            f"({(split_df['label'] == 'phishing').mean():.1%}) | "
+            f"normal={label_counts.get('normal', 0)} "
+            f"({(split_df['label'] == 'normal').mean():.1%})"
+        )
+
+    describe_split("Train", splits.train)
+    describe_split("Validation", splits.validation)
+    describe_split("Test", splits.test)
+
+    print(
+        "[Split Validation] "
+        f"passed={summary['validation']['passed']} | "
+        f"group_overlap={summary['validation']['group_overlap_count']} | "
+        "fingerprint_overlap="
+        f"{summary['validation']['fingerprint_overlap_count']}"
+    )
+    print(f"[Dataset] fingerprint={summary['dataset_fingerprint']}")
+    print(f"[Report] {DATASET_SPLIT_JSON_REPORT_PATH}")
+    print(f"[Report] {DATASET_SPLIT_MARKDOWN_REPORT_PATH}")
+
+    return splits
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 벡터화
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_vectorizer() -> CountVectorizer:
     """char_wb(단어 경계 문자 n-gram): 형태소 분석기 없이 한글 조사 변형 대응."""
@@ -231,7 +317,9 @@ def build_feature_matrix(
     텍스트 피처(CountVectorizer) + 구조적 피처(6개) sparse hstack 결합.
     fit=True: fit_transform (학습 전용), fit=False: transform only (누수 방지)
     """
-    X_text   = vectorizer.fit_transform(text_norm) if fit else vectorizer.transform(text_norm)
+    X_text = (
+        vectorizer.fit_transform(text_norm) if fit else vectorizer.transform(text_norm)
+    )
     X_struct = csr_matrix(struct)
     return hstack([X_text, X_struct])
 
@@ -240,16 +328,19 @@ def build_feature_matrix(
 # 학습 및 튜닝
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _phishing_idx(model) -> int:
     """model.classes_ 에서 'phishing' 인덱스 반환."""
     return list(model.classes_).index("phishing")
 
 
-def _compute_recalls(model, X_test, y_test: pd.Series, threshold: float) -> tuple[float, float]:
+def _compute_recalls(
+    model, X_test, y_test: pd.Series, threshold: float
+) -> tuple[float, float]:
     """threshold 적용 후 Recall(phishing), Recall(normal) 반환."""
     y_prob = model.predict_proba(X_test)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
-    cm     = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
+    cm = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
 
     rec_p = cm[1, 1] / cm[1].sum() if cm[1].sum() > 0 else 0.0
     rec_n = cm[0, 0] / cm[0].sum() if cm[0].sum() > 0 else 0.0
@@ -257,8 +348,10 @@ def _compute_recalls(model, X_test, y_test: pd.Series, threshold: float) -> tupl
 
 
 def train_and_tune(
-    X_train, y_train: pd.Series,
-    X_val,   y_val:   pd.Series,
+    X_train,
+    y_train: pd.Series,
+    X_val,
+    y_val: pd.Series,
 ) -> dict:
     """
     [격자 탐색] alpha × threshold 전체 탐색.
@@ -274,12 +367,17 @@ def train_and_tune(
       2순위) 목표 미달 시 Recall(phishing) 최대 (fallback)
     """
     best: dict = {
-        "model": None, "alpha": None,
-        "threshold": None, "recall_phishing": 0.0, "recall_normal": 0.0,
+        "model": None,
+        "alpha": None,
+        "threshold": None,
+        "recall_phishing": 0.0,
+        "recall_normal": 0.0,
     }
 
     header = f"{'alpha':>6} | {'thresh':>6} | {'rec_phish':>10} | {'rec_normal':>10}"
-    print(f"\n{'='*60}\n[ 격자 탐색: alpha × threshold (CalibratedComplementNB, val 기준) ]\n{'='*60}")
+    print(
+        f"\n{'=' * 60}\n[ 격자 탐색: alpha × threshold (CalibratedComplementNB, val 기준) ]\n{'=' * 60}"
+    )
     print(header)
     print("-" * len(header))
 
@@ -289,8 +387,8 @@ def train_and_tune(
         base_model = ComplementNB(alpha=alpha)
         calibrated = CalibratedClassifierCV(
             estimator=base_model,
-            method="isotonic",   # 비선형 보정 (sigmoid보다 작은 데이터셋에 안정적)
-            cv=5,                # 5-fold로 보정 파라미터 추정
+            method="isotonic",  # 비선형 보정 (sigmoid보다 작은 데이터셋에 안정적)
+            cv=5,  # 5-fold로 보정 파라미터 추정
         )
         calibrated.fit(X_train, y_train)
 
@@ -299,16 +397,34 @@ def train_and_tune(
 
             print(f"{alpha:>6} | {threshold:>6.2f} | {rec_p:>10.4f} | {rec_n:>10.4f}")
 
-            if rec_p >= TARGET_PHISHING_RECALL and rec_n > best["recall_normal"]:
-                best.update({
-                    "model": calibrated, "alpha": alpha, "threshold": threshold,
-                    "recall_phishing": rec_p, "recall_normal": rec_n,
-                })
-            elif best["model"] is None and rec_p > best["recall_phishing"]:
-                best.update({
-                    "model": calibrated, "alpha": alpha, "threshold": threshold,
-                    "recall_phishing": rec_p, "recall_normal": rec_n,
-                })
+            candidate_meets_target = rec_p >= TARGET_PHISHING_RECALL
+            best_meets_target = (
+                best["model"] is not None
+                and best["recall_phishing"] >= TARGET_PHISHING_RECALL
+            )
+            should_replace = (
+                best["model"] is None
+                or (
+                    candidate_meets_target
+                    and (not best_meets_target or rec_n > best["recall_normal"])
+                )
+                or (
+                    not candidate_meets_target
+                    and not best_meets_target
+                    and rec_p > best["recall_phishing"]
+                )
+            )
+
+            if should_replace:
+                best.update(
+                    {
+                        "model": calibrated,
+                        "alpha": alpha,
+                        "threshold": threshold,
+                        "recall_phishing": rec_p,
+                        "recall_normal": rec_n,
+                    }
+                )
 
     return best
 
@@ -316,6 +432,7 @@ def train_and_tune(
 # ─────────────────────────────────────────────────────────────────────────────
 # 보정 후 확률 분포 검증
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
     """
@@ -325,15 +442,15 @@ def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
     probs = model.predict_proba(X_test)[:, _phishing_idx(model)]
     df_prob = pd.DataFrame({"prob": probs, "label": y_test.values})
 
-    low    = (probs < 0.40).sum()
+    low = (probs < 0.40).sum()
     medium = ((probs >= 0.40) & (probs < 0.70)).sum()
-    high   = (probs >= 0.70).sum()
+    high = (probs >= 0.70).sum()
 
-    print(f"\n{'='*60}\n[ 보정 후 prob_phishing 분포 검증 ]\n{'='*60}")
-    print(f"LOW    (<0.40) : {low:>4}건 ({low/len(probs):.1%})")
-    print(f"MEDIUM (0.40~0.70): {medium:>4}건 ({medium/len(probs):.1%})")
-    print(f"HIGH   (≥0.70) : {high:>4}건 ({high/len(probs):.1%})")
-    print(f"\nlabel별 평균 prob_phishing:")
+    print(f"\n{'=' * 60}\n[ 보정 후 prob_phishing 분포 검증 ]\n{'=' * 60}")
+    print(f"LOW    (<0.40) : {low:>4}건 ({low / len(probs):.1%})")
+    print(f"MEDIUM (0.40~0.70): {medium:>4}건 ({medium / len(probs):.1%})")
+    print(f"HIGH   (≥0.70) : {high:>4}건 ({high / len(probs):.1%})")
+    print("\nlabel별 평균 prob_phishing:")
     print(df_prob.groupby("label")["prob"].describe().round(4))
 
     if medium == 0:
@@ -344,35 +461,42 @@ def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
 # 최종 평가
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def evaluate(model, threshold: float, X_test, y_test: pd.Series) -> None:
     """최적 threshold 적용 후 classification report + confusion matrix 출력."""
     y_prob = model.predict_proba(X_test)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
-    print(f"\n{'='*60}\n[ 최종 평가 — threshold={threshold} ]\n{'='*60}")
+    print(f"\n{'=' * 60}\n[ 최종 평가 — threshold={threshold} ]\n{'=' * 60}")
     print(classification_report(y_test, y_pred, target_names=["normal", "phishing"]))
 
     cm = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
-    print(pd.DataFrame(
-        cm,
-        index=["실제 normal", "실제 phishing"],
-        columns=["예측 normal", "예측 phishing"],
-    ))
+    print(
+        pd.DataFrame(
+            cm,
+            index=["실제 normal", "실제 phishing"],
+            columns=["예측 normal", "예측 phishing"],
+        )
+    )
 
     rec_p = cm[1, 1] / cm[1].sum()
     rec_n = cm[0, 0] / cm[0].sum()
     print(f"\n★ Recall(phishing): {rec_p:.4f}  |  Recall(normal): {rec_n:.4f}")
 
     if rec_p < TARGET_PHISHING_RECALL:
-        print(f"[WARNING] Recall(phishing) {rec_p:.4f} < 목표 {TARGET_PHISHING_RECALL:.2f}")
+        print(
+            f"[WARNING] Recall(phishing) {rec_p:.4f} < 목표 {TARGET_PHISHING_RECALL:.2f}"
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 저장 / 로드
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def save_artifacts(model, vectorizer: CountVectorizer, threshold: float) -> None:
     """model + threshold + classes를 단일 아티팩트로 저장 (FastAPI 로드용)."""
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(
         {"model": model, "threshold": threshold, "classes": list(model.classes_)},
         MODEL_PATH,
@@ -386,7 +510,7 @@ def load_artifacts() -> tuple:
     FastAPI 서버 시작 시 1회 호출.
     Returns: (model, vectorizer, threshold, classes)
     """
-    artifact   = joblib.load(MODEL_PATH)
+    artifact = joblib.load(MODEL_PATH)
     vectorizer = joblib.load(VECTORIZER_PATH)
     return artifact["model"], vectorizer, artifact["threshold"], artifact["classes"]
 
@@ -394,6 +518,7 @@ def load_artifacts() -> tuple:
 # ─────────────────────────────────────────────────────────────────────────────
 # 추론 (FastAPI 연동용)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _map_risk_level(risk_score: int) -> str:
     """
@@ -417,45 +542,29 @@ def predict_risk_score(
     classes: list,
 ) -> dict:
     """
-    단일 문자 텍스트 → risk_score(0~100), risk_level(HIGH/MEDIUM/LOW) 반환.
+    단일 SMS를 분석해 위험 점수와 위험 등급을 반환
 
-    v2: CalibratedClassifierCV 보정으로 prob_phishing이 0~1 고르게 분산됨
-    → risk_score가 실제 위험도를 반영하는 연속적 점수로 의미있게 동작
-
-    Args:
-        text      : 원문 SMS 텍스트
-        model     : CalibratedClassifierCV (ComplementNB + isotonic 보정)
-        vectorizer: 학습된 CountVectorizer
-        threshold : 최적화된 분류 임계값
-        classes   : model.classes_ 리스트
-
-    Returns:
-        {
-          "risk_score"     : int  (0~100, 보정된 피싱 확률 × 100)
-          "risk_level"     : str  ("HIGH" | "MEDIUM" | "LOW")
-          "text_score_only": bool (True = VirusTotal 결합 전 텍스트 단독 점수)
-        }
+    학습과 운영 API 모두 공통 normalize_text()와 extract_struct_feature_matrix()를 사용
     """
-    text_norm = _normalize_text(text)
+    text_norm = normalize_text(text)
 
-    # 단일 샘플 구조적 피처 (shape: 1 × 6)
-    struct = np.array([[
-        int(bool(_RE_URL.search(text))),
-        int(bool(_RE_SHORT_URL.search(text))),
-        int(bool(_RE_PHONE.search(text) or "[PHONE]" in text)),
-        int(bool(_RE_AMOUNT.search(text))),
-        int(bool(_RE_WEB_TAG.search(text))),
-        int(len(text) > 100),
-    ]])
+    struct = extract_struct_feature_matrix([text])
 
-    X          = build_feature_matrix(vectorizer, pd.Series([text_norm]), struct, fit=False)
-    prob_phish = model.predict_proba(X)[0][classes.index("phishing")]
-    risk_score = int(prob_phish * 100)
+    X = build_feature_matrix(
+        vectorizer,
+        pd.Series([text_norm]),
+        struct,
+        fit=False,
+    )
+
+    phishing_index = classes.index("phishing")
+    phishing_probability = model.predict_proba(X)[0][phishing_index]
+    risk_score = int(phishing_probability * 100)
 
     return {
-        "risk_score"     : risk_score,
-        "risk_level"     : _map_risk_level(risk_score),
-        "text_score_only": True,   # VirusTotal 결합 전 텍스트 단독 점수
+        "risk_score": risk_score,
+        "risk_level": _map_risk_level(risk_score),
+        "text_score_only": True,
     }
 
 
@@ -463,19 +572,27 @@ def predict_risk_score(
 # 진입점
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
-    df, df_holdout = load_data(DATA_PATH)              # 반환값 2개로 변경
+    df, df_holdout = load_data(DATA_PATH)
 
-    df_train, df_val, df_test = split_data(df)
+    splits = split_data(df)
+    df_train = splits.train
+    df_val = splits.validation
+    df_test = splits.test
 
-    struct_train = _extract_struct_features(df_train["text"], df_train["has_url"])
-    struct_val   = _extract_struct_features(df_val["text"],   df_val["has_url"])
-    struct_test  = _extract_struct_features(df_test["text"],  df_test["has_url"])
+    struct_train = extract_struct_feature_matrix(df_train["text"])
+    struct_val = extract_struct_feature_matrix(df_val["text"])
+    struct_test = extract_struct_feature_matrix(df_test["text"])
 
     vectorizer = build_vectorizer()
-    X_train = build_feature_matrix(vectorizer, df_train["text_norm"], struct_train, fit=True)
-    X_val   = build_feature_matrix(vectorizer, df_val["text_norm"],   struct_val,   fit=False)
-    X_test  = build_feature_matrix(vectorizer, df_test["text_norm"],  struct_test,  fit=False)
+    X_train = build_feature_matrix(
+        vectorizer, df_train["text_norm"], struct_train, fit=True
+    )
+    X_val = build_feature_matrix(vectorizer, df_val["text_norm"], struct_val, fit=False)
+    X_test = build_feature_matrix(
+        vectorizer, df_test["text_norm"], struct_test, fit=False
+    )
 
     best = train_and_tune(X_train, df_train["label"], X_val, df_val["label"])
     if best["model"] is None:
@@ -491,13 +608,14 @@ def main() -> None:
     verify_probability_distribution(best["model"], X_test, df_test["label"])
     evaluate(best["model"], best["threshold"], X_test, df_test["label"])
 
-    # ★ 추가: 완전 신규 시나리오 일반화 + 오탐 검증
     evaluate_new_holdout(best["model"], vectorizer, best["threshold"], df_holdout)
 
     save_artifacts(best["model"], vectorizer, best["threshold"])
 
-def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
-                          df_holdout: pd.DataFrame) -> None:
+
+def evaluate_new_holdout(
+    model, vectorizer: CountVectorizer, threshold: float, df_holdout: pd.DataFrame
+) -> None:
     """
     학습에 전혀 관여하지 않은 완전 신규 시나리오(synthetic_new_holdout,
     synthetic_fp_stress)로 일반화 성능 + 오탐률을 검증.
@@ -506,19 +624,30 @@ def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
         print("\n[SKIP] 신규 holdout 데이터 없음")
         return
 
-    text_norm = df_holdout["text"].apply(_normalize_text)
-    struct = _extract_struct_features(df_holdout["text"], df_holdout["has_url"])
+    text_norm = df_holdout["text"].apply(normalize_text)
+    struct = extract_struct_feature_matrix(df_holdout["text"])
     X = build_feature_matrix(vectorizer, text_norm, struct, fit=False)
 
     y_prob = model.predict_proba(X)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
-    print(f"\n{'='*60}\n[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ]\n{'='*60}")
-    print(classification_report(df_holdout["label"], y_pred, target_names=["normal", "phishing"]))
+    print(
+        f"\n{'=' * 60}\n[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ]\n{'=' * 60}"
+    )
+    print(
+        classification_report(
+            df_holdout["label"], y_pred, target_names=["normal", "phishing"]
+        )
+    )
 
     cm = confusion_matrix(df_holdout["label"], y_pred, labels=["normal", "phishing"])
-    print(pd.DataFrame(cm, index=["실제 normal", "실제 phishing"],
-                        columns=["예측 normal", "예측 phishing"]))
+    print(
+        pd.DataFrame(
+            cm,
+            index=["실제 normal", "실제 phishing"],
+            columns=["예측 normal", "예측 phishing"],
+        )
+    )
 
     rec_p = cm[1, 1] / cm[1].sum() if cm[1].sum() else 0.0
     rec_n = cm[0, 0] / cm[0].sum() if cm[0].sum() else 0.0
@@ -531,15 +660,21 @@ def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
     phishing_df = df_h[df_h["label"] == "phishing"]
     if not phishing_df.empty:
         print("\n[유형별 Recall(phishing)] — 낮은 순")
-        print(phishing_df.groupby("type").apply(
-            lambda g: (g["pred"] == "phishing").mean()
-        ).sort_values())
+        print(
+            phishing_df.groupby("type")
+            .apply(lambda g: (g["pred"] == "phishing").mean())
+            .sort_values()
+        )
 
     normal_df = df_h[df_h["label"] == "normal"]
     if not normal_df.empty:
         print("\n[유형별 오탐률(FP)]")
-        print(normal_df.groupby("type").apply(
-            lambda g: (g["pred"] == "phishing").mean()
-        ).sort_values(ascending=False))
+        print(
+            normal_df.groupby("type")
+            .apply(lambda g: (g["pred"] == "phishing").mean())
+            .sort_values(ascending=False)
+        )
+
+
 if __name__ == "__main__":
     main()

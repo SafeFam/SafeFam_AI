@@ -20,23 +20,15 @@ def create_analysis_requested_event() -> AnalysisRequestedEvent:
     return AnalysisRequestedEvent.model_validate(
         {
             "schemaVersion": "1.0",
-            "eventId": (
-                "1fb898fa-d89d-4d0b-a43f-a8b00daeb765"
-            ),
+            "eventId": ("1fb898fa-d89d-4d0b-a43f-a8b00daeb765"),
             "analysisId": 123,
             "clientMessageId": "sms-20260728-001",
-            "traceId": (
-                "2d59c74e-0691-4f01-bde3-c657ba4c90cd"
-            ),
+            "traceId": ("2d59c74e-0691-4f01-bde3-c657ba4c90cd"),
             "occurredAt": "2026-07-28T01:30:00Z",
             "payload": {
                 "sender": "1588-0000",
-                "content": (
-                    "[국민은행] 계좌가 정지되었습니다."
-                ),
-                "receivedAt": (
-                    "2026-07-28T10:29:00+09:00"
-                ),
+                "content": ("[국민은행] 계좌가 정지되었습니다."),
+                "receivedAt": ("2026-07-28T10:29:00+09:00"),
                 "source": "AUTO",
             },
         }
@@ -87,6 +79,7 @@ def create_error_result() -> SmishingAnalysisResponse:
         rule_analysis=None,
     )
 
+
 @pytest.mark.asyncio
 async def test_handler_passes_event_content_to_analysis_pipeline():
     """정상 분석 테스트"""
@@ -94,20 +87,15 @@ async def test_handler_passes_event_content_to_analysis_pipeline():
     expected_result = create_success_result()
 
     analysis_service = AsyncMock()
-    analysis_service.analyze_pipeline.return_value = (
-        expected_result
-    )
+    analysis_service.analyze_pipeline.return_value = expected_result
 
-    handler = AnalysisRequestHandler(
-        analysis_service=analysis_service
-    )
+    handler = AnalysisRequestHandler(analysis_service=analysis_service)
 
     actual_result = await handler.handle(event)
 
-    analysis_service.analyze_pipeline.assert_awaited_once_with(
-        event.payload.content
-    )
+    analysis_service.analyze_pipeline.assert_awaited_once_with(event.payload.content)
     assert actual_result is expected_result
+
 
 @pytest.mark.asyncio
 async def test_handler_returns_pipeline_error_result():
@@ -116,21 +104,16 @@ async def test_handler_returns_pipeline_error_result():
     error_result = create_error_result()
 
     analysis_service = AsyncMock()
-    analysis_service.analyze_pipeline.return_value = (
-        error_result
-    )
+    analysis_service.analyze_pipeline.return_value = error_result
 
-    handler = AnalysisRequestHandler(
-        analysis_service=analysis_service
-    )
+    handler = AnalysisRequestHandler(analysis_service=analysis_service)
 
     actual_result = await handler.handle(event)
 
     assert actual_result is error_result
 
-    analysis_service.analyze_pipeline.assert_awaited_once_with(
-        event.payload.content
-    )
+    analysis_service.analyze_pipeline.assert_awaited_once_with(event.payload.content)
+
 
 @pytest.mark.asyncio
 async def test_handler_propagates_analysis_service_exception():
@@ -142,15 +125,14 @@ async def test_handler_propagates_analysis_service_exception():
         "Unexpected pipeline failure"
     )
 
-    handler = AnalysisRequestHandler(
-        analysis_service=analysis_service
-    )
+    handler = AnalysisRequestHandler(analysis_service=analysis_service)
 
     with pytest.raises(
         RuntimeError,
         match="Unexpected pipeline failure",
     ):
         await handler.handle(event)
+
 
 @pytest.mark.asyncio
 async def test_handler_logs_event_tracking_identifiers(
@@ -161,13 +143,9 @@ async def test_handler_logs_event_tracking_identifiers(
     expected_result = create_success_result()
 
     analysis_service = AsyncMock()
-    analysis_service.analyze_pipeline.return_value = (
-        expected_result
-    )
+    analysis_service.analyze_pipeline.return_value = expected_result
 
-    handler = AnalysisRequestHandler(
-        analysis_service=analysis_service
-    )
+    handler = AnalysisRequestHandler(analysis_service=analysis_service)
 
     with caplog.at_level(logging.INFO):
         await handler.handle(event)
@@ -180,6 +158,7 @@ async def test_handler_logs_event_tracking_identifiers(
     assert str(expected_result.final_score) in log_output
     assert str(expected_result.risk_grade) in log_output
 
+
 @pytest.mark.asyncio
 async def test_handler_does_not_log_message_content(
     caplog: pytest.LogCaptureFixture,
@@ -189,18 +168,15 @@ async def test_handler_does_not_log_message_content(
     expected_result = create_success_result()
 
     analysis_service = AsyncMock()
-    analysis_service.analyze_pipeline.return_value = (
-        expected_result
-    )
+    analysis_service.analyze_pipeline.return_value = expected_result
 
-    handler = AnalysisRequestHandler(
-        analysis_service=analysis_service
-    )
+    handler = AnalysisRequestHandler(analysis_service=analysis_service)
 
     with caplog.at_level(logging.INFO):
         await handler.handle(event)
 
     assert event.payload.content not in caplog.text
+
 
 @pytest.mark.asyncio
 async def test_handler_logs_tracking_identifiers_on_failure(
@@ -213,9 +189,7 @@ async def test_handler_logs_tracking_identifiers_on_failure(
     analysis_service = AsyncMock()
     analysis_service.analyze_pipeline.return_value = error_result
 
-    handler = AnalysisRequestHandler(
-        analysis_service=analysis_service
-    )
+    handler = AnalysisRequestHandler(analysis_service=analysis_service)
 
     with caplog.at_level(logging.WARNING):
         actual_result = await handler.handle(event)

@@ -1,19 +1,19 @@
 import logging
+
 import httpx
+
 from app.core.config import settings
 from app.infrastructure.http_retry import request_with_retry
 
 logger = logging.getLogger(__name__)
+
 
 class GoogleSafeBrowsingClient:
     """Google Safe Browsing API를 사용하여 URL의 악성 여부를 검사"""
 
     def __init__(self):
         self.api_key = settings.GOOGLE_SAFE_BROWSING_API_KEY
-        self.api_url = (
-            "https://safebrowsing.googleapis.com/v4/"
-            "threatMatches:find"
-        )
+        self.api_url = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
 
     @staticmethod
     def _safe_result() -> dict:
@@ -43,12 +43,9 @@ class GoogleSafeBrowsingClient:
         """입력받은 URL을 GSB API로 검사 후 분석 결과 반환"""
         if not self.api_key:
             logger.warning(
-                "[Google Safe Browsing] API Key가 누락되어 "
-                "URL을 분석할 수 없습니다."
+                "[Google Safe Browsing] API Key가 누락되어 URL을 분석할 수 없습니다."
             )
-            return self._unavailable_result(
-                "MISSING_API_KEY"
-            )
+            return self._unavailable_result("MISSING_API_KEY")
 
         # GSB API 요청 페이로드 구성
         payload = {
@@ -80,9 +77,7 @@ class GoogleSafeBrowsingClient:
                         json=payload,
                         timeout=settings.GSB_TIMEOUT_SECONDS,
                     ),
-                    max_retries=(
-                        settings.EXTERNAL_API_MAX_RETRIES
-                    ),
+                    max_retries=(settings.EXTERNAL_API_MAX_RETRIES),
                     operation_name="Google Safe Browsing",
                 )
                 response.raise_for_status()
@@ -92,9 +87,7 @@ class GoogleSafeBrowsingClient:
 
                 # 매칭되는 위험 요소가 있는 경우 악성 URL로 처리
                 if matches:
-                    logger.warning(
-                        "[Google Safe Browsing] 악성 URL 감지됨"
-                    )
+                    logger.warning("[Google Safe Browsing] 악성 URL 감지됨")
                     return {
                         "is_malicious": True,
                         "raw_score": 0.95,
@@ -103,9 +96,7 @@ class GoogleSafeBrowsingClient:
                         "error_code": None,
                     }
 
-                logger.info(
-                    "[Google Safe Browsing] URL 분석 완료"
-                )
+                logger.info("[Google Safe Browsing] URL 분석 완료")
                 return self._safe_result()
 
             except httpx.HTTPStatusError as exc:
@@ -117,19 +108,12 @@ class GoogleSafeBrowsingClient:
                 )
 
                 if status_code == 429:
-                    return self._unavailable_result(
-                        "RATE_LIMITED"
-                    )
+                    return self._unavailable_result("RATE_LIMITED")
 
-                return self._unavailable_result(
-                    f"HTTP_{status_code}"
-                )
+                return self._unavailable_result(f"HTTP_{status_code}")
 
             except httpx.TimeoutException:
-                logger.error(
-                    "[Google Safe Browsing] "
-                    "API 요청 타임아웃 발생"
-                )
+                logger.error("[Google Safe Browsing] API 요청 타임아웃 발생")
                 return self._unavailable_result("TIMEOUT")
 
             except httpx.RequestError as exc:
@@ -137,16 +121,11 @@ class GoogleSafeBrowsingClient:
                     "[Google Safe Browsing] 네트워크 오류: %s",
                     type(exc).__name__,
                 )
-                return self._unavailable_result(
-                    "NETWORK_ERROR"
-                )
+                return self._unavailable_result("NETWORK_ERROR")
 
             except Exception as exception:
                 logger.error(
-                    "[Google Safe Browsing] "
-                    "연동 중 비정상 오류 발생. error_type=%s",
+                    "[Google Safe Browsing] 연동 중 비정상 오류 발생. error_type=%s",
                     type(exception).__name__,
                 )
-                return self._unavailable_result(
-                    "UNEXPECTED_ERROR"
-                )
+                return self._unavailable_result("UNEXPECTED_ERROR")

@@ -1,6 +1,6 @@
-from app.analysis.schemas import RiskGrade
 import pytest
 
+from app.analysis.schemas import RiskGrade
 from app.analysis.scoring import RiskScoringEngine
 
 ScoringEngine = RiskScoringEngine
@@ -50,7 +50,7 @@ def test_calculate_score_both_engines_down_lands_at_least_medium_not_low():
         url_risk_score=0.0,
         rule_score=0,
         naive_bayes_score=None,
-        llm_available=False
+        llm_available=False,
     )
 
     assert risk_grade != RiskGrade.LOW
@@ -69,7 +69,7 @@ def test_calculate_score_naive_bayes_false_positive_is_dampened_by_gemini():
         url_risk_score=0.0,
         rule_score=0,
         naive_bayes_score=97,
-        llm_available=True
+        llm_available=True,
     )
 
     assert final_score < 50
@@ -79,10 +79,7 @@ def test_calculate_score_naive_bayes_false_positive_is_dampened_by_gemini():
 def test_calculate_score_backward_compatible_without_naive_bayes_args():
     """기존 호출부(나이브 베이즈 인자 없이 llm_score만 넘기는 방식)와 동일하게 동작해야 한다."""
     final_score, risk_grade, breakdown = ScoringEngine.calculate_score(
-        llm_score=90,
-        is_url_malicious=True,
-        url_risk_score=0.95,
-        rule_score=0
+        llm_score=90, is_url_malicious=True, url_risk_score=0.95, rule_score=0
     )
 
     assert breakdown.llm == 45
@@ -95,11 +92,11 @@ def test_calculate_score_gsb_confirmed_forces_high_even_with_benign_text_and_no_
     점수도 HIGH 임계치(70점) 이상으로 끌어올려져야 한다.
     """
     final_score, risk_grade, breakdown = ScoringEngine.calculate_score(
-        llm_score=5,               # 텍스트는 평범함
+        llm_score=5,  # 텍스트는 평범함
         is_url_malicious=True,
         url_risk_score=0.95,
         rule_score=0,
-        is_confirmed_malicious=True
+        is_confirmed_malicious=True,
     )
 
     assert risk_grade == RiskGrade.HIGH
@@ -113,11 +110,11 @@ def test_calculate_score_confirmed_override_keeps_breakdown_reconciled_with_fina
     일치해야 한다 (오버라이드 전 가중합 그대로 남아 점수와 어긋나면 안 됨).
     """
     final_score, risk_grade, breakdown = ScoringEngine.calculate_score(
-        llm_score=5,               # 텍스트는 평범함 -> 오버라이드 전 가중합은 70점에 한참 못 미침
+        llm_score=5,  # 텍스트는 평범함 -> 오버라이드 전 가중합은 70점에 한참 못 미침
         is_url_malicious=True,
         url_risk_score=0.95,
         rule_score=0,
-        is_confirmed_malicious=True
+        is_confirmed_malicious=True,
     )
 
     assert risk_grade == RiskGrade.HIGH
@@ -137,7 +134,7 @@ def test_calculate_score_gsb_not_confirmed_does_not_trigger_override():
         is_url_malicious=True,
         url_risk_score=0.5,
         rule_score=0,
-        is_confirmed_malicious=False
+        is_confirmed_malicious=False,
     )
 
     assert risk_grade != RiskGrade.HIGH
@@ -150,7 +147,7 @@ def test_calculate_score_gsb_confirmed_does_not_lower_an_already_higher_score():
         is_url_malicious=True,
         url_risk_score=0.95,
         rule_score=100,
-        is_confirmed_malicious=True
+        is_confirmed_malicious=True,
     )
 
     assert final_score == min(round(95 * 0.5) + round(0.95 * 30) + 20, 100)
@@ -164,7 +161,7 @@ def test_calculate_score_with_url_uses_50_30_20_weights():
         is_url_malicious=True,
         url_risk_score=0.5,
         rule_score=100,
-        has_url=True
+        has_url=True,
     )
 
     assert breakdown.llm == round(80 * 0.5)  # 40
@@ -182,7 +179,7 @@ def test_calculate_score_without_url_reweights_to_65_35_and_url_track_is_zero():
         is_url_malicious=False,
         url_risk_score=0.0,
         rule_score=100,
-        has_url=False
+        has_url=False,
     )
 
     assert breakdown.llm == round(80 * 0.65)  # 52
@@ -202,29 +199,29 @@ def test_calculate_score_without_url_raises_ceiling_above_old_50_point_cap():
         is_url_malicious=False,
         url_risk_score=0.0,
         rule_score=0,
-        has_url=False
+        has_url=False,
     )
 
     assert breakdown.llm == 65
     assert final_score == 65
     assert final_score > 50
 
+
 def test_redistributes_url_weight_when_url_unavailable():
-    final_score, _, breakdown = (
-        RiskScoringEngine.calculate_score(
-            llm_score=70,
-            is_url_malicious=False,
-            url_risk_score=0.0,
-            rule_score=70,
-            has_url=True,
-            url_available=False,
-        )
+    final_score, _, breakdown = RiskScoringEngine.calculate_score(
+        llm_score=70,
+        is_url_malicious=False,
+        url_risk_score=0.0,
+        rule_score=70,
+        has_url=True,
+        url_available=False,
     )
 
     assert breakdown.hybrid_url == 0
     assert breakdown.llm == 50
     assert breakdown.rules == 20
     assert final_score == 70
+
 
 def test_raises_when_all_tracks_are_unavailable():
     with pytest.raises(

@@ -13,8 +13,10 @@ from app.core.config import Settings, settings
 
 logger = logging.getLogger(__name__)
 
+
 class RabbitMQNotConnectedError(RuntimeError):
     """RabbitMQ 연결 초기화 전에 리소스에 접근한 경우"""
+
 
 class RabbitMQConnection:
     """RabbitMQ 연결과 분석 요청 토폴로지 관리"""
@@ -33,18 +35,13 @@ class RabbitMQConnection:
 
     async def connect(self) -> None:
         """RabbitMQ 연결 및 Exchange, Queue, Binding 초기화"""
-        if (
-            self.connection is not None
-            and not self.connection.is_closed
-        ):
+        if self.connection is not None and not self.connection.is_closed:
             logger.info("RabbitMQ connection is already active.")
             return
 
         logger.info("Connecting to RabbitMQ.")
 
-        self.connection = await aio_pika.connect_robust(
-            self.settings.RABBITMQ_URL
-        )
+        self.connection = await aio_pika.connect_robust(self.settings.RABBITMQ_URL)
 
         self.channel = await self.connection.channel(
             publisher_confirms=True,
@@ -52,9 +49,7 @@ class RabbitMQConnection:
         )
 
         await self.channel.set_qos(
-            prefetch_count=(
-                self.settings.RABBITMQ_PREFETCH_COUNT
-            )
+            prefetch_count=(self.settings.RABBITMQ_PREFETCH_COUNT)
         )
 
         self.exchange = await self.channel.declare_exchange(
@@ -70,25 +65,17 @@ class RabbitMQConnection:
 
         await self.request_queue.bind(
             self.exchange,
-            routing_key=(
-                self.settings
-                .RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY
-            ),
+            routing_key=(self.settings.RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY),
         )
 
-        self.dead_letter_queue = (
-            await self.channel.declare_queue(
-                self.settings.RABBITMQ_ANALYSIS_DLQ,
-                durable=True,
-            )
+        self.dead_letter_queue = await self.channel.declare_queue(
+            self.settings.RABBITMQ_ANALYSIS_DLQ,
+            durable=True,
         )
 
         await self.dead_letter_queue.bind(
             self.exchange,
-            routing_key=(
-                self.settings
-                .RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY
-            ),
+            routing_key=(self.settings.RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY),
         )
 
         logger.info(
@@ -112,9 +99,7 @@ class RabbitMQConnection:
     def get_exchange(self) -> AbstractRobustExchange:
         """초기화된 분석 이벤트 Exchange를 반환"""
         if self.exchange is None:
-            raise RabbitMQNotConnectedError(
-                "RabbitMQ exchange is not initialized."
-            )
+            raise RabbitMQNotConnectedError("RabbitMQ exchange is not initialized.")
 
         return self.exchange
 

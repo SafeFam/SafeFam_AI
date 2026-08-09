@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.analysis import router as analyze
 from app.analysis.service import SmishingAnalysisService
+from app.analysis.text import naive_bayes_analyzer
 from app.chat import router as chat
 from app.core.config import settings
 from app.infrastructure.rabbitmq.connection import (
@@ -14,6 +15,9 @@ from app.infrastructure.rabbitmq.connection import (
 )
 from app.infrastructure.rabbitmq.consumer import (
     AnalysisRequestConsumer,
+)
+from app.infrastructure.rabbitmq.dead_letter import (
+    DeadLetterPublisher,
 )
 from app.infrastructure.rabbitmq.handler import (
     AnalysisRequestHandler,
@@ -24,33 +28,24 @@ from app.infrastructure.rabbitmq.publisher import (
 from app.infrastructure.rabbitmq.result_factory import (
     AnalysisResultEventFactory,
 )
-from app.infrastructure.rabbitmq.dead_letter import (
-    DeadLetterPublisher,
-)
 
 
 def validate_model_files() -> None:
     """운영 시작 전에 필수 모델 파일이 존재하고 읽을 수 있는지 검증한다."""
-    required_files: tuple[Path, ...] = (
+    required_files: tuple[Path, ...] = naive_bayes_analyzer.resolve_artifact_paths(
         settings.NAIVE_BAYES_MODEL_PATH,
         settings.NAIVE_BAYES_VECTORIZER_PATH,
     )
-    missing = [
-        str(path)
-        for path in required_files
-        if not path.is_file()
-    ]
+    missing = [str(path) for path in required_files if not path.is_file()]
     if missing:
-        raise RuntimeError(
-            "Required AI model files are missing: "
-            + ", ".join(missing)
-        )
+        raise RuntimeError("Required AI model files are missing: " + ", ".join(missing))
 
 
 def create_lifespan(
     rabbitmq_consumer_enabled: bool,
 ):
     """FastAPI 애플리케이션 시작 및 종료 시 RabbitMQ 리소스 생명주기를 관리"""
+
     @asynccontextmanager
     async def lifespan(
         application: FastAPI,
@@ -68,9 +63,7 @@ def create_lifespan(
         try:
             await rabbitmq.connect()
 
-            handler = AnalysisRequestHandler(
-                analysis_service=SmishingAnalysisService()
-            )
+            handler = AnalysisRequestHandler(analysis_service=SmishingAnalysisService())
 
             result_publisher = AnalysisResultPublisher(
                 exchange=rabbitmq.get_exchange(),
@@ -93,9 +86,7 @@ def create_lifespan(
             await consumer.start()
 
             application.state.rabbitmq = rabbitmq
-            application.state.analysis_request_consumer = (
-                consumer
-            )
+            application.state.analysis_request_consumer = consumer
 
             yield
         finally:

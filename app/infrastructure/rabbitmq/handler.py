@@ -31,9 +31,7 @@ class AnalysisRequestHandler:
             event.traceId,
         )
 
-        result = await self.analysis_service.analyze_pipeline(
-            event.payload.content
-        )
+        result = await self.analysis_service.analyze_pipeline(event.payload.content)
 
         if result.status == "ERROR":
             logger.warning(

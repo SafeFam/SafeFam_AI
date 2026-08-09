@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     MOCK_SECURITY_API: bool = False
 
     NAIVE_BAYES_MODEL_PATH: Path = Path(
-        "data_science/SMSModel/phishing_model_artifact.pkl"
+        "data_science/SMSModel/artifacts/phishing_model_artifact.pkl"
     )
     NAIVE_BAYES_VECTORIZER_PATH: Path = Path(
-        "data_science/SMSModel/phishing_vectorizer.pkl"
+        "data_science/SMSModel/artifacts/phishing_vectorizer.pkl"
     )
 
     GEMINI_TIMEOUT_SECONDS: float = Field(
@@ -46,36 +46,19 @@ class Settings(BaseSettings):
         le=3,
     )
 
-
-    RABBITMQ_URL: str = (
-        "amqp://safefam:safefam-local@localhost:5672/"
-    )
+    RABBITMQ_URL: str = "amqp://safefam:safefam-local@localhost:5672/"
     RABBITMQ_ANALYSIS_EXCHANGE: str = "safefam.analysis"
-    RABBITMQ_ANALYSIS_REQUEST_QUEUE: str = (
-        "safefam.analysis.requested.q"
-    )
-    RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: str = (
-        "analysis.requested.v1"
-    )
+    RABBITMQ_ANALYSIS_REQUEST_QUEUE: str = "safefam.analysis.requested.q"
+    RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: str = "analysis.requested.v1"
     RABBITMQ_PREFETCH_COUNT: int = Field(default=1, ge=1)
     RABBITMQ_CONSUMER_ENABLED: bool = True
 
-    RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY: str = (
-    "analysis.completed.v1"
-    )
-    RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY: str = (
-        "analysis.partial.v1"
-    )
-    RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY: str = (
-        "analysis.failed.v1"
-    )
+    RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY: str = "analysis.completed.v1"
+    RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY: str = "analysis.partial.v1"
+    RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY: str = "analysis.failed.v1"
 
-    RABBITMQ_ANALYSIS_DLQ: str = (
-        "safefam.analysis.requested.dlq"
-    )
-    RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY: str = (
-        "analysis.requested.dead.v1"
-    )
+    RABBITMQ_ANALYSIS_DLQ: str = "safefam.analysis.requested.dlq"
+    RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY: str = "analysis.requested.dead.v1"
 
     RABBITMQ_PUBLISH_TIMEOUT_SECONDS: float = Field(
         default=5.0,
@@ -98,9 +81,7 @@ class Settings(BaseSettings):
         required_values = {
             "GEMINI_API_KEY": self.GEMINI_API_KEY,
             "VIRUSTOTAL_API_KEY": self.VIRUSTOTAL_API_KEY,
-            "GOOGLE_SAFE_BROWSING_API_KEY": (
-                self.GOOGLE_SAFE_BROWSING_API_KEY
-            ),
+            "GOOGLE_SAFE_BROWSING_API_KEY": (self.GOOGLE_SAFE_BROWSING_API_KEY),
             "RABBITMQ_URL": self.RABBITMQ_URL,
         }
         missing = [
@@ -109,9 +90,7 @@ class Settings(BaseSettings):
             if value is None or not str(value).strip()
         ]
 
-        local_rabbitmq_url = (
-            "amqp://safefam:safefam-local@localhost:5672/"
-        )
+        local_rabbitmq_url = "amqp://safefam:safefam-local@localhost:5672/"
         if self.RABBITMQ_URL == local_rabbitmq_url:
             missing.append("RABBITMQ_URL")
 
@@ -122,9 +101,7 @@ class Settings(BaseSettings):
             )
 
         if self.MOCK_SECURITY_API:
-            raise ValueError(
-                "MOCK_SECURITY_API must be false in production"
-            )
+            raise ValueError("MOCK_SECURITY_API must be false in production")
 
         return self
 

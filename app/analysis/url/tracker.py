@@ -1,13 +1,13 @@
-import re
-import socket
 import asyncio
 import ipaddress
 import logging
-import httpx
-import httpcore
-
-from typing import List, Optional
+import re
+import socket
 from urllib.parse import urljoin, urlparse
+
+import httpcore
+import httpx
+
 from app.core.config import settings
 from app.infrastructure.http_retry import request_with_retry
 
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # URL 정규표현식 패턴
 URL_PATTERN = re.compile(r'https?://[^\s\'"<>]+')
+
 
 def _is_blocked_ip(ip: "ipaddress.IPv4Address | ipaddress.IPv6Address") -> bool:
     """사설/루프백/링크로컬 등 외부에 공개되지 않은 주소인지 판별."""
@@ -29,9 +30,9 @@ def _is_blocked_ip(ip: "ipaddress.IPv4Address | ipaddress.IPv6Address") -> bool:
 
 
 async def _is_public_host(
-    hostname: Optional[str],
+    hostname: str | None,
     dns_timeout: float | None = None,
-) -> Optional[str]:
+) -> str | None:
     """
     SSRF 방어: 호스트가 실제로 가리키는 IP를 DNS로 확인해서 내부망/사설 대역이면 차단.
     도메인이 공개 주소처럼 보여도 리다이렉트 체인 중간에 내부망으로 우회할 수 있으므로
@@ -59,9 +60,7 @@ async def _is_public_host(
             loop.getaddrinfo(hostname, None), timeout=dns_timeout
         )
     except (socket.gaierror, OSError, asyncio.TimeoutError):
-        logger.warning(
-            "[SSRF Guard] DNS 조회 실패 또는 타임아웃으로 요청 차단"
-        )
+        logger.warning("[SSRF Guard] DNS 조회 실패 또는 타임아웃으로 요청 차단")
         return None
 
     pinned_ip = None
@@ -96,8 +95,8 @@ class _PinnedIPBackend(httpcore.AnyIOBackend):
         self,
         host: str,
         port: int,
-        timeout: Optional[float] = None,
-        local_address: Optional[str] = None,
+        timeout: float | None = None,
+        local_address: str | None = None,
         socket_options=None,
     ):
         if host.lower() != self._pinned_host:
@@ -133,17 +132,18 @@ class _PinnedIPTransport(httpx.AsyncHTTPTransport):
             network_backend=_PinnedIPBackend(pinned_host, pinned_ip),
         )
 
+
 # 텍스트에서 URL를 추출하고 정제, 중복 제거하여 반환
-def extract_urls(text: str) -> List[str]:
-    
+def extract_urls(text: str) -> list[str]:
+
     if not text:
         return []
-    
+
     raw_urls = URL_PATTERN.findall(text)
     cleaned_urls = []
 
     for url in raw_urls:
-        cleaned_url = url.rstrip('.,?!:;)[]')
+        cleaned_url = url.rstrip(".,?!:;)[]")
         cleaned_urls.append(cleaned_url)
 
     return list(dict.fromkeys(cleaned_urls))
@@ -206,7 +206,13 @@ async def trace_url(
                     )
 
             # HTTP Redirection 상태 코드 판별 (3xx)
-            if response.is_redirect or response.status_code in [301, 302, 303, 307, 308]:
+            if response.is_redirect or response.status_code in [
+                301,
+                302,
+                303,
+                307,
+                308,
+            ]:
                 location = response.headers.get("Location")
                 if not location:
                     break
@@ -242,6 +248,8 @@ async def trace_url(
             )
             break
     else:
-        logger.warning(f"최대 리다이렉트 횟수({max_redirects}회)를 초과했습니다. 루프 위험 감지.")
+        logger.warning(
+            f"최대 리다이렉트 횟수({max_redirects}회)를 초과했습니다. 루프 위험 감지."
+        )
 
     return current_url

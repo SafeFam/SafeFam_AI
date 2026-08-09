@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 from json import JSONDecodeError
-from app.core.config import settings
 
 from aio_pika.abc import (
     AbstractIncomingMessage,
@@ -11,6 +10,7 @@ from aio_pika.abc import (
 from pydantic import ValidationError
 
 from app.analysis.execution import classify_execution
+from app.core.config import settings
 from app.infrastructure.errors import (
     NonRetryableProcessingError,
 )
@@ -45,12 +45,8 @@ class AnalysisRequestConsumer:
         result_publisher: AnalysisResultPublisher,
         result_factory: AnalysisResultEventFactory,
         dead_letter_publisher: DeadLetterPublisher,
-        shutdown_timeout_seconds: float = (
-            settings.RABBITMQ_SHUTDOWN_TIMEOUT_SECONDS
-        ),
-        requeue_backoff_seconds: float = (
-            settings.RABBITMQ_REQUEUE_BACKOFF_SECONDS
-        ),
+        shutdown_timeout_seconds: float = (settings.RABBITMQ_SHUTDOWN_TIMEOUT_SECONDS),
+        requeue_backoff_seconds: float = (settings.RABBITMQ_REQUEUE_BACKOFF_SECONDS),
     ) -> None:
         self.request_queue = request_queue
         self.handler = handler
@@ -59,20 +55,15 @@ class AnalysisRequestConsumer:
         self.dead_letter_publisher = dead_letter_publisher
 
         self.consumer_tag: str | None = None
-        self.shutdown_timeout_seconds = (
-            shutdown_timeout_seconds
-        )
-        self.requeue_backoff_seconds = (
-            requeue_backoff_seconds
-        )
+        self.shutdown_timeout_seconds = shutdown_timeout_seconds
+        self.requeue_backoff_seconds = requeue_backoff_seconds
         self.in_flight_tasks: set[asyncio.Task] = set()
 
     async def start(self) -> None:
         """분석 요청 Consumer 시작"""
         if self.consumer_tag is not None:
             logger.info(
-                "Analysis request consumer is already running. "
-                "consumer_tag=%s",
+                "Analysis request consumer is already running. consumer_tag=%s",
                 self.consumer_tag,
             )
             return
@@ -83,8 +74,7 @@ class AnalysisRequestConsumer:
         )
 
         logger.info(
-            "Analysis request consumer started. "
-            "consumer_tag=%s",
+            "Analysis request consumer started. consumer_tag=%s",
             self.consumer_tag,
         )
 
@@ -94,13 +84,10 @@ class AnalysisRequestConsumer:
             consumer_tag = self.consumer_tag
             self.consumer_tag = None
 
-            await self.request_queue.cancel(
-                consumer_tag
-            )
+            await self.request_queue.cancel(consumer_tag)
 
             logger.info(
-                "Analysis request consumer subscription stopped. "
-                "consumer_tag=%s",
+                "Analysis request consumer subscription stopped. consumer_tag=%s",
                 consumer_tag,
             )
 
@@ -109,19 +96,15 @@ class AnalysisRequestConsumer:
         pending_tasks = {
             task
             for task in self.in_flight_tasks
-            if task is not current_task
-            and not task.done()
+            if task is not current_task and not task.done()
         }
 
         if not pending_tasks:
-            logger.info(
-                "No in-flight analysis requests remain."
-            )
+            logger.info("No in-flight analysis requests remain.")
             return
 
         logger.info(
-            "Waiting for in-flight analysis requests. "
-            "count=%s timeout_seconds=%s",
+            "Waiting for in-flight analysis requests. count=%s timeout_seconds=%s",
             len(pending_tasks),
             self.shutdown_timeout_seconds,
         )
@@ -133,16 +116,14 @@ class AnalysisRequestConsumer:
 
         if pending:
             logger.warning(
-                "Graceful shutdown timeout reached. "
-                "completed=%s pending=%s",
+                "Graceful shutdown timeout reached. completed=%s pending=%s",
                 len(done),
                 len(pending),
             )
             return
 
         logger.info(
-            "All in-flight analysis requests completed. "
-            "completed=%s",
+            "All in-flight analysis requests completed. completed=%s",
             len(done),
         )
 
@@ -187,9 +168,7 @@ class AnalysisRequestConsumer:
                 execution=execution,
             )
 
-            await self.result_publisher.publish(
-                result_event
-            )
+            await self.result_publisher.publish(result_event)
         except NonRetryableProcessingError as exception:
             await self._route_to_dead_letter(
                 message=message,
@@ -246,9 +225,7 @@ class AnalysisRequestConsumer:
             )
 
         try:
-            return AnalysisRequestedEvent.model_validate(
-                raw_event
-            )
+            return AnalysisRequestedEvent.model_validate(raw_event)
         except ValidationError as exception:
             raise NonRetryableProcessingError(
                 message="Invalid analysis event schema",
@@ -281,9 +258,7 @@ class AnalysisRequestConsumer:
             await self._route_to_dead_letter(
                 message=message,
                 event=event,
-                failure_code=(
-                    "PROCESSING_RETRIES_EXHAUSTED"
-                ),
+                failure_code=("PROCESSING_RETRIES_EXHAUSTED"),
             )
             return
 
@@ -301,9 +276,7 @@ class AnalysisRequestConsumer:
             exception.__class__.__name__,
         )
 
-        await asyncio.sleep(
-            self.requeue_backoff_seconds
-        )
+        await asyncio.sleep(self.requeue_backoff_seconds)
         await message.nack(requeue=True)
 
     async def _route_to_dead_letter(
@@ -330,9 +303,7 @@ class AnalysisRequestConsumer:
                 exception.__class__.__name__,
             )
 
-            await asyncio.sleep(
-                self.requeue_backoff_seconds
-            )
+            await asyncio.sleep(self.requeue_backoff_seconds)
             await message.nack(requeue=True)
             return
 
@@ -356,17 +327,13 @@ class AnalysisRequestConsumer:
         """Broker가 보존한 전달 상태에서 현재 재시도 횟수를 계산한다."""
         headers = message.headers or {}
 
-        delivery_count = headers.get(
-            "x-delivery-count"
-        )
+        delivery_count = headers.get("x-delivery-count")
         if delivery_count is not None:
             return int(delivery_count)
 
         x_death = headers.get("x-death") or []
         death_counts = [
-            int(entry.get("count", 0))
-            for entry in x_death
-            if isinstance(entry, dict)
+            int(entry.get("count", 0)) for entry in x_death if isinstance(entry, dict)
         ]
         if death_counts:
             return max(death_counts)

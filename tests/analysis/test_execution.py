@@ -99,9 +99,7 @@ def test_classifies_unavailable_url_track_as_partial() -> None:
 
 
 def test_classifies_pipeline_error_as_failed() -> None:
-    execution = classify_execution(
-        _result(status="ERROR")
-    )
+    execution = classify_execution(_result(status="ERROR"))
 
     assert execution.status == AnalysisExecutionStatus.FAILED
     assert execution.failed_tracks == ("PIPELINE",)
@@ -146,9 +144,7 @@ def test_classifies_naive_bayes_failure_with_valid_gemini() -> None:
     )
 
     assert execution.status == AnalysisExecutionStatus.PARTIAL
-    assert execution.failed_tracks == (
-        "TEXT:NAIVE_BAYES",
-    )
+    assert execution.failed_tracks == ("TEXT:NAIVE_BAYES",)
 
 
 def test_classifies_unknown_naive_bayes_without_error_code() -> None:
@@ -169,9 +165,7 @@ def test_classifies_unknown_naive_bayes_without_error_code() -> None:
     )
 
     assert execution.status == AnalysisExecutionStatus.PARTIAL
-    assert execution.failed_tracks == (
-        "TEXT:NAIVE_BAYES",
-    )
+    assert execution.failed_tracks == ("TEXT:NAIVE_BAYES",)
 
 
 def test_classifies_rule_failure_as_partial() -> None:

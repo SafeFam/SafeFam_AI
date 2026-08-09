@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
@@ -67,8 +68,10 @@ def test_chat_endpoint_rejects_missing_analysis_context():
 
 
 def test_chat_endpoint_returns_502_on_service_error():
-    with patch("app.chat.service.MOCK_ENABLED", False), \
-         patch("app.chat.service.GEMINI_API_KEY", None):
+    with (
+        patch("app.chat.service.MOCK_ENABLED", False),
+        patch("app.chat.service.GEMINI_API_KEY", None),
+    ):
         response = client.post("/api/chat", json=_payload())
 
     assert response.status_code == 502

@@ -41,9 +41,7 @@ def test_completed_event_is_valid() -> None:
         ),
     )
 
-    restored = AnalysisResultEvent.model_validate_json(
-        event.model_dump_json()
-    )
+    restored = AnalysisResultEvent.model_validate_json(event.model_dump_json())
 
     assert restored == event
     assert restored.payload.phishingType is None

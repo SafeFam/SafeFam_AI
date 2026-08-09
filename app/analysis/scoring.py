@@ -1,8 +1,9 @@
 import logging
-from typing import Tuple, Dict, Any, Optional
-from app.analysis.schemas import RiskGrade, ContributionBreakdown
+
+from app.analysis.schemas import ContributionBreakdown, RiskGrade
 
 logger = logging.getLogger(__name__)
+
 
 class RiskScoringEngine:
     """
@@ -44,9 +45,7 @@ class RiskScoringEngine:
 
     @staticmethod
     def _combine_text_track_score(
-        naive_bayes_score: Optional[int],
-        llm_score: int,
-        llm_available: bool
+        naive_bayes_score: int | None, llm_score: int, llm_available: bool
     ) -> int:
         """
         나이브 베이즈(1차) + Gemini(2차) 텍스트 위험도를 하나의 점수로 결합.
@@ -81,26 +80,16 @@ class RiskScoringEngine:
         rules_available: bool,
     ) -> tuple[float, float, float]:
         """사용 가능한 분석 트랙들의 가중치 합이 1.0(100%)이 되도록 정규화"""
-        available_text_weight = (
-            text_weight if text_available else 0.0
-        )
-        available_url_weight = (
-            url_weight if url_available else 0.0
-        )
-        available_rules_weight = (
-            rules_weight if rules_available else 0.0
-        )
+        available_text_weight = text_weight if text_available else 0.0
+        available_url_weight = url_weight if url_available else 0.0
+        available_rules_weight = rules_weight if rules_available else 0.0
 
         total_weight = (
-            available_text_weight
-            + available_url_weight
-            + available_rules_weight
+            available_text_weight + available_url_weight + available_rules_weight
         )
 
         if total_weight == 0:
-            raise ValueError(
-                "No analysis tracks are available"
-            )
+            raise ValueError("No analysis tracks are available")
 
         return (
             available_text_weight / total_weight,
@@ -115,50 +104,36 @@ class RiskScoringEngine:
         url_risk_score: float,
         rule_score: int,
         has_url: bool = True,
-        naive_bayes_score: Optional[int] = None,
+        naive_bayes_score: int | None = None,
         llm_available: bool = True,
         is_confirmed_malicious: bool = False,
         text_available: bool = True,
         url_available: bool = True,
         rules_available: bool = True,
-    ) -> Tuple[
+    ) -> tuple[
         int,
         RiskGrade,
         ContributionBreakdown,
     ]:
         """모든 분석 트랙의 점수와 가중치를 종합하여 최종 점수, 위험 등급, 트랙별 기여도 계산"""
-        text_track_score = (
-            RiskScoringEngine
-            ._combine_text_track_score(
-                naive_bayes_score=naive_bayes_score,
-                llm_score=llm_score,
-                llm_available=llm_available,
-            )
+        text_track_score = RiskScoringEngine._combine_text_track_score(
+            naive_bayes_score=naive_bayes_score,
+            llm_score=llm_score,
+            llm_available=llm_available,
+        )
+        effective_text_available = text_available or (
+            naive_bayes_score is None and not llm_available
         )
 
         # URL 유무에 따른 기본 가중치 설정
         if has_url:
-            text_weight = (
-                RiskScoringEngine
-                .TEXT_TRACK_WEIGHT_WITH_URL
-            )
-            url_weight = (
-                RiskScoringEngine.URL_TRACK_WEIGHT
-            )
-            rules_weight = (
-                RiskScoringEngine
-                .RULES_TRACK_WEIGHT_WITH_URL
-            )
+            text_weight = RiskScoringEngine.TEXT_TRACK_WEIGHT_WITH_URL
+            url_weight = RiskScoringEngine.URL_TRACK_WEIGHT
+            rules_weight = RiskScoringEngine.RULES_TRACK_WEIGHT_WITH_URL
         else:
-            text_weight = (
-                RiskScoringEngine
-                .TEXT_TRACK_WEIGHT_NO_URL
-            )
+            text_weight = RiskScoringEngine.TEXT_TRACK_WEIGHT_NO_URL
             url_weight = 0.0
-            rules_weight = (
-                RiskScoringEngine
-                .RULES_TRACK_WEIGHT_NO_URL
-            )
+            rules_weight = RiskScoringEngine.RULES_TRACK_WEIGHT_NO_URL
             url_available = False
 
         # 트랙별 가용성 상태를 반영한 가중치 정규화
@@ -170,16 +145,14 @@ class RiskScoringEngine:
             text_weight=text_weight,
             url_weight=url_weight,
             rules_weight=rules_weight,
-            text_available=text_available,
+            text_available=effective_text_available,
             url_available=url_available,
             rules_available=rules_available,
         )
 
         # 텍스트 트랙 점수 기여도 계산
-        if text_available:
-            llm_contrib = round(
-                text_track_score * text_weight
-            )
+        if effective_text_available:
+            llm_contrib = round(text_track_score * text_weight)
         else:
             llm_contrib = 0
 
@@ -189,11 +162,7 @@ class RiskScoringEngine:
                 max(url_risk_score, 0.0),
                 1.0,
             )
-            url_contrib = round(
-                normalized_url_score
-                * url_weight
-                * 100
-            )
+            url_contrib = round(normalized_url_score * url_weight * 100)
         else:
             url_contrib = 0
 
@@ -203,18 +172,11 @@ class RiskScoringEngine:
                 max(rule_score, 0),
                 100,
             )
-            rules_contrib = round(
-                normalized_rule_score
-                * rules_weight
-            )
+            rules_contrib = round(normalized_rule_score * rules_weight)
         else:
             rules_contrib = 0
 
-        contribution_total = (
-            llm_contrib
-            + url_contrib
-            + rules_contrib
-        )
+        contribution_total = llm_contrib + url_contrib + rules_contrib
 
         # 반올림 오차로 인해 총합이 100점을 초과하는 경우 보정
         if contribution_total > 100:
@@ -230,11 +192,7 @@ class RiskScoringEngine:
             else:
                 rules_contrib -= overflow
 
-        final_score = (
-            llm_contrib
-            + url_contrib
-            + rules_contrib
-        )
+        final_score = llm_contrib + url_contrib + rules_contrib
 
         # 점수 위험 등급 판정
         if final_score >= 70:
