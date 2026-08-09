@@ -1,4 +1,5 @@
 """validation 데이터 기반 threshold 선택"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,34 +29,23 @@ def _validate_binary_inputs(
     y_true: np.ndarray,
     scores: np.ndarray,
 ) -> None:
-
     """label과 score 입력의 기본 무결성을 검사"""
     if y_true.ndim != 1 or scores.ndim != 1:
-        raise ValueError(
-            "y_true and scores must be one-dimensional"
-        )
+        raise ValueError("y_true and scores must be one-dimensional")
 
     if len(y_true) != len(scores):
-        raise ValueError(
-            "y_true and scores must have the same length"
-        )
+        raise ValueError("y_true and scores must have the same length")
 
     if len(y_true) == 0:
-        raise ValueError(
-            "cannot select threshold from empty inputs"
-        )
+        raise ValueError("cannot select threshold from empty inputs")
 
     if not np.isfinite(scores).all():
-        raise ValueError(
-            "scores must contain only finite numbers"
-        )
+        raise ValueError("scores must contain only finite numbers")
 
     allowed_labels = {"normal", "phishing"}
 
     if not set(y_true).issubset(allowed_labels):
-        raise ValueError(
-            f"unsupported labels: {set(y_true) - allowed_labels}"
-        )
+        raise ValueError(f"unsupported labels: {set(y_true) - allowed_labels}")
 
 
 def _candidate_thresholds(
@@ -83,7 +73,6 @@ def select_validation_threshold(
     *,
     target_recall: float = 0.96,
 ) -> ThresholdSelection:
-
     """Validation set에서 Recall 목표를 우선하면서 F2가 가장 높은 threshold를 선택"""
     y_true_array = np.asarray(y_true, dtype=str)
     score_array = np.asarray(scores, dtype=float)
@@ -94,9 +83,7 @@ def select_validation_threshold(
     )
 
     if not 0.0 < target_recall <= 1.0:
-        raise ValueError(
-            "target_recall must be greater than 0 and at most 1"
-        )
+        raise ValueError("target_recall must be greater than 0 and at most 1")
 
     candidates: list[ThresholdSelection] = []
 
@@ -128,10 +115,7 @@ def select_validation_threshold(
         )
 
         false_negative_count = int(
-            (
-                (y_true_array == "phishing")
-                & (predictions == "normal")
-            ).sum()
+            ((y_true_array == "phishing") & (predictions == "normal")).sum()
         )
 
         candidates.append(
@@ -142,23 +126,15 @@ def select_validation_threshold(
                 f2=float(f2),
                 false_negative_count=false_negative_count,
                 target_recall=target_recall,
-                target_recall_met=bool(
-                    recall >= target_recall
-                ),
+                target_recall_met=bool(recall >= target_recall),
             )
         )
 
     recall_candidates = [
-        candidate
-        for candidate in candidates
-        if candidate.target_recall_met
+        candidate for candidate in candidates if candidate.target_recall_met
     ]
 
-    selection_pool = (
-        recall_candidates
-        if recall_candidates
-        else candidates
-    )
+    selection_pool = recall_candidates if recall_candidates else candidates
 
     return max(
         selection_pool,

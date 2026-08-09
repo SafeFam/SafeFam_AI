@@ -1,4 +1,5 @@
 """Naive Bayes text-only 및 structural baseline 실행기"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,71 +20,47 @@ from data_science.SMSModel.train_sms import (
     split_data,
 )
 
-
 SMS_MODEL_DIR = Path(__file__).resolve().parent
 
 NB_REPORT_DIRECTORY = (
-    SMS_MODEL_DIR
-    / "reports"
-    / "model_evaluation"
-    / "naive_bayes_baseline"
+    SMS_MODEL_DIR / "reports" / "model_evaluation" / "naive_bayes_baseline"
 )
 
 TARGET_PHISHING_RECALL = 0.96
 LATENCY_SAMPLE_COUNT = 100
 
 
-def evaluate_naive_bayes_baselines() -> list[
-    ModelEvaluationResult
-]:
+def evaluate_naive_bayes_baselines() -> list[ModelEvaluationResult]:
     """동일한 leakage-safe split에서 두 NB 모델을 평가"""
-    
-    dataset, _holdout = load_data(
-        DATA_PATH
-    )
+
+    dataset, _holdout = load_data(DATA_PATH)
 
     splits = split_data(dataset)
 
-    text_only_model = (
-        NaiveBayesPhishingClassifier(
-            include_structural_features=False,
-        )
+    text_only_model = NaiveBayesPhishingClassifier(
+        include_structural_features=False,
     )
 
-    structural_model = (
-        NaiveBayesPhishingClassifier(
-            include_structural_features=True,
-        )
+    structural_model = NaiveBayesPhishingClassifier(
+        include_structural_features=True,
     )
 
-    text_only_result = (
-        train_and_evaluate_model(
-            text_only_model,
-            train_df=splits.train,
-            validation_df=splits.validation,
-            test_df=splits.test,
-            target_recall=(
-                TARGET_PHISHING_RECALL
-            ),
-            latency_sample_count=(
-                LATENCY_SAMPLE_COUNT
-            ),
-        )
+    text_only_result = train_and_evaluate_model(
+        text_only_model,
+        train_df=splits.train,
+        validation_df=splits.validation,
+        test_df=splits.test,
+        target_recall=(TARGET_PHISHING_RECALL),
+        latency_sample_count=(LATENCY_SAMPLE_COUNT),
     )
 
-    structural_result = (
-        train_and_evaluate_model(
-            structural_model,
-            train_df=splits.train,
-            validation_df=splits.validation,
-            test_df=splits.test,
-            target_recall=(
-                TARGET_PHISHING_RECALL
-            ),
-            latency_sample_count=(
-                LATENCY_SAMPLE_COUNT
-            ),
-        )
+    structural_result = train_and_evaluate_model(
+        structural_model,
+        train_df=splits.train,
+        validation_df=splits.validation,
+        test_df=splits.test,
+        target_recall=(TARGET_PHISHING_RECALL),
+        latency_sample_count=(LATENCY_SAMPLE_COUNT),
     )
 
     results = [
@@ -103,7 +80,6 @@ def evaluate_naive_bayes_baselines() -> list[
 def print_results(
     results: list[ModelEvaluationResult],
 ) -> None:
-
     """터미널에서 핵심 평가 결과를 출력"""
 
     print("\n[Naive Bayes Baseline]")
@@ -113,8 +89,7 @@ def print_results(
 
         baseline_marker = (
             " [official baseline]"
-            if result.model_name
-            == "naive_bayes_structural"
+            if result.model_name == "naive_bayes_structural"
             else " [ablation]"
         )
 
@@ -137,15 +112,9 @@ def main() -> None:
     results = evaluate_naive_bayes_baselines()
     print_results(results)
 
-    print(
-        f"\n[Report] {NB_REPORT_DIRECTORY}"
-    )
-    print(
-        f"[Artifact] unchanged: {MODEL_PATH}"
-    )
-    print(
-        f"[Vectorizer] unchanged: {VECTORIZER_PATH}"
-    )
+    print(f"\n[Report] {NB_REPORT_DIRECTORY}")
+    print(f"[Artifact] unchanged: {MODEL_PATH}")
+    print(f"[Vectorizer] unchanged: {VECTORIZER_PATH}")
 
 
 if __name__ == "__main__":

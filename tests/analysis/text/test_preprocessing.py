@@ -43,16 +43,11 @@ def test_mask_pii_replaces_personal_information(
 
 
 def test_normalize_text_masks_url_and_amount():
-    text = (
-        "http://bit.ly/fake 계좌로 "
-        "500,000원 즉시 입금하세요"
-    )
+    text = "http://bit.ly/fake 계좌로 500,000원 즉시 입금하세요"
 
     normalized = normalize_text(text)
 
-    assert normalized == (
-        "[URL] 계좌로 [AMOUNT] 즉시 입금하세요"
-    )
+    assert normalized == ("[URL] 계좌로 [AMOUNT] 즉시 입금하세요")
 
 
 def test_normalize_text_collapses_whitespace():
@@ -86,10 +81,7 @@ def test_normalize_text_rejects_non_string_input():
 
 
 def test_extract_struct_features_detects_expected_signals():
-    text = (
-        "[Web발신] 010-1234-5678로 연락하세요. "
-        "500,000원 확인: http://bit.ly/fake"
-    )
+    text = "[Web발신] 010-1234-5678로 연락하세요. 500,000원 확인: http://bit.ly/fake"
 
     features = extract_struct_features(text)
 

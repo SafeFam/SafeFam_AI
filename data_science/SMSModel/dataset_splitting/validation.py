@@ -73,8 +73,7 @@ def validate_dataset_splits(
     )
     if len(combined) != len(source):
         raise ValueError(
-            f"split row count mismatch: source={len(source)}, "
-            f"split={len(combined)}"
+            f"split row count mismatch: source={len(source)}, split={len(combined)}"
         )
     if combined[config.fingerprint_column].duplicated().any():
         raise ValueError("a fingerprint appears more than once across splits")

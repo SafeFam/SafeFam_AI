@@ -49,11 +49,7 @@ def _result(
         status=status,
         message="analysis result",
         final_score=82 if status == "SUCCESS" else 40,
-        risk_grade=(
-            RiskGrade.HIGH
-            if status == "SUCCESS"
-            else RiskGrade.MEDIUM
-        ),
+        risk_grade=(RiskGrade.HIGH if status == "SUCCESS" else RiskGrade.MEDIUM),
         contribution_breakdown=ContributionBreakdown(
             llm=42,
             hybrid_url=25,
@@ -184,9 +180,7 @@ def test_factory_uses_deterministic_result_event_id() -> None:
 def test_factory_maps_machine_readable_url_error_codes() -> None:
     request = _request()
     result = _result()
-    result.url_analysis[
-        "provider_error_codes"
-    ] = {
+    result.url_analysis["provider_error_codes"] = {
         "VIRUSTOTAL": "RATE_LIMITED",
         "GSB": "TIMEOUT",
     }
@@ -231,9 +225,7 @@ def test_factory_identifies_gemini_only_text_analysis() -> None:
     )
 
     assert event.payload.textAnalysis is not None
-    assert event.payload.textAnalysis.method == (
-        TextAnalysisMethod.GEMINI
-    )
+    assert event.payload.textAnalysis.method == (TextAnalysisMethod.GEMINI)
 
 
 def test_factory_maps_unit_url_score_to_one_hundred() -> None:

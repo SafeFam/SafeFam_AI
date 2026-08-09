@@ -15,7 +15,7 @@ from data_science.SMSModel.template_grouping import (
 def make_dataframe(
     rows: list[tuple[str, str]],
 ) -> pd.DataFrame:
- 
+
     return pd.DataFrame(
         [
             {
@@ -28,12 +28,8 @@ def make_dataframe(
 
 
 def test_create_text_fingerprint_is_deterministic():
-    first = create_text_fingerprint(
-        "[URL]에서 건강검진 결과를 확인하세요"
-    )
-    second = create_text_fingerprint(
-        "[URL]에서 건강검진 결과를 확인하세요"
-    )
+    first = create_text_fingerprint("[URL]에서 건강검진 결과를 확인하세요")
+    second = create_text_fingerprint("[URL]에서 건강검진 결과를 확인하세요")
 
     assert first == second
     assert len(first) == 64
@@ -41,9 +37,7 @@ def test_create_text_fingerprint_is_deterministic():
 
 def test_create_text_fingerprint_ignores_outer_whitespace():
     plain = create_text_fingerprint("본인 인증이 필요합니다")
-    padded = create_text_fingerprint(
-        "  본인 인증이 필요합니다  "
-    )
+    padded = create_text_fingerprint("  본인 인증이 필요합니다  ")
 
     assert plain == padded
 
@@ -176,13 +170,11 @@ def test_unrelated_messages_receive_different_template_groups():
 def test_group_id_is_stable_when_row_order_changes():
     rows = [
         (
-            "[국민건강보험] 건강검진 결과가 발급되었습니다 "
-            "[URL]에서 즉시 확인하세요",
+            "[국민건강보험] 건강검진 결과가 발급되었습니다 [URL]에서 즉시 확인하세요",
             "phishing",
         ),
         (
-            "[국민건강보험] 건강검진 보고서가 발급되었습니다 "
-            "[URL]에서 지금 확인하세요",
+            "[국민건강보험] 건강검진 보고서가 발급되었습니다 [URL]에서 지금 확인하세요",
             "phishing",
         ),
         (
@@ -299,12 +291,13 @@ def test_grouping_config_rejects_invalid_threshold(
             similarity_threshold=threshold,
         )
 
+
 @pytest.mark.slow
 def test_real_dataset_template_grouping_smoke():
 
     from data_science.SMSModel.train_sms import DATA_PATH, load_data
 
-    df_pool, df_holdout = load_data(DATA_PATH)
+    df_pool, _df_holdout = load_data(DATA_PATH)
 
     assert not df_pool.empty
     assert "text_norm" in df_pool.columns
@@ -314,6 +307,4 @@ def test_real_dataset_template_grouping_smoke():
     assert df_pool["text_fingerprint"].is_unique
     assert df_pool["template_group_id"].notna().all()
 
-    assert set(df_pool["label"].unique()).issubset(
-        {"normal", "phishing"}
-    )
+    assert set(df_pool["label"].unique()).issubset({"normal", "phishing"})

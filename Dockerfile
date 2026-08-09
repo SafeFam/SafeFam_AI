@@ -10,11 +10,10 @@ ENV NAIVE_BAYES_VECTORIZER_PATH=/app/models/phishing_vectorizer.pkl
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Fail the image build early when the Kiwi wheel cannot be imported or its
-# morphological analyzer cannot be initialized in the target architecture.
 RUN python -c "from kiwipiepy import Kiwi; assert Kiwi().tokenize('installation check')"
 
 COPY app app
+COPY data_science data_science
 COPY data_science/SMSModel/artifacts/phishing_model_artifact.pkl models/phishing_model_artifact.pkl
 COPY data_science/SMSModel/artifacts/phishing_vectorizer.pkl models/phishing_vectorizer.pkl
 

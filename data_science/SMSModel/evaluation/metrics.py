@@ -1,4 +1,5 @@
 """SMS 피싱 모델 공통 평가 지표"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -12,7 +13,6 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-
 
 LABEL_ORDER = ["normal", "phishing"]
 
@@ -39,7 +39,6 @@ def calculate_classification_metrics(
     y_true,
     y_pred,
 ) -> ClassificationMetrics:
-
     """Precision, Recall, F1, F2와 혼동행렬을 계산"""
 
     # 입력 데이터를 문자열 형태의 1차워 Numpy 배열로 표준화
@@ -48,32 +47,22 @@ def calculate_classification_metrics(
 
     # 입력 데이터 유효성 검증
     if y_true_array.ndim != 1 or y_pred_array.ndim != 1:
-        raise ValueError(
-            "y_true and y_pred must be one-dimensional"
-        )
+        raise ValueError("y_true and y_pred must be one-dimensional")
 
     if len(y_true_array) != len(y_pred_array):
-        raise ValueError(
-            "y_true and y_pred must have the same length"
-        )
+        raise ValueError("y_true and y_pred must have the same length")
 
     if len(y_true_array) == 0:
-        raise ValueError(
-            "cannot evaluate empty inputs"
-        )
+        raise ValueError("cannot evaluate empty inputs")
 
     # 라벨 도메인 검증
     allowed_labels = set(LABEL_ORDER)
 
     if not set(y_true_array).issubset(allowed_labels):
-        raise ValueError(
-            "y_true contains unsupported labels"
-        )
+        raise ValueError("y_true contains unsupported labels")
 
     if not set(y_pred_array).issubset(allowed_labels):
-        raise ValueError(
-            "y_pred contains unsupported labels"
-        )
+        raise ValueError("y_pred contains unsupported labels")
 
     # 혼동 행렬
     matrix = confusion_matrix(

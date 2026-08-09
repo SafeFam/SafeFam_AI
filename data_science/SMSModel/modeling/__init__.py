@@ -1,4 +1,8 @@
 """SMS 피싱 모델 공통 API"""
+
+from .artifacts import (
+    save_operational_naive_bayes_artifacts,
+)
 from .base import (
     BasePhishingClassifier,
     ScoreOutput,
@@ -6,9 +10,6 @@ from .base import (
 )
 from .naive_bayes import (
     NaiveBayesPhishingClassifier,
-)
-from .artifacts import (
-    save_operational_naive_bayes_artifacts,
 )
 
 __all__ = [
@@ -18,4 +19,3 @@ __all__ = [
     "ScoreType",
     "save_operational_naive_bayes_artifacts",
 ]
-

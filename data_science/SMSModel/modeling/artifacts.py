@@ -1,4 +1,5 @@
 """모델 Adapter에서 기존 운영 API용 artifact를 저장하는 기능"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,9 +18,8 @@ def save_operational_naive_bayes_artifacts(
     model_path: Path,
     vectorizer_path: Path,
 ) -> None:
-
     """structural NB 모델을 기존 운영 artifact 형식으로 저장"""
-    
+
     classifier._require_fitted()
 
     if not classifier.include_structural_features:
@@ -29,14 +29,10 @@ def save_operational_naive_bayes_artifacts(
         )
 
     if not 0.0 <= threshold <= 1.0:
-        raise ValueError(
-            "probability threshold must be between 0 and 1"
-        )
+        raise ValueError("probability threshold must be between 0 and 1")
 
     model_path = Path(model_path)
-    vectorizer_path = Path(
-        vectorizer_path
-    )
+    vectorizer_path = Path(vectorizer_path)
 
     model_path.parent.mkdir(
         parents=True,
@@ -52,9 +48,7 @@ def save_operational_naive_bayes_artifacts(
         {
             "model": classifier.model,
             "threshold": float(threshold),
-            "classes": list(
-                classifier.classes_
-            ),
+            "classes": list(classifier.classes_),
         },
         model_path,
     )

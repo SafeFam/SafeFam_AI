@@ -25,9 +25,7 @@ async def test_sleep_honors_numeric_retry_after() -> None:
 
 @pytest.mark.asyncio
 async def test_sleep_honors_http_date_retry_after() -> None:
-    retry_at = datetime.now(timezone.utc) + timedelta(
-        seconds=20
-    )
+    retry_at = datetime.now(timezone.utc) + timedelta(seconds=20)
     sleep = AsyncMock()
 
     with patch(

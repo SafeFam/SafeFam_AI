@@ -1,4 +1,5 @@
 """모델 평가 결과 JSON, CSV, Markdown 출력"""
+
 from __future__ import annotations
 
 import csv
@@ -20,10 +21,7 @@ def save_model_evaluation_json(
 
     payload = {
         "schema_version": 1,
-        "models": [
-            result.to_dict()
-            for result in results
-        ],
+        "models": [result.to_dict() for result in results],
     }
 
     # 한글 깨짐 방지
@@ -85,31 +83,17 @@ def save_model_evaluation_csv(
                 {
                     "model_name": result.model_name,
                     "score_type": result.score_type,
-                    "threshold": (
-                        result.selected_threshold
-                    ),
+                    "threshold": (result.selected_threshold),
                     "precision": metrics.precision,
                     "recall": metrics.recall,
                     "f1": metrics.f1,
                     "f2": metrics.f2,
-                    "false_positive": (
-                        metrics.false_positive
-                    ),
-                    "false_negative": (
-                        metrics.false_negative
-                    ),
-                    "true_positive": (
-                        metrics.true_positive
-                    ),
-                    "true_negative": (
-                        metrics.true_negative
-                    ),
-                    "average_inference_ms": (
-                        result.latency.average_ms
-                    ),
-                    "p95_inference_ms": (
-                        result.latency.p95_ms
-                    ),
+                    "false_positive": (metrics.false_positive),
+                    "false_negative": (metrics.false_negative),
+                    "true_positive": (metrics.true_positive),
+                    "true_negative": (metrics.true_negative),
+                    "average_inference_ms": (result.latency.average_ms),
+                    "p95_inference_ms": (result.latency.p95_ms),
                 }
             )
 
@@ -169,9 +153,7 @@ def save_model_evaluation_reports(
 ) -> None:
     """JSON, CSV, Markdown 결과를 모두 저장"""
     if not results:
-        raise ValueError(
-            "at least one evaluation result is required"
-        )
+        raise ValueError("at least one evaluation result is required")
 
     save_model_evaluation_json(
         results,

@@ -12,7 +12,6 @@ from functools import lru_cache
 
 from kiwipiepy import Kiwi
 
-
 # 기존 공통 전처리에서 만들어지는 마스킹 토큰입니다.
 #
 # 형태소 분석기에 "[URL]" 전체를 전달하면 "[", "URL", "]"로
@@ -69,32 +68,30 @@ SELECTED_POS_TAGS: frozenset[str] = frozenset(
         "NNG",  # 일반 명사
         "NNP",  # 고유 명사
         "NNB",  # 의존 명사
-        "NR",   # 수사
-        "NP",   # 대명사
-        "VV",   # 동사
-        "VA",   # 형용사    
-        "VX",   # 보조 용언
+        "NR",  # 수사
+        "NP",  # 대명사
+        "VV",  # 동사
+        "VA",  # 형용사
+        "VX",  # 보조 용언
         "VCP",  # 긍정 지정사
         "VCN",  # 부정 지정사
-        "MM",   # 관형사
+        "MM",  # 관형사
         "MAG",  # 일반 부사
         "MAJ",  # 접속 부사
-        "XR",   # 어근
-        "SL",   # 영문/외국어
+        "XR",  # 어근
+        "SL",  # 영문/외국어
     }
 )
 
 
 @lru_cache(maxsize=1)
 def _get_kiwi() -> Kiwi:
-
     """현재 Python 프로세스에서 Kiwi 인스턴스를 한 번만 생성"""
 
     return Kiwi()
 
 
 def _base_pos_tag(tag: str) -> str:
-
     """Kiwi의 불규칙 활용 접미사를 제거한 기본 품사를 반환"""
 
     return tag.split("-", maxsplit=1)[0]
@@ -127,7 +124,6 @@ def _tokenize_segment(segment: str) -> list[str]:
 
 
 def kiwi_tokenize(text: str) -> list[str]:
-
     """문자열을 분류용 형태소 토큰 리스트로 변환"""
 
     if not isinstance(text, str):

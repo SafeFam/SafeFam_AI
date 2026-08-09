@@ -16,9 +16,7 @@ from data_science.SMSModel.tokenization.kiwi_tokenizer import (
 
 
 def test_tokenize_korean_phishing_message():
-    tokens = kiwi_tokenize(
-        "계좌가 정지되었으니 즉시 본인 인증을 진행하세요."
-    )
+    tokens = kiwi_tokenize("계좌가 정지되었으니 즉시 본인 인증을 진행하세요.")
 
     assert "계좌" in tokens
     assert "정지" in tokens
@@ -28,9 +26,7 @@ def test_tokenize_korean_phishing_message():
 
 
 def test_tokenize_normal_message():
-    tokens = kiwi_tokenize(
-        "오늘 저녁에 같이 식사할까요?"
-    )
+    tokens = kiwi_tokenize("오늘 저녁에 같이 식사할까요?")
 
     assert "오늘" in tokens
     assert "저녁" in tokens
@@ -85,17 +81,13 @@ def test_non_string_input_raises_type_error(value):
     sorted(MASK_TOKENS),
 )
 def test_mask_token_is_preserved(mask_token):
-    tokens = kiwi_tokenize(
-        f"확인이 필요합니다 {mask_token}"
-    )
+    tokens = kiwi_tokenize(f"확인이 필요합니다 {mask_token}")
 
     assert tokens.count(mask_token) == 1
 
 
 def test_multiple_mask_tokens_are_preserved_in_order():
-    tokens = kiwi_tokenize(
-        "[URL]에서 [ACCOUNT] 정보를 확인하세요."
-    )
+    tokens = kiwi_tokenize("[URL]에서 [ACCOUNT] 정보를 확인하세요.")
 
     url_index = tokens.index("[URL]")
     account_index = tokens.index("[ACCOUNT]")

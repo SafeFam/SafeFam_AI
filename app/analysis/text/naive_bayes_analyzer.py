@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 
 import numpy as np
 from scipy.sparse import csr_matrix, hstack
@@ -12,7 +13,6 @@ from app.analysis.text.preprocessing import (
     normalize_text,
 )
 from app.core.config import settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +26,7 @@ DEFAULT_ANALYSIS_RESULT = {
     "risk_score": 0,
     "is_suspected_phishing": False,
     "error_message": (
-        "나이브 베이즈 모델을 로드하지 못해 "
-        "위험도를 판정할 수 없습니다."
+        "나이브 베이즈 모델을 로드하지 못해 위험도를 판정할 수 없습니다."
     ),
 }
 
@@ -37,8 +36,8 @@ _threshold = None
 _classes = None
 
 _load_error: str | None = None
-
 _load_attempted = False
+_load_lock = threading.Lock()
 
 
 def _load_artifacts() -> None:
@@ -55,35 +54,42 @@ def _load_artifacts() -> None:
     global _load_error
     global _load_attempted
 
+    # 1차 체크
     if _load_attempted:
         return
 
-    _load_attempted = True
+    # 스레드 락 적용
+    with _load_lock:
+        # 2차 체크
+        if _load_attempted:
+            return
 
-    try:
-        import joblib
+        try:
+            import joblib
 
-        artifact = joblib.load(MODEL_PATH)
-        vectorizer = joblib.load(VECTORIZER_PATH)
+            artifact = joblib.load(MODEL_PATH)
+            vectorizer = joblib.load(VECTORIZER_PATH)
 
-        # 모든 값이 정상적으로 읽힌 이후 전역 상태를 갱신
-        _model = artifact["model"]
-        _threshold = artifact["threshold"]
-        _classes = artifact["classes"]
-        _vectorizer = vectorizer
-        _load_error = None
+            # 모든 값이 정상적으로 읽힌 이후 전역 상태를 갱신
+            _model = artifact["model"]
+            _threshold = artifact["threshold"]
+            _classes = artifact["classes"]
+            _vectorizer = vectorizer
+            _load_error = None
 
-        logger.info(
-            "[NaiveBayes] 모델 로드 완료 (threshold=%s)",
-            _threshold,
-        )
-    except Exception as exception:
-        _load_error = type(exception).__name__
+            logger.info(
+                "[NaiveBayes] 모델 로드 완료 (threshold=%s)",
+                _threshold,
+            )
+        except Exception as exception:
+            _load_error = type(exception).__name__
 
-        logger.error(
-            "[NaiveBayes] 모델 로드 실패. error_type=%s",
-            _load_error,
-        )
+            logger.error(
+                "[NaiveBayes] 모델 로드 실패. error_type=%s",
+                _load_error,
+            )
+        finally:
+            _load_attempted = True
 
 
 def is_model_loaded() -> bool:
@@ -100,13 +106,7 @@ async def analyze_text_with_naive_bayes(text: str) -> dict:
         return {
             "engine": "naive_bayes",
             "is_available": False,
-            "result": dict(
-                DEFAULT_ANALYSIS_RESULT,
-                error_message=(
-                    _load_error
-                    or DEFAULT_ANALYSIS_RESULT["error_message"]
-                ),
-            ),
+            "result": dict(DEFAULT_ANALYSIS_RESULT),
         }
 
     try:
@@ -128,9 +128,7 @@ async def analyze_text_with_naive_bayes(text: str) -> dict:
         )
 
         phishing_index = _classes.index("phishing")
-        phishing_probability = _model.predict_proba(
-            feature_matrix
-        )[0][phishing_index]
+        phishing_probability = _model.predict_proba(feature_matrix)[0][phishing_index]
 
         risk_score = int(phishing_probability * 100)
 
@@ -145,9 +143,7 @@ async def analyze_text_with_naive_bayes(text: str) -> dict:
             "result": {
                 "grade": determine_text_risk_grade(risk_score),
                 "risk_score": risk_score,
-                "is_suspected_phishing": bool(
-                    phishing_probability >= _threshold
-                ),
+                "is_suspected_phishing": bool(phishing_probability >= _threshold),
                 "error_message": None,
             },
         }

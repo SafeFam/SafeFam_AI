@@ -17,10 +17,6 @@ from app.analysis.text.preprocessing import (
     extract_struct_feature_matrix,
     normalize_text,
 )
-from data_science.SMSModel.template_grouping import (
-    TemplateGroupingConfig,
-    prepare_template_groups,
-)
 from data_science.SMSModel.dataset_splitting import (
     DatasetSplitConfig,
     DatasetSplits,
@@ -32,6 +28,10 @@ from data_science.SMSModel.dataset_splitting import (
 from data_science.SMSModel.reporting import (
     generate_dataset_split_reports,
 )
+from data_science.SMSModel.template_grouping import (
+    TemplateGroupingConfig,
+    prepare_template_groups,
+)
 
 warnings.filterwarnings("ignore")
 
@@ -42,49 +42,36 @@ warnings.filterwarnings("ignore")
 
 SMS_MODEL_DIR = Path(__file__).resolve().parent
 DATA_PATH = (
-    SMS_MODEL_DIR.parent
-    / "Data"
-    / "SMSData"
-    / "phishing_total_dataset_2705.csv"
+    SMS_MODEL_DIR.parent / "Data" / "SMSData" / "phishing_total_dataset_2705.csv"
 )
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = (
-    SMS_MODEL_DIR
-    / "splits"
-    / "sms_split_v1.csv"
-)
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v1.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"
 
-DATASET_SPLIT_JSON_REPORT_PATH = (
-    REPORTS_DIR
-    / "dataset_split_summary.json"
-)
+DATASET_SPLIT_JSON_REPORT_PATH = REPORTS_DIR / "dataset_split_summary.json"
 
-DATASET_SPLIT_MARKDOWN_REPORT_PATH = (
-    REPORTS_DIR
-    / "dataset_split_summary.md"
-)
+DATASET_SPLIT_MARKDOWN_REPORT_PATH = REPORTS_DIR / "dataset_split_summary.md"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 학습 CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-RANDOM_STATE           = 42
-VAL_SIZE               = 0.15   # 튜닝(alpha/threshold) 전용
-TEST_SIZE              = 0.15   # 최종 평가 전용 — 튜닝에 절대 사용하지 않음
+RANDOM_STATE = 42
+VAL_SIZE = 0.15  # 튜닝(alpha/threshold) 전용
+TEST_SIZE = 0.15  # 최종 평가 전용 — 튜닝에 절대 사용하지 않음
 TARGET_PHISHING_RECALL = 0.96
 
 # risk_level 구간 — 종합 점수(베이즈 + VirusTotal)에도 동일하게 적용
-RISK_HIGH_THRESHOLD   = 70   # HIGH   : 70점 이상
-RISK_MEDIUM_THRESHOLD = 40   # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
-                              # LOW    : 40점 미만
+RISK_HIGH_THRESHOLD = 70  # HIGH   : 70점 이상
+RISK_MEDIUM_THRESHOLD = 40  # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
+# LOW    : 40점 미만
 
 # 격자 탐색 범위
-ALPHA_GRID     = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
+ALPHA_GRID = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -100,6 +87,7 @@ TEMPLATE_NGRAM_RANGE = (2, 5)
 # TF-IDF 최대 피처 수
 TEMPLATE_MAX_FEATURES = 50_000
 
+
 def build_template_grouping_config() -> TemplateGroupingConfig:
     """현재 학습 실행에서 사용할 템플릿 그룹화 설정을 반환"""
     return TemplateGroupingConfig(
@@ -108,6 +96,7 @@ def build_template_grouping_config() -> TemplateGroupingConfig:
         min_df=1,
         max_features=TEMPLATE_MAX_FEATURES,
     )
+
 
 def build_dataset_split_config() -> DatasetSplitConfig:
     """현재 SMS 모델 학습에서 사용할 데이터 분할 설정"""
@@ -119,9 +108,11 @@ def build_dataset_split_config() -> DatasetSplitConfig:
         candidate_count=500,
     )
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 데이터 로드
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """CSV를 읽고 학습용 데이터와 별도 holdout 데이터를 반환"""
@@ -145,14 +136,9 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     actual_labels = set(df["label"].unique())
 
     if not allowed_labels.issuperset(actual_labels):
-        raise ValueError(
-            f"예상치 못한 label 값: {df['label'].unique()}"
-        )
+        raise ValueError(f"예상치 못한 label 값: {df['label'].unique()}")
 
-    print(
-        f"[Load] 원본 {len(df)}건 | "
-        f"{df['label'].value_counts().to_dict()}"
-    )
+    print(f"[Load] 원본 {len(df)}건 | {df['label'].value_counts().to_dict()}")
 
     # 학습과 API가 공유하는 공통 정규화 함수를 사용
     df["text_norm"] = df["text"].apply(normalize_text)
@@ -170,17 +156,9 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     )
 
     # 신규 시나리오 holdout은 학습 데이터 그룹화 대상에서도 제외
-    df_holdout = (
-        df[is_new_holdout]
-        .copy()
-        .reset_index(drop=True)
-    )
+    df_holdout = df[is_new_holdout].copy().reset_index(drop=True)
 
-    df_pool = (
-        df[~is_new_holdout]
-        .copy()
-        .reset_index(drop=True)
-    )
+    df_pool = df[~is_new_holdout].copy().reset_index(drop=True)
 
     before_deduplication = len(df_pool)
 
@@ -197,11 +175,7 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     group_sizes = df_pool["template_group_id"].value_counts()
     similar_group_count = int((group_sizes > 1).sum())
-    largest_group_size = (
-        int(group_sizes.max())
-        if not group_sizes.empty
-        else 0
-    )
+    largest_group_size = int(group_sizes.max()) if not group_sizes.empty else 0
 
     print(
         f"[Dedup] fingerprint 기준 완전 중복 제거: "
@@ -215,10 +189,7 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         f"최대 그룹 크기={largest_group_size}"
     )
 
-    print(
-        f"[Pool] label 분포: "
-        f"{df_pool['label'].value_counts().to_dict()}"
-    )
+    print(f"[Pool] label 분포: {df_pool['label'].value_counts().to_dict()}")
 
     print(
         f"[Holdout] 완전 신규 시나리오 {len(df_holdout)}건 분리 "
@@ -231,6 +202,7 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Train / Test 분리
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def split_data(
     df: pd.DataFrame,
@@ -248,10 +220,7 @@ def split_data(
             config=split_config,
         )
 
-        print(
-            f"[Split] 기존 manifest 사용: "
-            f"{SPLIT_MANIFEST_PATH}"
-        )
+        print(f"[Split] 기존 manifest 사용: {SPLIT_MANIFEST_PATH}")
     else:
         splits = split_grouped_dataset(
             df,
@@ -271,10 +240,7 @@ def split_data(
             overwrite=create_manifest,
         )
 
-        print(
-            f"[Split] 새 manifest 저장: "
-            f"{SPLIT_MANIFEST_PATH}"
-        )
+        print(f"[Split] 새 manifest 저장: {SPLIT_MANIFEST_PATH}")
 
     # manifest를 로드한 경우에도 학습 직전에 다시 검증합니다. 실패 시 예외가
     # 전파되어 모델 학습과 잘못된 보고서 생성을 모두 중단합니다.
@@ -328,6 +294,7 @@ def split_data(
 # 벡터화
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def build_vectorizer() -> CountVectorizer:
     """char_wb(단어 경계 문자 n-gram): 형태소 분석기 없이 한글 조사 변형 대응."""
     return CountVectorizer(
@@ -350,7 +317,9 @@ def build_feature_matrix(
     텍스트 피처(CountVectorizer) + 구조적 피처(6개) sparse hstack 결합.
     fit=True: fit_transform (학습 전용), fit=False: transform only (누수 방지)
     """
-    X_text   = vectorizer.fit_transform(text_norm) if fit else vectorizer.transform(text_norm)
+    X_text = (
+        vectorizer.fit_transform(text_norm) if fit else vectorizer.transform(text_norm)
+    )
     X_struct = csr_matrix(struct)
     return hstack([X_text, X_struct])
 
@@ -359,16 +328,19 @@ def build_feature_matrix(
 # 학습 및 튜닝
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _phishing_idx(model) -> int:
     """model.classes_ 에서 'phishing' 인덱스 반환."""
     return list(model.classes_).index("phishing")
 
 
-def _compute_recalls(model, X_test, y_test: pd.Series, threshold: float) -> tuple[float, float]:
+def _compute_recalls(
+    model, X_test, y_test: pd.Series, threshold: float
+) -> tuple[float, float]:
     """threshold 적용 후 Recall(phishing), Recall(normal) 반환."""
     y_prob = model.predict_proba(X_test)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
-    cm     = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
+    cm = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
 
     rec_p = cm[1, 1] / cm[1].sum() if cm[1].sum() > 0 else 0.0
     rec_n = cm[0, 0] / cm[0].sum() if cm[0].sum() > 0 else 0.0
@@ -376,8 +348,10 @@ def _compute_recalls(model, X_test, y_test: pd.Series, threshold: float) -> tupl
 
 
 def train_and_tune(
-    X_train, y_train: pd.Series,
-    X_val,   y_val:   pd.Series,
+    X_train,
+    y_train: pd.Series,
+    X_val,
+    y_val: pd.Series,
 ) -> dict:
     """
     [격자 탐색] alpha × threshold 전체 탐색.
@@ -393,12 +367,17 @@ def train_and_tune(
       2순위) 목표 미달 시 Recall(phishing) 최대 (fallback)
     """
     best: dict = {
-        "model": None, "alpha": None,
-        "threshold": None, "recall_phishing": 0.0, "recall_normal": 0.0,
+        "model": None,
+        "alpha": None,
+        "threshold": None,
+        "recall_phishing": 0.0,
+        "recall_normal": 0.0,
     }
 
     header = f"{'alpha':>6} | {'thresh':>6} | {'rec_phish':>10} | {'rec_normal':>10}"
-    print(f"\n{'='*60}\n[ 격자 탐색: alpha × threshold (CalibratedComplementNB, val 기준) ]\n{'='*60}")
+    print(
+        f"\n{'=' * 60}\n[ 격자 탐색: alpha × threshold (CalibratedComplementNB, val 기준) ]\n{'=' * 60}"
+    )
     print(header)
     print("-" * len(header))
 
@@ -408,8 +387,8 @@ def train_and_tune(
         base_model = ComplementNB(alpha=alpha)
         calibrated = CalibratedClassifierCV(
             estimator=base_model,
-            method="isotonic",   # 비선형 보정 (sigmoid보다 작은 데이터셋에 안정적)
-            cv=5,                # 5-fold로 보정 파라미터 추정
+            method="isotonic",  # 비선형 보정 (sigmoid보다 작은 데이터셋에 안정적)
+            cv=5,  # 5-fold로 보정 파라미터 추정
         )
         calibrated.fit(X_train, y_train)
 
@@ -418,16 +397,21 @@ def train_and_tune(
 
             print(f"{alpha:>6} | {threshold:>6.2f} | {rec_p:>10.4f} | {rec_n:>10.4f}")
 
-            if rec_p >= TARGET_PHISHING_RECALL and rec_n > best["recall_normal"]:
-                best.update({
-                    "model": calibrated, "alpha": alpha, "threshold": threshold,
-                    "recall_phishing": rec_p, "recall_normal": rec_n,
-                })
-            elif best["model"] is None and rec_p > best["recall_phishing"]:
-                best.update({
-                    "model": calibrated, "alpha": alpha, "threshold": threshold,
-                    "recall_phishing": rec_p, "recall_normal": rec_n,
-                })
+            if (
+                rec_p >= TARGET_PHISHING_RECALL
+                and rec_n > best["recall_normal"]
+                or best["model"] is None
+                and rec_p > best["recall_phishing"]
+            ):
+                best.update(
+                    {
+                        "model": calibrated,
+                        "alpha": alpha,
+                        "threshold": threshold,
+                        "recall_phishing": rec_p,
+                        "recall_normal": rec_n,
+                    }
+                )
 
     return best
 
@@ -435,6 +419,7 @@ def train_and_tune(
 # ─────────────────────────────────────────────────────────────────────────────
 # 보정 후 확률 분포 검증
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
     """
@@ -444,15 +429,15 @@ def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
     probs = model.predict_proba(X_test)[:, _phishing_idx(model)]
     df_prob = pd.DataFrame({"prob": probs, "label": y_test.values})
 
-    low    = (probs < 0.40).sum()
+    low = (probs < 0.40).sum()
     medium = ((probs >= 0.40) & (probs < 0.70)).sum()
-    high   = (probs >= 0.70).sum()
+    high = (probs >= 0.70).sum()
 
-    print(f"\n{'='*60}\n[ 보정 후 prob_phishing 분포 검증 ]\n{'='*60}")
-    print(f"LOW    (<0.40) : {low:>4}건 ({low/len(probs):.1%})")
-    print(f"MEDIUM (0.40~0.70): {medium:>4}건 ({medium/len(probs):.1%})")
-    print(f"HIGH   (≥0.70) : {high:>4}건 ({high/len(probs):.1%})")
-    print(f"\nlabel별 평균 prob_phishing:")
+    print(f"\n{'=' * 60}\n[ 보정 후 prob_phishing 분포 검증 ]\n{'=' * 60}")
+    print(f"LOW    (<0.40) : {low:>4}건 ({low / len(probs):.1%})")
+    print(f"MEDIUM (0.40~0.70): {medium:>4}건 ({medium / len(probs):.1%})")
+    print(f"HIGH   (≥0.70) : {high:>4}건 ({high / len(probs):.1%})")
+    print("\nlabel별 평균 prob_phishing:")
     print(df_prob.groupby("label")["prob"].describe().round(4))
 
     if medium == 0:
@@ -463,32 +448,38 @@ def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
 # 최종 평가
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def evaluate(model, threshold: float, X_test, y_test: pd.Series) -> None:
     """최적 threshold 적용 후 classification report + confusion matrix 출력."""
     y_prob = model.predict_proba(X_test)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
-    print(f"\n{'='*60}\n[ 최종 평가 — threshold={threshold} ]\n{'='*60}")
+    print(f"\n{'=' * 60}\n[ 최종 평가 — threshold={threshold} ]\n{'=' * 60}")
     print(classification_report(y_test, y_pred, target_names=["normal", "phishing"]))
 
     cm = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
-    print(pd.DataFrame(
-        cm,
-        index=["실제 normal", "실제 phishing"],
-        columns=["예측 normal", "예측 phishing"],
-    ))
+    print(
+        pd.DataFrame(
+            cm,
+            index=["실제 normal", "실제 phishing"],
+            columns=["예측 normal", "예측 phishing"],
+        )
+    )
 
     rec_p = cm[1, 1] / cm[1].sum()
     rec_n = cm[0, 0] / cm[0].sum()
     print(f"\n★ Recall(phishing): {rec_p:.4f}  |  Recall(normal): {rec_n:.4f}")
 
     if rec_p < TARGET_PHISHING_RECALL:
-        print(f"[WARNING] Recall(phishing) {rec_p:.4f} < 목표 {TARGET_PHISHING_RECALL:.2f}")
+        print(
+            f"[WARNING] Recall(phishing) {rec_p:.4f} < 목표 {TARGET_PHISHING_RECALL:.2f}"
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 저장 / 로드
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def save_artifacts(model, vectorizer: CountVectorizer, threshold: float) -> None:
     """model + threshold + classes를 단일 아티팩트로 저장 (FastAPI 로드용)."""
@@ -506,7 +497,7 @@ def load_artifacts() -> tuple:
     FastAPI 서버 시작 시 1회 호출.
     Returns: (model, vectorizer, threshold, classes)
     """
-    artifact   = joblib.load(MODEL_PATH)
+    artifact = joblib.load(MODEL_PATH)
     vectorizer = joblib.load(VECTORIZER_PATH)
     return artifact["model"], vectorizer, artifact["threshold"], artifact["classes"]
 
@@ -514,6 +505,7 @@ def load_artifacts() -> tuple:
 # ─────────────────────────────────────────────────────────────────────────────
 # 추론 (FastAPI 연동용)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _map_risk_level(risk_score: int) -> str:
     """
@@ -562,9 +554,11 @@ def predict_risk_score(
         "text_score_only": True,
     }
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 진입점
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     df, df_holdout = load_data(DATA_PATH)
@@ -579,9 +573,13 @@ def main() -> None:
     struct_test = extract_struct_feature_matrix(df_test["text"], df_test["has_url"])
 
     vectorizer = build_vectorizer()
-    X_train = build_feature_matrix(vectorizer, df_train["text_norm"], struct_train, fit=True)
-    X_val   = build_feature_matrix(vectorizer, df_val["text_norm"],   struct_val,   fit=False)
-    X_test  = build_feature_matrix(vectorizer, df_test["text_norm"],  struct_test,  fit=False)
+    X_train = build_feature_matrix(
+        vectorizer, df_train["text_norm"], struct_train, fit=True
+    )
+    X_val = build_feature_matrix(vectorizer, df_val["text_norm"], struct_val, fit=False)
+    X_test = build_feature_matrix(
+        vectorizer, df_test["text_norm"], struct_test, fit=False
+    )
 
     best = train_and_tune(X_train, df_train["label"], X_val, df_val["label"])
     if best["model"] is None:
@@ -601,8 +599,10 @@ def main() -> None:
 
     save_artifacts(best["model"], vectorizer, best["threshold"])
 
-def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
-                          df_holdout: pd.DataFrame) -> None:
+
+def evaluate_new_holdout(
+    model, vectorizer: CountVectorizer, threshold: float, df_holdout: pd.DataFrame
+) -> None:
     """
     학습에 전혀 관여하지 않은 완전 신규 시나리오(synthetic_new_holdout,
     synthetic_fp_stress)로 일반화 성능 + 오탐률을 검증.
@@ -618,12 +618,23 @@ def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
     y_prob = model.predict_proba(X)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
-    print(f"\n{'='*60}\n[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ]\n{'='*60}")
-    print(classification_report(df_holdout["label"], y_pred, target_names=["normal", "phishing"]))
+    print(
+        f"\n{'=' * 60}\n[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ]\n{'=' * 60}"
+    )
+    print(
+        classification_report(
+            df_holdout["label"], y_pred, target_names=["normal", "phishing"]
+        )
+    )
 
     cm = confusion_matrix(df_holdout["label"], y_pred, labels=["normal", "phishing"])
-    print(pd.DataFrame(cm, index=["실제 normal", "실제 phishing"],
-                        columns=["예측 normal", "예측 phishing"]))
+    print(
+        pd.DataFrame(
+            cm,
+            index=["실제 normal", "실제 phishing"],
+            columns=["예측 normal", "예측 phishing"],
+        )
+    )
 
     rec_p = cm[1, 1] / cm[1].sum() if cm[1].sum() else 0.0
     rec_n = cm[0, 0] / cm[0].sum() if cm[0].sum() else 0.0
@@ -636,15 +647,21 @@ def evaluate_new_holdout(model, vectorizer: CountVectorizer, threshold: float,
     phishing_df = df_h[df_h["label"] == "phishing"]
     if not phishing_df.empty:
         print("\n[유형별 Recall(phishing)] — 낮은 순")
-        print(phishing_df.groupby("type").apply(
-            lambda g: (g["pred"] == "phishing").mean()
-        ).sort_values())
+        print(
+            phishing_df.groupby("type")
+            .apply(lambda g: (g["pred"] == "phishing").mean())
+            .sort_values()
+        )
 
     normal_df = df_h[df_h["label"] == "normal"]
     if not normal_df.empty:
         print("\n[유형별 오탐률(FP)]")
-        print(normal_df.groupby("type").apply(
-            lambda g: (g["pred"] == "phishing").mean()
-        ).sort_values(ascending=False))
+        print(
+            normal_df.groupby("type")
+            .apply(lambda g: (g["pred"] == "phishing").mean())
+            .sort_values(ascending=False)
+        )
+
+
 if __name__ == "__main__":
     main()

@@ -31,9 +31,7 @@ CARD_PATTERN = re.compile(
     r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}"
     r"|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)"
 )
-PHONE_PATTERN = re.compile(
-    r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)"
-)
+PHONE_PATTERN = re.compile(r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)")
 ACCOUNT_PATTERN = re.compile(
     r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)"
     r"|(?<!\d)\d{10,14}(?!\d)"
@@ -71,7 +69,7 @@ def normalize_text(text: str) -> str:
 
     # URL 내부 숫자가 전화번호나 계좌번호로 오인되지 않도록 URL부터 분리합니다.
     for match in URL_PATTERN.finditer(text):
-        parts.append(mask_pii(text[last_end:match.start()]))
+        parts.append(mask_pii(text[last_end : match.start()]))
         parts.append("[URL]")
         last_end = match.end()
 
@@ -112,9 +110,7 @@ def extract_struct_feature_matrix(
     else:
         url_list = list(has_urls)
         if len(text_list) != len(url_list):
-            raise ValueError(
-                "texts and has_urls must contain the same number of items"
-            )
+            raise ValueError("texts and has_urls must contain the same number of items")
 
     rows = [
         extract_struct_features(text, has_url=has_url)

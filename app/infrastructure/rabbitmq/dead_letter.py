@@ -44,24 +44,16 @@ class DeadLetterPublisher:
             eventId=uuid4(),
             originalMessageId=original_message_id,
             analysisId=(
-                request_event.analysisId
-                if request_event is not None
-                else None
+                request_event.analysisId if request_event is not None else None
             ),
-            traceId=(
-                request_event.traceId
-                if request_event is not None
-                else None
-            ),
+            traceId=(request_event.traceId if request_event is not None else None),
             failureCode=failure_code,
             failedAt=datetime.now(timezone.utc),
         )
 
         # DLQ 발행용 aio_pika 메시지 객체 생성
         message = Message(
-            body=dead_letter_event.model_dump_json(
-                by_alias=True
-            ).encode("utf-8"),
+            body=dead_letter_event.model_dump_json(by_alias=True).encode("utf-8"),
             content_type="application/json",
             delivery_mode=DeliveryMode.PERSISTENT,
             message_id=str(dead_letter_event.eventId),
@@ -71,9 +63,7 @@ class DeadLetterPublisher:
                 else None
             ),
             headers={
-                "schemaVersion": (
-                    dead_letter_event.schemaVersion
-                ),
+                "schemaVersion": (dead_letter_event.schemaVersion),
                 "failureCode": failure_code,
                 "sanitized": True,
             },
@@ -84,31 +74,19 @@ class DeadLetterPublisher:
             await asyncio.wait_for(
                 self.exchange.publish(
                     message,
-                    routing_key=(
-                        self.settings
-                        .RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY
-                    ),
+                    routing_key=(self.settings.RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY),
                     mandatory=True,
                 ),
-                timeout=(
-                    self.settings
-                    .RABBITMQ_PUBLISH_TIMEOUT_SECONDS
-                ),
+                timeout=(self.settings.RABBITMQ_PUBLISH_TIMEOUT_SECONDS),
             )
         except TimeoutError as exception:
             raise RetryableProcessingError(
-                message=(
-                    "Sanitized dead-letter event "
-                    "publication timed out"
-                ),
+                message=("Sanitized dead-letter event publication timed out"),
                 failure_code="DLQ_PUBLISH_TIMEOUT",
             ) from exception
         except Exception as exception:
             raise RetryableProcessingError(
-                message=(
-                    "Failed to publish sanitized "
-                    "dead-letter event"
-                ),
+                message=("Failed to publish sanitized dead-letter event"),
                 failure_code="DLQ_PUBLISH_FAILED",
             ) from exception
 

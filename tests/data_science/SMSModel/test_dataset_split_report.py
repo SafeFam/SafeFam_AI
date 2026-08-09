@@ -83,9 +83,7 @@ def test_summary_contains_counts_distributions_and_configuration(report_data):
         "phishing",
     }
     assert summary["splits"]["validation"]["types"]
-    assert summary["configuration"]["template_grouping"][
-        "similarity_threshold"
-    ] == 0.88
+    assert summary["configuration"]["template_grouping"]["similarity_threshold"] == 0.88
     assert summary["validation"]["group_overlap_count"] == 0
     assert summary["validation"]["fingerprint_overlap_count"] == 0
 
@@ -145,9 +143,9 @@ def test_report_generation_stops_on_group_leakage(tmp_path, report_data):
         validation=splits.validation.copy(),
         test=splits.test.copy(),
     )
-    invalid_splits.validation.loc[0, "template_group_id"] = (
-        invalid_splits.train.iloc[0]["template_group_id"]
-    )
+    invalid_splits.validation.loc[0, "template_group_id"] = invalid_splits.train.iloc[
+        0
+    ]["template_group_id"]
     json_path = tmp_path / "summary.json"
     markdown_path = tmp_path / "summary.md"
 

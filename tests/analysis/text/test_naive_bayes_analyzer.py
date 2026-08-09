@@ -54,8 +54,7 @@ async def test_missing_artifact_returns_fail_safe_result(
 async def test_real_model_flags_phishing():
     """기존 모델이 전형적인 피싱 문장을 계속 탐지하는지 확인합니다."""
     text = (
-        "[국민건강보험] 건강검진 보고서 발급 완료. "
-        "즉시 확인하세요 http://bit.ly/fake"
+        "[국민건강보험] 건강검진 보고서 발급 완료. 즉시 확인하세요 http://bit.ly/fake"
     )
 
     result = await nb.analyze_text_with_naive_bayes(text)

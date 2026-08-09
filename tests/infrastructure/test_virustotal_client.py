@@ -1,6 +1,8 @@
-import pytest
+from unittest.mock import AsyncMock, patch
+
 import httpx
-from unittest.mock import patch, AsyncMock
+import pytest
+
 from app.infrastructure.virustotal.client import VirusTotalClient
 
 
@@ -21,8 +23,19 @@ async def test_raw_score_is_ratio_of_malicious_engines_to_total():
     engine = VirusTotalClient()
     engine.api_key = "dummy-key"
 
-    stats = {"malicious": 9, "suspicious": 0, "harmless": 81, "undetected": 0, "timeout": 0}  # 총 90개 중 9개
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock, return_value=_vt_report_response(stats)):
+    stats = {
+        "malicious": 9,
+        "suspicious": 0,
+        "harmless": 81,
+        "undetected": 0,
+        "timeout": 0,
+    }  # 총 90개 중 9개
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=_vt_report_response(stats),
+    ):
         result = await engine.scan_url("https://example.com")
 
     assert result["total_engines"] == 90
@@ -34,8 +47,19 @@ async def test_raw_score_includes_half_weighted_suspicious_ratio():
     engine = VirusTotalClient()
     engine.api_key = "dummy-key"
 
-    stats = {"malicious": 0, "suspicious": 10, "harmless": 90, "undetected": 0, "timeout": 0}  # 총 100개 중 10개 의심
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock, return_value=_vt_report_response(stats)):
+    stats = {
+        "malicious": 0,
+        "suspicious": 10,
+        "harmless": 90,
+        "undetected": 0,
+        "timeout": 0,
+    }  # 총 100개 중 10개 의심
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=_vt_report_response(stats),
+    ):
         result = await engine.scan_url("https://example.com")
 
     assert result["raw_score"] == round((10 / 100) * 0.5, 2)
@@ -50,13 +74,23 @@ async def test_raw_score_same_detection_count_scores_lower_with_larger_engine_po
     engine = VirusTotalClient()
     engine.api_key = "dummy-key"
 
-    small_pool_stats = {"malicious": 5, "harmless": 15}   # 20개 중 5개 = 25%
-    large_pool_stats = {"malicious": 5, "harmless": 95}   # 100개 중 5개 = 5%
+    small_pool_stats = {"malicious": 5, "harmless": 15}  # 20개 중 5개 = 25%
+    large_pool_stats = {"malicious": 5, "harmless": 95}  # 100개 중 5개 = 5%
 
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock, return_value=_vt_report_response(small_pool_stats)):
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=_vt_report_response(small_pool_stats),
+    ):
         small_pool_result = await engine.scan_url("https://example.com")
 
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock, return_value=_vt_report_response(large_pool_stats)):
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=_vt_report_response(large_pool_stats),
+    ):
         large_pool_result = await engine.scan_url("https://example.com")
 
     assert small_pool_result["raw_score"] > large_pool_result["raw_score"]
@@ -67,7 +101,12 @@ async def test_raw_score_is_zero_when_no_engines_reported():
     engine = VirusTotalClient()
     engine.api_key = "dummy-key"
 
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock, return_value=_vt_report_response({})):
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=_vt_report_response({}),
+    ):
         result = await engine.scan_url("https://example.com")
 
     assert result["raw_score"] == 0.0
@@ -80,8 +119,16 @@ async def test_is_malicious_threshold_is_unaffected_by_ratio_change():
     engine = VirusTotalClient()
     engine.api_key = "dummy-key"
 
-    stats = {"malicious": 3, "harmless": 87}  # 90개 중 3개 (비율은 낮지만 절대개수 3개는 여전히 malicious)
-    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock, return_value=_vt_report_response(stats)):
+    stats = {
+        "malicious": 3,
+        "harmless": 87,
+    }  # 90개 중 3개 (비율은 낮지만 절대개수 3개는 여전히 malicious)
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=_vt_report_response(stats),
+    ):
         result = await engine.scan_url("https://example.com")
 
     assert result["is_malicious"] is True

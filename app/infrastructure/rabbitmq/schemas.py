@@ -16,12 +16,14 @@ from app.analysis.schemas import RiskGrade
 
 class AnalysisSource(str, Enum):
     """분석 요청이 생성된 경로를 정의"""
+
     AUTO = "AUTO"
     MANUAL = "MANUAL"
 
 
 class AnalysisRequestedPayload(BaseModel):
     """AI 분석에 필요한 실제 문자 본문 데이터 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     sender: str | None = Field(default=None, max_length=100)
@@ -39,6 +41,7 @@ class AnalysisRequestedPayload(BaseModel):
 
 class AnalysisRequestedEvent(BaseModel):
     """Spring 메시징 시스템이 발행하는 ANALYSIS_REQUESTED v1 이벤트 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     schemaVersion: Literal["1.0"]
@@ -55,6 +58,7 @@ class AnalysisRequestedEvent(BaseModel):
 
 class AnalysisEventType(str, Enum):
     """분석 결과 이벤트의 종합 처리 상태를 정의"""
+
     COMPLETED = "ANALYSIS_COMPLETED"
     PARTIAL = "ANALYSIS_PARTIAL"
     FAILED = "ANALYSIS_FAILED"
@@ -62,6 +66,7 @@ class AnalysisEventType(str, Enum):
 
 class TextAnalysisMethod(str, Enum):
     """텍스트 분석에 사용된 AI 및 알고리즘 방식을 정의"""
+
     NAIVE_BAYES = "NAIVE_BAYES"
     GEMINI = "GEMINI"
     NAIVE_BAYES_GEMINI = "NAIVE_BAYES_GEMINI"
@@ -70,6 +75,7 @@ class TextAnalysisMethod(str, Enum):
 
 class RawScores(BaseModel):
     """각 분석 트랙별(텍스트, URL, 룰) 원시 점수 데이터 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     text: int | None = Field(default=None, ge=0, le=100)
@@ -79,6 +85,7 @@ class RawScores(BaseModel):
 
 class WeightedContributions(BaseModel):
     """최종 위험도 점수에 반영된 트랙별 가중치 기여 점수 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     text: int = Field(ge=0, le=100)
@@ -88,6 +95,7 @@ class WeightedContributions(BaseModel):
 
 class TextAnalysisDetail(BaseModel):
     """텍스트 분석 트랙의 세부 진단 결과 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     method: TextAnalysisMethod
@@ -100,6 +108,7 @@ class TextAnalysisDetail(BaseModel):
 
 class UrlAnalysisDetail(BaseModel):
     """URL 분석 트랙의 세부 진단 결과 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     hasUrl: bool
@@ -113,6 +122,7 @@ class UrlAnalysisDetail(BaseModel):
 
 class RuleAnalysisDetail(BaseModel):
     """기반 룰 기반 탐지 트랙의 세부 진단 결과 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     score: int = Field(ge=0, le=100)
@@ -122,6 +132,7 @@ class RuleAnalysisDetail(BaseModel):
 
 class AnalysisResultPayload(BaseModel):
     """분석 결과 이벤트에 포함되는 통합 분석 페이로드 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     finalScore: int | None = Field(default=None, ge=0, le=100)
@@ -147,15 +158,13 @@ class AnalysisResultPayload(BaseModel):
             or self.riskGrade is not None
             or self.weightedContributions is not None
         ):
-            raise ValueError(
-                "failure payload must not contain "
-                "successful score fields"
-            )
+            raise ValueError("failure payload must not contain successful score fields")
         return self
 
 
 class AnalysisResultEvent(BaseModel):
     """FastAPI가 처리 후 Spring으로 발행하는 분석 결과 이벤트 스키마"""
+
     model_config = ConfigDict(extra="forbid")
 
     schemaVersion: Literal["1.0"]
@@ -173,58 +182,36 @@ class AnalysisResultEvent(BaseModel):
         """이벤트 타입(COMPLETED, PARTIAL, FAILED)에 따른 필드 유효성을 검증"""
         if self.eventType == AnalysisEventType.COMPLETED:
             if self.payload.finalScore is None:
-                raise ValueError(
-                    "completed event requires finalScore"
-                )
+                raise ValueError("completed event requires finalScore")
             if self.payload.riskGrade is None:
-                raise ValueError(
-                    "completed event requires riskGrade"
-                )
-            if (
-                self.payload.failureCode is not None
-                or self.payload.failedTracks
-            ):
-                raise ValueError(
-                    "completed event must not contain "
-                    "failure indicators"
-                )
+                raise ValueError("completed event requires riskGrade")
+            if self.payload.failureCode is not None or self.payload.failedTracks:
+                raise ValueError("completed event must not contain failure indicators")
 
         if self.eventType == AnalysisEventType.PARTIAL:
             if not self.payload.failedTracks:
-                raise ValueError(
-                    "partial event requires failedTracks"
-                )
+                raise ValueError("partial event requires failedTracks")
             if self.payload.finalScore is None:
-                raise ValueError(
-                    "partial event requires finalScore"
-                )
+                raise ValueError("partial event requires finalScore")
             if self.payload.riskGrade is None:
-                raise ValueError(
-                    "partial event requires riskGrade"
-                )
+                raise ValueError("partial event requires riskGrade")
             if self.payload.failureCode is not None:
-                raise ValueError(
-                    "partial event must not contain "
-                    "failureCode"
-                )
+                raise ValueError("partial event must not contain failureCode")
 
         if self.eventType == AnalysisEventType.FAILED:
             if not self.payload.failureCode:
-                raise ValueError(
-                    "failed event requires failureCode"
-                )
+                raise ValueError("failed event requires failureCode")
             if (
                 self.payload.finalScore is not None
                 or self.payload.riskGrade is not None
-                or self.payload.weightedContributions
-                is not None
+                or self.payload.weightedContributions is not None
             ):
                 raise ValueError(
-                    "failed event must not contain "
-                    "successful score fields"
+                    "failed event must not contain successful score fields"
                 )
 
         return self
+
 
 class DeadLetterEvent(BaseModel):
     """원문과 개인정보를 제외한 실패 메시지를 격리하는 이벤트 스키마"""

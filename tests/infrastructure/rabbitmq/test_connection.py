@@ -12,29 +12,19 @@ from app.infrastructure.rabbitmq.connection import (
 
 def create_fake_settings():
     return SimpleNamespace(
-        RABBITMQ_URL=(
-            "amqp://test-user:test-password@localhost:5672/"
-        ),
+        RABBITMQ_URL=("amqp://test-user:test-password@localhost:5672/"),
         RABBITMQ_ANALYSIS_EXCHANGE="safefam.analysis",
-        RABBITMQ_ANALYSIS_REQUEST_QUEUE=(
-            "safefam.analysis.requested.q"
-        ),
-        RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY=(
-            "analysis.requested.v1"
-        ),
-        RABBITMQ_ANALYSIS_DLQ=(
-            "safefam.analysis.requested.dlq"
-        ),
-        RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY=(
-            "analysis.requested.dead.v1"
-        ),
+        RABBITMQ_ANALYSIS_REQUEST_QUEUE=("safefam.analysis.requested.q"),
+        RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY=("analysis.requested.v1"),
+        RABBITMQ_ANALYSIS_DLQ=("safefam.analysis.requested.dlq"),
+        RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY=("analysis.requested.dead.v1"),
         RABBITMQ_PREFETCH_COUNT=1,
     )
 
+
 @pytest.mark.asyncio
 @patch(
-    "app.infrastructure.rabbitmq.connection."
-    "aio_pika.connect_robust",
+    "app.infrastructure.rabbitmq.connection.aio_pika.connect_robust",
     new_callable=AsyncMock,
 )
 async def test_connect_initializes_request_topology(
@@ -63,17 +53,13 @@ async def test_connect_initializes_request_topology(
 
     await rabbitmq.connect()
 
-    mock_connect_robust.assert_awaited_once_with(
-        app_settings.RABBITMQ_URL
-    )
+    mock_connect_robust.assert_awaited_once_with(app_settings.RABBITMQ_URL)
     fake_connection.channel.assert_awaited_once_with(
         publisher_confirms=True,
         on_return_raises=True,
     )
 
-    fake_channel.set_qos.assert_awaited_once_with(
-        prefetch_count=1
-    )
+    fake_channel.set_qos.assert_awaited_once_with(prefetch_count=1)
 
     fake_channel.declare_exchange.assert_awaited_once_with(
         "safefam.analysis",
@@ -102,16 +88,13 @@ async def test_connect_initializes_request_topology(
 
     assert rabbitmq.exchange is fake_exchange
     assert rabbitmq.request_queue is fake_queue
-    assert (
-        rabbitmq.dead_letter_queue
-        is fake_dead_letter_queue
-    )
+    assert rabbitmq.dead_letter_queue is fake_dead_letter_queue
     assert rabbitmq.get_exchange() is fake_exchange
+
 
 @pytest.mark.asyncio
 @patch(
-    "app.infrastructure.rabbitmq.connection."
-    "aio_pika.connect_robust",
+    "app.infrastructure.rabbitmq.connection.aio_pika.connect_robust",
     new_callable=AsyncMock,
 )
 async def test_connect_does_not_open_duplicate_connection(
@@ -130,20 +113,17 @@ async def test_connect_does_not_open_duplicate_connection(
     fake_channel.declare_queue.return_value = fake_queue
     mock_connect_robust.return_value = fake_connection
 
-    rabbitmq = RabbitMQConnection(
-        create_fake_settings()
-    )
+    rabbitmq = RabbitMQConnection(create_fake_settings())
 
     await rabbitmq.connect()
     await rabbitmq.connect()
 
     mock_connect_robust.assert_awaited_once()
 
+
 def test_get_request_queue_fails_before_connect():
     """연결 전 Queue 접근 테스트"""
-    rabbitmq = RabbitMQConnection(
-        create_fake_settings()
-    )
+    rabbitmq = RabbitMQConnection(create_fake_settings())
 
     with pytest.raises(
         RabbitMQNotConnectedError,
@@ -154,9 +134,7 @@ def test_get_request_queue_fails_before_connect():
 
 def test_get_exchange_fails_before_connect():
     """연결 전 Exchange 접근 테스트."""
-    rabbitmq = RabbitMQConnection(
-        create_fake_settings()
-    )
+    rabbitmq = RabbitMQConnection(create_fake_settings())
 
     with pytest.raises(
         RabbitMQNotConnectedError,
@@ -164,12 +142,11 @@ def test_get_exchange_fails_before_connect():
     ):
         rabbitmq.get_exchange()
 
+
 @pytest.mark.asyncio
 async def test_close_closes_connection_and_clears_resources():
     """연결 종료 테스트"""
-    rabbitmq = RabbitMQConnection(
-        create_fake_settings()
-    )
+    rabbitmq = RabbitMQConnection(create_fake_settings())
 
     fake_connection = AsyncMock()
     fake_connection.is_closed = False
@@ -190,12 +167,11 @@ async def test_close_closes_connection_and_clears_resources():
     assert rabbitmq.request_queue is None
     assert rabbitmq.dead_letter_queue is None
 
+
 @pytest.mark.asyncio
 async def test_close_does_not_close_already_closed_connection():
     """이미 닫힌 연결 테스트"""
-    rabbitmq = RabbitMQConnection(
-        create_fake_settings()
-    )
+    rabbitmq = RabbitMQConnection(create_fake_settings())
 
     fake_connection = AsyncMock()
     fake_connection.is_closed = True

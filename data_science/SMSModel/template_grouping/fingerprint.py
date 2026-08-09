@@ -26,9 +26,7 @@ def add_text_fingerprints(
         raise ValueError(f"missing text column: {text_column}")
 
     result = df.copy()
-    result["text_fingerprint"] = result[text_column].apply(
-        create_text_fingerprint
-    )
+    result["text_fingerprint"] = result[text_column].apply(create_text_fingerprint)
     return result
 
 
@@ -58,8 +56,7 @@ def validate_duplicate_labels(
         .to_dict(orient="records")
     )
     raise ValueError(
-        "identical normalized messages contain conflicting labels: "
-        f"{examples}"
+        f"identical normalized messages contain conflicting labels: {examples}"
     )
 
 
@@ -72,7 +69,6 @@ def remove_exact_duplicates(
     if fingerprint_column not in df.columns:
         raise ValueError(f"missing fingerprint column: {fingerprint_column}")
 
-    return (
-        df.drop_duplicates(subset=fingerprint_column, keep="first")
-        .reset_index(drop=True)
+    return df.drop_duplicates(subset=fingerprint_column, keep="first").reset_index(
+        drop=True
     )

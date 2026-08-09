@@ -70,8 +70,8 @@ warnings.filterwarnings("ignore")
 # 경로 CONFIG — 환경에 따라 이 블록만 수정
 # ─────────────────────────────────────────────────────────────────────────────
 
-DATA_PATH       = Path("../Data/CallData/metadata_clean.csv")  # generate_voice_data.py 출력본
-MODEL_PATH      = Path("voice_model_artifact.pkl")
+DATA_PATH = Path("../Data/CallData/metadata_clean.csv")  # generate_voice_data.py 출력본
+MODEL_PATH = Path("voice_model_artifact.pkl")
 VECTORIZER_PATH = Path("voice_vectorizer.pkl")
 
 
@@ -79,33 +79,33 @@ VECTORIZER_PATH = Path("voice_vectorizer.pkl")
 # 학습 CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-RANDOM_STATE           = 42
-TEST_SIZE              = 0.15   # parent_call_id 기준 재분할 시 test 비중 (SMS와 동일 기준)
-VAL_SIZE               = 0.15   # parent_call_id 기준 재분할 시 validation 비중
-TARGET_PHISHING_RECALL = 0.96   # 피싱 미탐(FN) > 정상 오탐(FP)
+RANDOM_STATE = 42
+TEST_SIZE = 0.15  # parent_call_id 기준 재분할 시 test 비중 (SMS와 동일 기준)
+VAL_SIZE = 0.15  # parent_call_id 기준 재분할 시 validation 비중
+TARGET_PHISHING_RECALL = 0.96  # 피싱 미탐(FN) > 정상 오탐(FP)
 
 # risk_level 구간 (SMS와 동일 기준)
-RISK_HIGH_THRESHOLD   = 70    # HIGH   : 70점 이상
-RISK_MEDIUM_THRESHOLD = 40    # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
-                               # LOW    : 40점 미만
+RISK_HIGH_THRESHOLD = 70  # HIGH   : 70점 이상
+RISK_MEDIUM_THRESHOLD = 40  # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
+# LOW    : 40점 미만
 
 # 격자 탐색 범위
-ALPHA_GRID     = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
+ALPHA_GRID = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
 # 벡터화 후보 — char n-gram vs word n-gram 비교
 # STT 구어체 특성상 word n-gram이 char보다 나을 수 있어 두 가지 모두 탐색
 VECTORIZER_CANDIDATES: dict[str, CountVectorizer] = {
     "char_ngram": CountVectorizer(
-        analyzer="char_wb",     # 단어 경계 존중 문자 n-gram (SMS에서 검증됨)
+        analyzer="char_wb",  # 단어 경계 존중 문자 n-gram (SMS에서 검증됨)
         ngram_range=(2, 4),
         min_df=2,
         max_df=0.95,
         max_features=8_000,
     ),
     "word_ngram": CountVectorizer(
-        analyzer="word",        # 단어 단위 토큰화 (구어체에 더 직관적)
-        ngram_range=(1, 2),     # unigram + bigram
+        analyzer="word",  # 단어 단위 토큰화 (구어체에 더 직관적)
+        ngram_range=(1, 2),  # unigram + bigram
         min_df=2,
         max_df=0.95,
         max_features=8_000,
@@ -119,15 +119,27 @@ VECTORIZER_CANDIDATES: dict[str, CountVectorizer] = {
 # [2026-07 보강] 신규 holdout(택배/환급금/알바 사칭) 테스트에서 기존 패턴이
 # 대출사기형/수사기관 사칭형 어휘에만 좁게 맞춰져 있던 게 드러나 일반화된 카테고리로 확장.
 
-_RE_URGENCY    = re.compile(r"지금\s*바로|즉시|긴급|당장|오늘\s*(안에|중으로)|시간이\s*없|빨리\s*확인")
-_RE_AUTHORITY  = re.compile(r"검찰|경찰|금감원|금융감독원|국세청|법원|수사관|형사|공단|세관")
-_RE_MONEY      = re.compile(r"대출|이자|원금|계좌|송금|이체|입금|출금|돈|환급|관세")
-_RE_PERSONAL   = re.compile(r"주민\s*번호|계좌\s*번호|비밀\s*번호|카드\s*번호|개인\s*정보|본인\s*인증")
-_RE_THREAT     = re.compile(r"체포|구속|압수|수색|처벌|벌금|기소|고소|고발|반송\s*처리|제외")
-_RE_SAFE_ACCT  = re.compile(r"안전\s*계좌|보호\s*계좌|임시\s*계좌|자금\s*보호|보증금|예치금")
-_RE_INSTALL    = re.compile(r"앱\s*설치|다운로드|원격|팀뷰어|애니데스크|링크")
-_RE_ADVANCE    = re.compile(r"활동비|수수료|보증금|예치금|선\s*입금|먼저\s*입금")  # 선입금 요구형 공통 패턴
-_RE_LONG_TEXT  = re.compile(r".{200,}")   # 200자 초과 — 보이스피싱 설명 특성
+_RE_URGENCY = re.compile(
+    r"지금\s*바로|즉시|긴급|당장|오늘\s*(안에|중으로)|시간이\s*없|빨리\s*확인"
+)
+_RE_AUTHORITY = re.compile(
+    r"검찰|경찰|금감원|금융감독원|국세청|법원|수사관|형사|공단|세관"
+)
+_RE_MONEY = re.compile(r"대출|이자|원금|계좌|송금|이체|입금|출금|돈|환급|관세")
+_RE_PERSONAL = re.compile(
+    r"주민\s*번호|계좌\s*번호|비밀\s*번호|카드\s*번호|개인\s*정보|본인\s*인증"
+)
+_RE_THREAT = re.compile(
+    r"체포|구속|압수|수색|처벌|벌금|기소|고소|고발|반송\s*처리|제외"
+)
+_RE_SAFE_ACCT = re.compile(
+    r"안전\s*계좌|보호\s*계좌|임시\s*계좌|자금\s*보호|보증금|예치금"
+)
+_RE_INSTALL = re.compile(r"앱\s*설치|다운로드|원격|팀뷰어|애니데스크|링크")
+_RE_ADVANCE = re.compile(
+    r"활동비|수수료|보증금|예치금|선\s*입금|먼저\s*입금"
+)  # 선입금 요구형 공통 패턴
+_RE_LONG_TEXT = re.compile(r".{200,}")  # 200자 초과 — 보이스피싱 설명 특성
 
 # 메신저피싱(가족·지인 사칭) 특유의 '기기 이상 핑계 + 대리 연락' 패턴.
 # "폰 고장/액정 깨짐/번호 바뀜"을 대며 본인 확인을 피하고, "지금 아니면 안 된다"는
@@ -140,9 +152,16 @@ _RE_IMPERSONATION_EXCUSE = re.compile(
 # 피처 중요도 시각화(VoiceData.ipynb)에서 이 리스트를 그대로 import해서 쓴다 —
 # 노트북에 이름을 따로 하드코딩하면 피처 추가/변경 시 어긋나기 쉽기 때문.
 STRUCT_FEATURE_NAMES = [
-    "has_urgency", "has_authority", "has_money", "has_personal",
-    "has_threat", "has_safe_acct", "has_install", "is_long_text",
-    "has_advance_fee", "has_impersonation_excuse",
+    "has_urgency",
+    "has_authority",
+    "has_money",
+    "has_personal",
+    "has_threat",
+    "has_safe_acct",
+    "has_install",
+    "is_long_text",
+    "has_advance_fee",
+    "has_impersonation_excuse",
 ]
 
 
@@ -162,18 +181,20 @@ def _extract_struct_features(texts: pd.Series) -> np.ndarray:
       8: has_advance_fee           — 선입금/보증금/수수료 요구
       9: has_impersonation_excuse  — 기기 이상 핑계 + 대리 연락(메신저피싱 특유 패턴)
     """
-    return np.column_stack([
-        texts.str.contains(_RE_URGENCY,               regex=True).astype(int).values,
-        texts.str.contains(_RE_AUTHORITY,              regex=True).astype(int).values,
-        texts.str.contains(_RE_MONEY,                  regex=True).astype(int).values,
-        texts.str.contains(_RE_PERSONAL,               regex=True).astype(int).values,
-        texts.str.contains(_RE_THREAT,                 regex=True).astype(int).values,
-        texts.str.contains(_RE_SAFE_ACCT,              regex=True).astype(int).values,
-        texts.str.contains(_RE_INSTALL,                regex=True).astype(int).values,
-        texts.str.contains(_RE_LONG_TEXT,              regex=True).astype(int).values,
-        texts.str.contains(_RE_ADVANCE,                regex=True).astype(int).values,
-        texts.str.contains(_RE_IMPERSONATION_EXCUSE,   regex=True).astype(int).values,
-    ])
+    return np.column_stack(
+        [
+            texts.str.contains(_RE_URGENCY, regex=True).astype(int).values,
+            texts.str.contains(_RE_AUTHORITY, regex=True).astype(int).values,
+            texts.str.contains(_RE_MONEY, regex=True).astype(int).values,
+            texts.str.contains(_RE_PERSONAL, regex=True).astype(int).values,
+            texts.str.contains(_RE_THREAT, regex=True).astype(int).values,
+            texts.str.contains(_RE_SAFE_ACCT, regex=True).astype(int).values,
+            texts.str.contains(_RE_INSTALL, regex=True).astype(int).values,
+            texts.str.contains(_RE_LONG_TEXT, regex=True).astype(int).values,
+            texts.str.contains(_RE_ADVANCE, regex=True).astype(int).values,
+            texts.str.contains(_RE_IMPERSONATION_EXCUSE, regex=True).astype(int).values,
+        ]
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -186,18 +207,20 @@ def _extract_struct_features(texts: pd.Series) -> np.ndarray:
 # 각 구조 피처의 위험 가중치. 개인정보/설치유도/선입금 요구/대리연락 핑계처럼
 # 정상 통화에서 거의 안 나오는 신호는 높게, 금전 언급처럼 정상 은행 안내
 # 전화에도 흔한 신호는 낮게 잡아 오탐(FP) 증가를 최소화한다.
-_STRUCT_WEIGHTS = np.array([
-    1,    # has_urgency
-    1,    # has_authority
-    0.5,  # has_money                 (계좌/환급 등 정상 은행 업무에도 매우 흔함)
-    1,    # has_personal              (카드번호/본인인증만으로는 약한 신호)
-    2,    # has_threat
-    2,    # has_safe_acct
-    2,    # has_install
-    0.5,  # is_long_text
-    2,    # has_advance_fee
-    4,    # has_impersonation_excuse  (메신저사칭형 recall 강화용)
-])
+_STRUCT_WEIGHTS = np.array(
+    [
+        1,  # has_urgency
+        1,  # has_authority
+        0.5,  # has_money                 (계좌/환급 등 정상 은행 업무에도 매우 흔함)
+        1,  # has_personal              (카드번호/본인인증만으로는 약한 신호)
+        2,  # has_threat
+        2,  # has_safe_acct
+        2,  # has_install
+        0.5,  # is_long_text
+        2,  # has_advance_fee
+        4,  # has_impersonation_excuse  (메신저사칭형 recall 강화용)
+    ]
+)
 
 # 정상 업무 맥락 신호 — 고객센터/영업일/재발급 같은 표현이 있으면 사기 가능성을
 # 낮게 보고 가중합에서 차감한다. 실제 사기 스크립트는 이런 '내부 업무 용어'를
@@ -212,9 +235,9 @@ _RE_LEGIT_CONTEXT = re.compile(
 # 가중합 구간별 최소 risk_score. NB 확률이 아무리 낮아도 이 값 밑으로는
 # 안 떨어지도록 max()로 강제한다.
 _RISK_FLOOR_TABLE = [
-    (5,   70),   # 위험 신호 가중합 5 이상   → 최소 HIGH
-    (3.5, 55),   # 3.5 이상                 → 최소 MEDIUM 상단
-    (2,   40),   # 2 이상                   → 최소 MEDIUM 진입 (LLM 에스컬레이션 보장)
+    (5, 70),  # 위험 신호 가중합 5 이상   → 최소 HIGH
+    (3.5, 55),  # 3.5 이상                 → 최소 MEDIUM 상단
+    (2, 40),  # 2 이상                   → 최소 MEDIUM 진입 (LLM 에스컬레이션 보장)
 ]
 
 
@@ -253,7 +276,10 @@ def _map_risk_level(risk_score: int) -> str:
 # 데이터 로드
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _leak_free_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+
+def _leak_free_split(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     parent_call_id와 text_clean 두 기준 모두에서 누수가 없도록 Union-Find로 그룹을
     묶은 뒤, 그룹 단위 StratifiedShuffleSplit 2단계로 train/val/test를 분리한다.
@@ -294,25 +320,37 @@ def _leak_free_split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.D
     df = df.assign(_group=[find(i) for i in range(n)])
     groups = df.groupby("_group")["label"].first().reset_index()
 
-    sss_test = StratifiedShuffleSplit(n_splits=1, test_size=TEST_SIZE, random_state=RANDOM_STATE)
+    sss_test = StratifiedShuffleSplit(
+        n_splits=1, test_size=TEST_SIZE, random_state=RANDOM_STATE
+    )
     trainval_idx, test_idx = next(sss_test.split(groups, groups["label"]))
     trainval_groups = groups.iloc[trainval_idx]
-    test_ids        = set(groups.iloc[test_idx]["_group"])
+    test_ids = set(groups.iloc[test_idx]["_group"])
 
     val_ratio = VAL_SIZE / (1 - TEST_SIZE)
-    sss_val = StratifiedShuffleSplit(n_splits=1, test_size=val_ratio, random_state=RANDOM_STATE)
+    sss_val = StratifiedShuffleSplit(
+        n_splits=1, test_size=val_ratio, random_state=RANDOM_STATE
+    )
     train_idx, val_idx = next(sss_val.split(trainval_groups, trainval_groups["label"]))
     train_ids = set(trainval_groups.iloc[train_idx]["_group"])
-    val_ids   = set(trainval_groups.iloc[val_idx]["_group"])
+    val_ids = set(trainval_groups.iloc[val_idx]["_group"])
 
-    df_train = df[df["_group"].isin(train_ids)].drop(columns="_group").reset_index(drop=True)
-    df_val   = df[df["_group"].isin(val_ids)].drop(columns="_group").reset_index(drop=True)
-    df_test  = df[df["_group"].isin(test_ids)].drop(columns="_group").reset_index(drop=True)
+    df_train = (
+        df[df["_group"].isin(train_ids)].drop(columns="_group").reset_index(drop=True)
+    )
+    df_val = (
+        df[df["_group"].isin(val_ids)].drop(columns="_group").reset_index(drop=True)
+    )
+    df_test = (
+        df[df["_group"].isin(test_ids)].drop(columns="_group").reset_index(drop=True)
+    )
 
     return df_train, df_val, df_test
 
 
-def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_data(
+    path: Path,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     metadata_clean.csv 로드 후 parent_call_id 기준으로 leak-free train/val/test 분리 반환.
 
@@ -334,9 +372,11 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.
     if not {"phishing", "normal"}.issuperset(set(df["label"].unique())):
         raise ValueError(f"예상치 못한 label 값: {df['label'].unique()}")
 
-    is_new_holdout = df["source_dataset"].isin(["synthetic_new_holdout", "synthetic_fp_stress"])
+    is_new_holdout = df["source_dataset"].isin(
+        ["synthetic_new_holdout", "synthetic_fp_stress"]
+    )
     df_holdout = df[is_new_holdout].reset_index(drop=True)
-    df_pool    = df[~is_new_holdout].reset_index(drop=True)
+    df_pool = df[~is_new_holdout].reset_index(drop=True)
 
     df_train, df_val, df_test = _leak_free_split(df_pool)
 
@@ -344,17 +384,21 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.
         vc = d["label"].value_counts()
         return (
             f"phishing={vc.get('phishing', 0)} "
-            f"({vc.get('phishing', 0)/len(d):.1%}) | "
+            f"({vc.get('phishing', 0) / len(d):.1%}) | "
             f"normal={vc.get('normal', 0)} "
-            f"({vc.get('normal', 0)/len(d):.1%})"
+            f"({vc.get('normal', 0) / len(d):.1%})"
         )
 
-    print(f"[Load] 전체 {len(df)}건 (신규 holdout {len(df_holdout)}건 분리) | "
-          f"재분할 풀 {len(df_pool)}건")
+    print(
+        f"[Load] 전체 {len(df)}건 (신규 holdout {len(df_holdout)}건 분리) | "
+        f"재분할 풀 {len(df_pool)}건"
+    )
     print(f"  Train   : {len(df_train)}건 — {_fmt(df_train)}")
     print(f"  Val     : {len(df_val)}건  — {_fmt(df_val)}")
     print(f"  Test    : {len(df_test)}건 — {_fmt(df_test)}")
-    print(f"  Holdout : {len(df_holdout)}건 — {_fmt(df_holdout)}  (학습에 전혀 사용 안 됨)")
+    print(
+        f"  Holdout : {len(df_holdout)}건 — {_fmt(df_holdout)}  (학습에 전혀 사용 안 됨)"
+    )
 
     return df_train, df_val, df_test, df_holdout
 
@@ -362,6 +406,7 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.
 # ─────────────────────────────────────────────────────────────────────────────
 # 피처 행렬 구성
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_feature_matrix(
     vectorizer: CountVectorizer,
@@ -376,7 +421,7 @@ def build_feature_matrix(
     Args:
         fit: True → fit_transform (학습 전용), False → transform only (누수 방지)
     """
-    X_text   = vectorizer.fit_transform(texts) if fit else vectorizer.transform(texts)
+    X_text = vectorizer.fit_transform(texts) if fit else vectorizer.transform(texts)
     X_struct = csr_matrix(struct)
     return hstack([X_text, X_struct])
 
@@ -384,6 +429,7 @@ def build_feature_matrix(
 # ─────────────────────────────────────────────────────────────────────────────
 # 학습 및 튜닝
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _phishing_idx(model) -> int:
     """model.classes_ 에서 'phishing' 인덱스 반환."""
@@ -399,7 +445,7 @@ def _compute_recalls(
     """threshold 적용 후 Recall(phishing), Recall(normal) 반환."""
     y_prob = model.predict_proba(X_val)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
-    cm     = confusion_matrix(y_val, y_pred, labels=["normal", "phishing"])
+    cm = confusion_matrix(y_val, y_pred, labels=["normal", "phishing"])
 
     rec_p = cm[1, 1] / cm[1].sum() if cm[1].sum() > 0 else 0.0
     rec_n = cm[0, 0] / cm[0].sum() if cm[0].sum() > 0 else 0.0
@@ -428,20 +474,24 @@ def train_and_tune(
         dict: model, model_name, alpha, threshold, recall_phishing, recall_normal
     """
     phishing_ratio = (y_train == "phishing").mean()
-    normal_ratio   = 1 - phishing_ratio
+    normal_ratio = 1 - phishing_ratio
 
     best: dict = {
-        "model": None, "model_name": "", "alpha": None,
-        "threshold": None, "recall_phishing": 0.0, "recall_normal": 0.0,
+        "model": None,
+        "model_name": "",
+        "alpha": None,
+        "threshold": None,
+        "recall_phishing": 0.0,
+        "recall_normal": 0.0,
     }
 
     header = (
         f"{'모델':>15} | {'alpha':>5} | {'thresh':>6} "
         f"| {'rec_phish':>10} | {'rec_normal':>10}"
     )
-    print(f"\n{'='*64}")
+    print(f"\n{'=' * 64}")
     print(f"[ 격자 탐색 — {vec_type} ]")
-    print(f"{'='*64}")
+    print(f"{'=' * 64}")
     print(header)
     print("-" * len(header))
 
@@ -473,19 +523,22 @@ def train_and_tune(
                 )
 
                 # 목표 달성 + 현재 최고 normal recall 갱신
-                if rec_p >= TARGET_PHISHING_RECALL and rec_n > best["recall_normal"]:
-                    best.update({
-                        "model": model, "model_name": model_cls.__name__,
-                        "alpha": alpha, "threshold": threshold,
-                        "recall_phishing": rec_p, "recall_normal": rec_n,
-                    })
-                # fallback
-                elif best["model"] is None and rec_p > best["recall_phishing"]:
-                    best.update({
-                        "model": model, "model_name": model_cls.__name__,
-                        "alpha": alpha, "threshold": threshold,
-                        "recall_phishing": rec_p, "recall_normal": rec_n,
-                    })
+                if (
+                    rec_p >= TARGET_PHISHING_RECALL
+                    and rec_n > best["recall_normal"]
+                    or best["model"] is None
+                    and rec_p > best["recall_phishing"]
+                ):
+                    best.update(
+                        {
+                            "model": model,
+                            "model_name": model_cls.__name__,
+                            "alpha": alpha,
+                            "threshold": threshold,
+                            "recall_phishing": rec_p,
+                            "recall_normal": rec_n,
+                        }
+                    )
 
     return best
 
@@ -494,9 +547,10 @@ def train_and_tune(
 # 벡터화 후보 비교
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def compare_vectorizers(
     df_train: pd.DataFrame,
-    df_val:   pd.DataFrame,
+    df_val: pd.DataFrame,
 ) -> tuple[str, CountVectorizer, dict]:
     """
     char n-gram vs word n-gram 두 가지 벡터화 방식을 각각 격자 탐색하고
@@ -506,7 +560,7 @@ def compare_vectorizers(
         (best_vec_type, best_vectorizer, best_result_dict)
     """
     struct_train = _extract_struct_features(df_train["text_clean"])
-    struct_val   = _extract_struct_features(df_val["text_clean"])
+    struct_val = _extract_struct_features(df_val["text_clean"])
 
     comparison: dict[str, dict] = {}
 
@@ -520,19 +574,23 @@ def compare_vectorizers(
         )
 
         result = train_and_tune(
-            X_train, df_train["label"],
-            X_val,   df_val["label"],
+            X_train,
+            df_train["label"],
+            X_val,
+            df_val["label"],
             vec_type,
         )
-        result["vectorizer"]      = vectorizer
+        result["vectorizer"] = vectorizer
         result["vectorizer_type"] = vec_type
-        comparison[vec_type]      = result
+        comparison[vec_type] = result
 
     # 비교 요약 출력
-    print(f"\n{'='*64}")
+    print(f"\n{'=' * 64}")
     print("[ 벡터화 방식 비교 요약 ]")
-    print(f"{'='*64}")
-    print(f"{'방식':>12} | {'모델':>15} | {'alpha':>5} | {'thresh':>6} | {'rec_phish':>10} | {'rec_normal':>10}")
+    print(f"{'=' * 64}")
+    print(
+        f"{'방식':>12} | {'모델':>15} | {'alpha':>5} | {'thresh':>6} | {'rec_phish':>10} | {'rec_normal':>10}"
+    )
     print("-" * 70)
     for vec_type, result in comparison.items():
         if result["model"] is not None:
@@ -544,7 +602,8 @@ def compare_vectorizers(
 
     # Recall(phishing) >= TARGET 조건 하 Recall(normal) 최대인 벡터화 선택
     valid = {
-        k: v for k, v in comparison.items()
+        k: v
+        for k, v in comparison.items()
         if v["model"] is not None and v["recall_phishing"] >= TARGET_PHISHING_RECALL
     }
 
@@ -554,7 +613,9 @@ def compare_vectorizers(
         # 목표 미달 시 Recall(phishing) 최대
         best_type = max(
             comparison,
-            key=lambda k: comparison[k]["recall_phishing"] if comparison[k]["model"] else 0
+            key=lambda k: (
+                comparison[k]["recall_phishing"] if comparison[k]["model"] else 0
+            ),
         )
         print("[WARNING] 어떤 조합도 Recall(phishing) 목표를 달성하지 못했습니다.")
 
@@ -576,6 +637,7 @@ def compare_vectorizers(
 # 평가
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def evaluate(
     model,
     threshold: float,
@@ -589,9 +651,9 @@ def evaluate(
     y_prob = model.predict_proba(X_test)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
-    print(f"\n{'='*64}")
+    print(f"\n{'=' * 64}")
     print(f"[ 최종 평가 (test 세트) — threshold={threshold} ]")
-    print(f"{'='*64}")
+    print(f"{'=' * 64}")
     print(classification_report(y_test, y_pred, target_names=["normal", "phishing"]))
 
     cm = confusion_matrix(y_test, y_pred, labels=["normal", "phishing"])
@@ -637,40 +699,55 @@ def evaluate_new_holdout(
     raw_scores = (y_prob * 100).astype(int)
 
     # 구조 피처 보정 적용 — NB가 놓쳐도 위험 신호가 뚜렷하면 최소 점수 하한 적용
-    boosted_scores = np.array([
-        _apply_risk_floor(s, struct[i], df_holdout["text_clean"].iloc[i])
-        for i, s in enumerate(raw_scores)
-    ])
+    boosted_scores = np.array(
+        [
+            _apply_risk_floor(s, struct[i], df_holdout["text_clean"].iloc[i])
+            for i, s in enumerate(raw_scores)
+        ]
+    )
     # threshold * 100의 부동소수점 오차(예: 0.55*100 → 55.00000000000001) 때문에
     # 경계값이 누락되는 걸 방지하기 위해 정수 스케일로 반올림 후 비교
     threshold_pct = round(threshold * 100)
     y_pred = np.where(boosted_scores >= threshold_pct, "phishing", "normal")
 
-    print(f"\n{'='*64}")
-    print(f"[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ] (구조 피처 보정 적용)")
-    print(f"{'='*64}")
-    print(classification_report(df_holdout["label"], y_pred, target_names=["normal", "phishing"]))
+    print(f"\n{'=' * 64}")
+    print(
+        f"[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ] (구조 피처 보정 적용)"
+    )
+    print(f"{'=' * 64}")
+    print(
+        classification_report(
+            df_holdout["label"], y_pred, target_names=["normal", "phishing"]
+        )
+    )
 
     cm = confusion_matrix(df_holdout["label"], y_pred, labels=["normal", "phishing"])
-    print(pd.DataFrame(cm, index=["실제 normal", "실제 phishing"],
-                        columns=["예측 normal", "예측 phishing"]))
+    print(
+        pd.DataFrame(
+            cm,
+            index=["실제 normal", "실제 phishing"],
+            columns=["예측 normal", "예측 phishing"],
+        )
+    )
 
     rec_p = cm[1, 1] / cm[1].sum() if cm[1].sum() else 0.0
     rec_n = cm[0, 0] / cm[0].sum() if cm[0].sum() else 0.0
     print(f"\n★ Recall(phishing): {rec_p:.4f}  |  Recall(normal): {rec_n:.4f}")
 
     df_h = df_holdout.copy()
-    df_h["pred"]       = y_pred
-    df_h["raw_score"]  = raw_scores       # NB 원본 점수 (보정 전, 비교용)
-    df_h["risk_score"] = boosted_scores   # 보정 후 최종 점수
+    df_h["pred"] = y_pred
+    df_h["raw_score"] = raw_scores  # NB 원본 점수 (보정 전, 비교용)
+    df_h["risk_score"] = boosted_scores  # 보정 후 최종 점수
 
     # ── 유형(call_type)별 recall — 어떤 신규 시나리오가 취약한지 확인 ──
     phishing_df = df_h[df_h["label"] == "phishing"]
     if not phishing_df.empty:
         print("\n[유형별 Recall(phishing)] — 낮은 순")
-        recall_by_type = phishing_df.groupby("call_type").apply(
-            lambda g: (g["pred"] == "phishing").mean()
-        ).sort_values()
+        recall_by_type = (
+            phishing_df.groupby("call_type")
+            .apply(lambda g: (g["pred"] == "phishing").mean())
+            .sort_values()
+        )
         print(recall_by_type)
 
         fn = phishing_df[phishing_df["pred"] == "normal"].copy()
@@ -679,8 +756,12 @@ def evaluate_new_holdout(
             print(f"\n[놓친 phishing {len(fn)}건 중 risk_score 분포 (보정 후)]")
             print(f"  LOW(<40, 완전히 놓침)      : {below_low}건")
             print(f"  MEDIUM(40~69, LLM 구제 가능) : {len(fn) - below_low}건")
-            print(fn[["call_type", "raw_score", "risk_score", "text_clean"]]
-                  .sort_values("risk_score", ascending=False).head(10).to_string())
+            print(
+                fn[["call_type", "raw_score", "risk_score", "text_clean"]]
+                .sort_values("risk_score", ascending=False)
+                .head(10)
+                .to_string()
+            )
 
     # ── normal 오탐 분석: HIGH로 잘못 확정된 건지, MEDIUM(LLM 검토용)인지 구분 ──
     normal_df = df_h[df_h["label"] == "normal"].copy()
@@ -688,20 +769,30 @@ def evaluate_new_holdout(
         normal_df["risk_level"] = normal_df["risk_score"].apply(_map_risk_level)
         fp = normal_df[normal_df["pred"] == "phishing"]
 
-        print(f"\n[정상 통화 오탐(FP) {len(fp)}건 / 전체 정상 {len(normal_df)}건 — risk_level 분포]")
+        print(
+            f"\n[정상 통화 오탐(FP) {len(fp)}건 / 전체 정상 {len(normal_df)}건 — risk_level 분포]"
+        )
         print(fp["risk_level"].value_counts())
 
         print("\n[유형(call_type)별 오탐률]")
-        fpr_by_type = normal_df.groupby("call_type").apply(
-            lambda g: (g["pred"] == "phishing").mean()
-        ).sort_values(ascending=False)
+        fpr_by_type = (
+            normal_df.groupby("call_type")
+            .apply(lambda g: (g["pred"] == "phishing").mean())
+            .sort_values(ascending=False)
+        )
         print(fpr_by_type)
 
         high_fp = fp[fp["risk_level"] == "HIGH"]
         if not high_fp.empty:
-            print("\n[HIGH로 잘못 확정된 정상 통화 — LLM 안전망도 못 거침, 최우선 수정 대상]")
-            print(high_fp[["call_type", "risk_score", "text_clean"]]
-                  .sort_values("risk_score", ascending=False).head(10).to_string())
+            print(
+                "\n[HIGH로 잘못 확정된 정상 통화 — LLM 안전망도 못 거침, 최우선 수정 대상]"
+            )
+            print(
+                high_fp[["call_type", "risk_score", "text_clean"]]
+                .sort_values("risk_score", ascending=False)
+                .head(10)
+                .to_string()
+            )
 
 
 def diagnose_low_phishing_full_dataset(
@@ -721,12 +812,14 @@ def diagnose_low_phishing_full_dataset(
 
     y_prob = model.predict_proba(X)[:, _phishing_idx(model)]
     raw_scores = (y_prob * 100).astype(int)
-    boosted = np.array([
-        _apply_risk_floor(s, struct[i], df["text_clean"].iloc[i])
-        for i, s in enumerate(raw_scores)
-    ])
+    boosted = np.array(
+        [
+            _apply_risk_floor(s, struct[i], df["text_clean"].iloc[i])
+            for i, s in enumerate(raw_scores)
+        ]
+    )
     df["risk_score"] = boosted
-    df["risk_level"]  = df["risk_score"].apply(_map_risk_level)
+    df["risk_level"] = df["risk_score"].apply(_map_risk_level)
 
     low_phish = df[(df["label"] == "phishing") & (df["risk_level"] == "LOW")]
     print(f"\n[전체 데이터셋 감사] LOW로 떨어진 phishing: {len(low_phish)}건")
@@ -735,13 +828,17 @@ def diagnose_low_phishing_full_dataset(
     print("\n[call_type별]")
     print(low_phish["call_type"].value_counts())
     print("\n[샘플 5건]")
-    print(low_phish[["source_dataset", "call_type", "risk_score", "text_clean"]]
-          .sample(min(5, len(low_phish)), random_state=1).to_string())
+    print(
+        low_phish[["source_dataset", "call_type", "risk_score", "text_clean"]]
+        .sample(min(5, len(low_phish)), random_state=1)
+        .to_string()
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 저장 / 로드
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def save_artifacts(
     model,
@@ -757,10 +854,10 @@ def save_artifacts(
     """
     joblib.dump(
         {
-            "model"          : model,
-            "threshold"      : threshold,
-            "classes"        : list(model.classes_),
-            "vectorizer_type": vectorizer_type,   # 추론 시 참조용
+            "model": model,
+            "threshold": threshold,
+            "classes": list(model.classes_),
+            "vectorizer_type": vectorizer_type,  # 추론 시 참조용
         },
         MODEL_PATH,
     )
@@ -776,7 +873,7 @@ def load_artifacts() -> tuple:
     Returns:
         (model, vectorizer, threshold, classes, vectorizer_type)
     """
-    artifact   = joblib.load(MODEL_PATH)
+    artifact = joblib.load(MODEL_PATH)
     vectorizer = joblib.load(VECTORIZER_PATH)
     return (
         artifact["model"],
@@ -790,6 +887,7 @@ def load_artifacts() -> tuple:
 # ─────────────────────────────────────────────────────────────────────────────
 # 추론 (FastAPI 연동용)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def predict_risk_score(
     text_clean: str,
@@ -805,9 +903,7 @@ def predict_risk_score(
     """
     struct = _extract_struct_features(pd.Series([text_clean]))
 
-    X = build_feature_matrix(
-        vectorizer, pd.Series([text_clean]), struct, fit=False
-    )
+    X = build_feature_matrix(vectorizer, pd.Series([text_clean]), struct, fit=False)
     prob_phish = model.predict_proba(X)[0][classes.index("phishing")]
     risk_score = int(prob_phish * 100)
     risk_score = _apply_risk_floor(risk_score, struct[0], text_clean)
@@ -815,13 +911,14 @@ def predict_risk_score(
     return {
         "risk_score": risk_score,
         "risk_level": _map_risk_level(risk_score),
-        "modality"  : "voice",
+        "modality": "voice",
     }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 진입점
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     df_train, df_val, df_test, df_holdout = load_data(DATA_PATH)
@@ -831,7 +928,9 @@ def main() -> None:
         raise RuntimeError("유효한 모델 조합을 찾지 못했습니다.")
 
     struct_test = _extract_struct_features(df_test["text_clean"])
-    X_test = build_feature_matrix(best_vectorizer, df_test["text_clean"], struct_test, fit=False)
+    X_test = build_feature_matrix(
+        best_vectorizer, df_test["text_clean"], struct_test, fit=False
+    )
     evaluate(best_result["model"], best_result["threshold"], X_test, df_test["label"])
 
     # 완전 신규 시나리오 일반화 + 오탐 검증
@@ -839,7 +938,9 @@ def main() -> None:
         best_result["model"], best_vectorizer, best_result["threshold"], df_holdout
     )
 
-    save_artifacts(best_result["model"], best_vectorizer, best_result["threshold"], best_vec_type)
+    save_artifacts(
+        best_result["model"], best_vectorizer, best_result["threshold"], best_vec_type
+    )
 
     # 전체 데이터셋 사후 감사 — known 유형에서 LOW로 새는 phishing이 있는지 확인
     diagnose_low_phishing_full_dataset(

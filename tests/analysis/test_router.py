@@ -7,9 +7,12 @@ Swagger UI(/docs)가 문서화하는 POST /api/analyze 계약을 실제 HTTP 레
   DNS/HTTP 호출과 CI 아웃바운드 의존성을 없애기 위함이다.
 - Gemini(2차)와 GSB+VT 하이브리드 URL 엔진은 결정론적인 Mock 모드로 우회한다 (유료/외부 API 의존성 제거).
 """
-import pytest
+
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
+
 from app.main import create_app
 
 app = create_app(rabbitmq_consumer_enabled=False)
@@ -18,8 +21,10 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def _mock_external_paid_apis():
-    with patch("app.analysis.text.gemini_analyzer.MOCK_ENABLED", True), \
-         patch("app.analysis.url.analyzer.MOCK_ENABLED", True):
+    with (
+        patch("app.analysis.text.gemini_analyzer.MOCK_ENABLED", True),
+        patch("app.analysis.url.analyzer.MOCK_ENABLED", True),
+    ):
         yield
 
 
@@ -86,8 +91,13 @@ def test_response_matches_swagger_documented_schema_contract():
     body = response.json()
 
     assert {
-        "status", "message", "final_score", "risk_grade",
-        "contribution_breakdown", "text_analysis", "url_analysis"
+        "status",
+        "message",
+        "final_score",
+        "risk_grade",
+        "contribution_breakdown",
+        "text_analysis",
+        "url_analysis",
     }.issubset(body.keys())
 
     assert 0 <= body["final_score"] <= 100

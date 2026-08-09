@@ -1,7 +1,7 @@
+import json
 from datetime import timedelta
 from uuid import UUID
 
-import json
 import pytest
 from pydantic import ValidationError
 
@@ -32,23 +32,15 @@ def valid_event_data() -> dict:
 def test_parses_valid_analysis_requested_event(
     valid_event_data: dict,
 ):
-    event = AnalysisRequestedEvent.model_validate(
-        valid_event_data
-    )
+    event = AnalysisRequestedEvent.model_validate(valid_event_data)
 
     assert event.schemaVersion == "1.0"
-    assert event.eventId == UUID(
-        "1fb898fa-d89d-4d0b-a43f-a8b00daeb765"
-    )
+    assert event.eventId == UUID("1fb898fa-d89d-4d0b-a43f-a8b00daeb765")
     assert event.analysisId == 123
     assert event.clientMessageId == "sms-20260728-001"
-    assert event.traceId == UUID(
-        "2d59c74e-0691-4f01-bde3-c657ba4c90cd"
-    )
+    assert event.traceId == UUID("2d59c74e-0691-4f01-bde3-c657ba4c90cd")
     assert event.payload.source == AnalysisSource.AUTO
-    assert event.payload.content == (
-        "[국민은행] 계좌가 정지되었습니다."
-    )
+    assert event.payload.content == ("[국민은행] 계좌가 정지되었습니다.")
 
 
 def test_parses_auto_analysis_source(
@@ -56,9 +48,7 @@ def test_parses_auto_analysis_source(
 ):
     valid_event_data["payload"]["source"] = "AUTO"
 
-    event = AnalysisRequestedEvent.model_validate(
-        valid_event_data
-    )
+    event = AnalysisRequestedEvent.model_validate(valid_event_data)
 
     assert event.payload.source == AnalysisSource.AUTO
 
@@ -68,9 +58,7 @@ def test_parses_manual_analysis_source(
 ):
     valid_event_data["payload"]["source"] = "MANUAL"
 
-    event = AnalysisRequestedEvent.model_validate(
-        valid_event_data
-    )
+    event = AnalysisRequestedEvent.model_validate(valid_event_data)
 
     assert event.payload.source == AnalysisSource.MANUAL
 
@@ -78,14 +66,10 @@ def test_parses_manual_analysis_source(
 def test_parses_aware_event_timestamps(
     valid_event_data: dict,
 ):
-    event = AnalysisRequestedEvent.model_validate(
-        valid_event_data
-    )
+    event = AnalysisRequestedEvent.model_validate(valid_event_data)
 
     assert event.occurredAt.utcoffset() == timedelta(0)
-    assert event.payload.receivedAt.utcoffset() == timedelta(
-        hours=9
-    )
+    assert event.payload.receivedAt.utcoffset() == timedelta(hours=9)
 
 
 @pytest.mark.parametrize("content", ["", " ", "   ", "\t", "\n"])
@@ -223,6 +207,7 @@ def test_rejects_unknown_payload_field(
     with pytest.raises(ValidationError):
         AnalysisRequestedEvent.model_validate(valid_event_data)
 
+
 def test_parses_event_from_json_message(
     valid_event_data: dict,
 ):
@@ -232,11 +217,7 @@ def test_parses_event_from_json_message(
         ensure_ascii=False,
     ).encode("utf-8")
 
-    event = AnalysisRequestedEvent.model_validate_json(
-        message_body
-    )
+    event = AnalysisRequestedEvent.model_validate_json(message_body)
 
     assert event.analysisId == 123
-    assert event.payload.content == (
-        "[국민은행] 계좌가 정지되었습니다."
-    )
+    assert event.payload.content == ("[국민은행] 계좌가 정지되었습니다.")

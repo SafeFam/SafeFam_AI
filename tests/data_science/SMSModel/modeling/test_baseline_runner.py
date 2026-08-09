@@ -4,11 +4,11 @@ from types import SimpleNamespace
 
 import pandas as pd
 
+from data_science.SMSModel import run_naive_bayes_baseline as runner
 from data_science.SMSModel.evaluation.evaluator import ModelEvaluationResult
 from data_science.SMSModel.evaluation.latency import LatencyMetrics
 from data_science.SMSModel.evaluation.metrics import ClassificationMetrics
 from data_science.SMSModel.evaluation.threshold import ThresholdSelection
-from data_science.SMSModel import run_naive_bayes_baseline as runner
 
 
 def make_result(model_name: str, threshold: float) -> ModelEvaluationResult:

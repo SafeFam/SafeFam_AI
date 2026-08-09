@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 DEFAULT_SIMILARITY_THRESHOLD = 0.88
 DEFAULT_NGRAM_RANGE = (2, 5)
 DEFAULT_MIN_DF = 1

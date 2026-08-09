@@ -11,14 +11,18 @@ def test_clean_casual_message_scores_zero():
 
 def test_malicious_domain_pattern_alone_maxes_out_score():
     """로컬 가드 도메인 룰(.ru, testsafebrowsing)이 매치되면 단독으로 만점(100)이어야 한다 (기존 동작 유지)."""
-    result = analyze_text_with_rules("확인하세요", traced_url="https://malicious.ru/phish")
+    result = analyze_text_with_rules(
+        "확인하세요", traced_url="https://malicious.ru/phish"
+    )
 
     assert result["rule_score"] == 100
     assert result["has_malicious_domain_pattern"] is True
 
 
 def test_testsafebrowsing_domain_hint_is_detected():
-    result = analyze_text_with_rules("링크 확인", traced_url="https://testsafebrowsing.appspot.com/s/malware.html")
+    result = analyze_text_with_rules(
+        "링크 확인", traced_url="https://testsafebrowsing.appspot.com/s/malware.html"
+    )
 
     assert result["has_malicious_domain_pattern"] is True
     assert result["rule_score"] == 100
@@ -75,6 +79,7 @@ def test_rule_score_never_exceeds_100():
     result = analyze_text_with_rules(text, traced_url="https://scam.ru/phish")
 
     assert result["rule_score"] == 100
+
 
 def test_masked_account_token_is_detected():
     """Spring이 마스킹한 [ACCOUNT] 토큰도 계좌번호로 탐지되어야 한다."""

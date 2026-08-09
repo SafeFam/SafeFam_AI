@@ -1,4 +1,5 @@
 """학습, validation threshold 선택, test 평가 흐름"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -36,14 +37,11 @@ class ModelEvaluationResult:
     metadata: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
-
         """평과 결과를 딕셔너리 형태로 직렬화"""
         return {
             "model_name": self.model_name,
             "score_type": self.score_type,
-            "selected_threshold": (
-                self.selected_threshold
-            ),
+            "selected_threshold": (self.selected_threshold),
             "validation": asdict(self.validation),
             "test_metrics": self.test_metrics.to_dict(),
             "latency": asdict(self.latency),
@@ -60,16 +58,13 @@ def train_and_evaluate_model(
     target_recall: float = 0.96,
     latency_sample_count: int = 100,
 ) -> ModelEvaluationResult:
-
     """단일 모델의 공통 학습 및 평가 흐름을 실행"""
 
     # 학습 데이터셋으로 모델 학습
     model.fit(train_df)
 
     # Validation 데이터셋에서 목표 Recall을 달성하는 최적 임계값
-    validation_scores = model.predict_scores(
-        validation_df
-    )
+    validation_scores = model.predict_scores(validation_df)
 
     threshold_selection = select_validation_threshold(
         validation_df["label"].to_numpy(),
@@ -81,9 +76,7 @@ def train_and_evaluate_model(
     test_scores = model.predict_scores(test_df)
 
     if test_scores.score_type != validation_scores.score_type:
-        raise ValueError(
-            "model score type changed between validation and test"
-        )
+        raise ValueError("model score type changed between validation and test")
 
     # 이미 계산한 test score를 재사용
     test_predictions = model.labels_from_scores(
@@ -107,9 +100,7 @@ def train_and_evaluate_model(
     return ModelEvaluationResult(
         model_name=model.model_name,
         score_type=test_scores.score_type.value,
-        selected_threshold=(
-            threshold_selection.threshold
-        ),
+        selected_threshold=(threshold_selection.threshold),
         validation=threshold_selection,
         test_metrics=test_metrics,
         latency=latency,

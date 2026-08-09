@@ -1,13 +1,18 @@
 import re
+
 import pytest
 
 from app.analysis.text.naive_bayes_analyzer import analyze_text_with_naive_bayes
 
 # Spring PiiMaskingService와 동일한 패턴
 _RRN = re.compile(r"(?<!\d)\d{6}[- ]\d{7}(?!\d)")
-_CARD = re.compile(r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)")
+_CARD = re.compile(
+    r"(?<!\d)(?:\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}|\d{4}[- ]?\d{6}[- ]?\d{5})(?!\d)"
+)
 _PHONE = re.compile(r"(?<!\d)(?:0\d{1,2}[- ]?\d{3,4}[- ]?\d{4}|0\d{9,10})(?!\d)")
-_ACCOUNT = re.compile(r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)|(?<!\d)\d{10,14}(?!\d)")
+_ACCOUNT = re.compile(
+    r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)|(?<!\d)\d{10,14}(?!\d)"
+)
 _EMAIL = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
 _URL = re.compile(r"(?i)(?<!@)(?:https?://|www\.)[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+;=%]+")
 
@@ -16,7 +21,7 @@ def mask(text: str) -> str:
     parts = []
     last_end = 0
     for m in _URL.finditer(text):
-        parts.append(_mask_pii(text[last_end:m.start()]))
+        parts.append(_mask_pii(text[last_end : m.start()]))
         parts.append(m.group())
         last_end = m.end()
     parts.append(_mask_pii(text[last_end:]))
@@ -63,23 +68,27 @@ async def test_nb_masking_accuracy():
 
         diff = abs(original_score - masked_score)
 
-        results.append({
-            "original": text,
-            "masked": masked,
-            "original_score": original_score,
-            "masked_score": masked_score,
-            "diff": diff,
-        })
+        results.append(
+            {
+                "original": text,
+                "masked": masked,
+                "original_score": original_score,
+                "masked_score": masked_score,
+                "diff": diff,
+            }
+        )
 
         print(f"\n원문:     {text[:50]}...")
         print(f"마스킹:   {masked[:50]}...")
-        print(f"원문 점수: {original_score} | 마스킹 점수: {masked_score} | 차이: {diff}")
+        print(
+            f"원문 점수: {original_score} | 마스킹 점수: {masked_score} | 차이: {diff}"
+        )
 
     avg_diff = sum(r["diff"] for r in results) / len(results)
     max_diff = max(r["diff"] for r in results)
     over_threshold = [r for r in results if r["diff"] > 5]
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"평균 점수 차이: {avg_diff:.1f}점")
     print(f"최대 점수 차이: {max_diff}점")
     print(f"5점 초과 케이스: {len(over_threshold)}건 / {len(results)}건")
@@ -88,6 +97,8 @@ async def test_nb_masking_accuracy():
         print("\n[5점 초과 케이스]")
         for r in over_threshold:
             print(f"  원문: {r['original'][:50]}")
-            print(f"  원문 점수: {r['original_score']} | 마스킹 점수: {r['masked_score']} | 차이: {r['diff']}")
+            print(
+                f"  원문 점수: {r['original_score']} | 마스킹 점수: {r['masked_score']} | 차이: {r['diff']}"
+            )
 
     assert avg_diff <= 5, f"NB 정확도 하락이 허용 범위 초과: 평균 {avg_diff:.1f}점 차이"

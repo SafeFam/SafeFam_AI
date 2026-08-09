@@ -1,4 +1,5 @@
-""" SMS 데이터 분할 검증 및 통계 보고서 생성"""
+"""SMS 데이터 분할 검증 및 통계 보고서 생성"""
+
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +17,6 @@ from data_science.SMSModel.dataset_splitting import (
 from data_science.SMSModel.template_grouping import (
     TemplateGroupingConfig,
 )
-
 
 REPORT_SCHEMA_VERSION = 1
 
@@ -43,8 +43,7 @@ def calculate_dataset_fingerprint(
 
     if missing:
         raise ValueError(
-            f"cannot calculate dataset fingerprint; "
-            f"missing columns: {missing}"
+            f"cannot calculate dataset fingerprint; missing columns: {missing}"
         )
 
     canonical_rows: list[str] = []
@@ -77,9 +76,7 @@ def calculate_dataset_fingerprint(
 
     canonical_dataset = "\n".join(canonical_rows)
 
-    return hashlib.sha256(
-        canonical_dataset.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(canonical_dataset.encode("utf-8")).hexdigest()
 
 
 def _label_statistics(
@@ -121,13 +118,9 @@ def _split_statistics(
     group_sizes = df["template_group_id"].value_counts()
 
     return {
-        "row_count": int(len(df)),
+        "row_count": len(df),
         "group_count": int(df["template_group_id"].nunique()),
-        "largest_group_size": (
-            int(group_sizes.max())
-            if not group_sizes.empty
-            else 0
-        ),
+        "largest_group_size": (int(group_sizes.max()) if not group_sizes.empty else 0),
         "labels": _label_statistics(df),
         "types": _type_statistics(df),
     }
@@ -154,12 +147,8 @@ def _find_pairwise_overlaps(
     result: dict[str, dict[str, Any]] = {}
 
     for left_name, right_name in pairs:
-        left_values = set(
-            named_splits[left_name][column].astype(str)
-        )
-        right_values = set(
-            named_splits[right_name][column].astype(str)
-        )
+        left_values = set(named_splits[left_name][column].astype(str))
+        right_values = set(named_splits[right_name][column].astype(str))
 
         overlap = sorted(left_values & right_values)
 
@@ -176,10 +165,7 @@ def _total_overlap_count(
     overlap_result: dict[str, dict[str, Any]],
 ) -> int:
     """교차 검증 결과의 전체 중복 건수를 계산"""
-    return sum(
-        int(pair_result["count"])
-        for pair_result in overlap_result.values()
-    )
+    return sum(int(pair_result["count"]) for pair_result in overlap_result.values())
 
 
 def build_dataset_split_summary(
@@ -190,7 +176,7 @@ def build_dataset_split_summary(
     grouping_config: TemplateGroupingConfig,
 ) -> dict[str, Any]:
     """검증을 수행하고 데이터 분할 통계 보고서 dictionary를 생성"""
-  
+
     validate_dataset_splits(
         source,
         splits,
@@ -210,17 +196,11 @@ def build_dataset_split_summary(
 
     return {
         "schema_version": REPORT_SCHEMA_VERSION,
-        "dataset_fingerprint": calculate_dataset_fingerprint(
-            source
-        ),
+        "dataset_fingerprint": calculate_dataset_fingerprint(source),
         "configuration": {
             "template_grouping": {
-                "similarity_threshold": (
-                    grouping_config.similarity_threshold
-                ),
-                "ngram_range": list(
-                    grouping_config.ngram_range
-                ),
+                "similarity_threshold": (grouping_config.similarity_threshold),
+                "ngram_range": list(grouping_config.ngram_range),
                 "min_df": grouping_config.min_df,
                 "max_features": grouping_config.max_features,
             },
@@ -229,29 +209,19 @@ def build_dataset_split_summary(
                 "validation_size": split_config.val_size,
                 "test_size": split_config.test_size,
                 "random_state": split_config.random_state,
-                "candidate_count": (
-                    split_config.candidate_count
-                ),
+                "candidate_count": (split_config.candidate_count),
             },
         },
         "validation": {
             "passed": True,
-            "group_overlap_count": _total_overlap_count(
-                group_overlaps
-            ),
-            "fingerprint_overlap_count": (
-                _total_overlap_count(
-                    fingerprint_overlaps
-                )
-            ),
+            "group_overlap_count": _total_overlap_count(group_overlaps),
+            "fingerprint_overlap_count": (_total_overlap_count(fingerprint_overlaps)),
             "group_overlaps": group_overlaps,
             "fingerprint_overlaps": fingerprint_overlaps,
         },
         "dataset": {
             "row_count": int(total_row_count),
-            "group_count": int(
-                source["template_group_id"].nunique()
-            ),
+            "group_count": int(source["template_group_id"].nunique()),
             "labels": _label_statistics(source),
             "types": _type_statistics(source),
         },
@@ -291,18 +261,9 @@ def render_dataset_split_markdown(
         "## Dataset",
         "",
         f"- Schema version: `{summary['schema_version']}`",
-        (
-            "- Dataset fingerprint: "
-            f"`{summary['dataset_fingerprint']}`"
-        ),
-        (
-            "- Total rows: "
-            f"{summary['dataset']['row_count']}"
-        ),
-        (
-            "- Template groups: "
-            f"{summary['dataset']['group_count']}"
-        ),
+        (f"- Dataset fingerprint: `{summary['dataset_fingerprint']}`"),
+        (f"- Total rows: {summary['dataset']['row_count']}"),
+        (f"- Template groups: {summary['dataset']['group_count']}"),
         "",
         "## Configuration",
         "",
@@ -347,10 +308,7 @@ def render_dataset_split_markdown(
             "## Leakage Validation",
             "",
             f"- Passed: `{validation['passed']}`",
-            (
-                "- Template group overlap count: "
-                f"`{validation['group_overlap_count']}`"
-            ),
+            (f"- Template group overlap count: `{validation['group_overlap_count']}`"),
             (
                 "- Fingerprint overlap count: "
                 f"`{validation['fingerprint_overlap_count']}`"
@@ -371,9 +329,7 @@ def render_dataset_split_markdown(
             ]
         )
 
-        for message_type, statistics in (
-            summary["splits"][split_name]["types"].items()
-        ):
+        for message_type, statistics in summary["splits"][split_name]["types"].items():
             # type 값에 |가 포함되면 Markdown table이 깨지므로 escape
             escaped_type = message_type.replace("|", "\\|")
 

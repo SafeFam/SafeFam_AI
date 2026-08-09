@@ -18,11 +18,7 @@ from app.infrastructure.rabbitmq.schemas import (
     AnalysisRequestedEvent,
 )
 
-
-SENSITIVE_CONTENT = (
-    "[국민은행] 계좌가 정지되었습니다. "
-    "https://malicious.example/login"
-)
+SENSITIVE_CONTENT = "[국민은행] 계좌가 정지되었습니다. https://malicious.example/login"
 
 
 def create_settings(
@@ -30,9 +26,7 @@ def create_settings(
     timeout: float = 1.0,
 ) -> SimpleNamespace:
     return SimpleNamespace(
-        RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY=(
-            "analysis.requested.dead.v1"
-        ),
+        RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY=("analysis.requested.dead.v1"),
         RABBITMQ_PUBLISH_TIMEOUT_SECONDS=timeout,
     )
 
@@ -76,32 +70,20 @@ async def test_publish_sends_sanitized_persistent_event():
     message = exchange.publish.await_args.args[0]
     arguments = exchange.publish.await_args.kwargs
 
-    assert (
-        arguments["routing_key"]
-        == "analysis.requested.dead.v1"
-    )
+    assert arguments["routing_key"] == "analysis.requested.dead.v1"
     assert arguments["mandatory"] is True
     assert message.delivery_mode == DeliveryMode.PERSISTENT
     assert message.content_type == "application/json"
-    assert message.message_id == str(
-        dead_letter_event.eventId
-    )
-    assert message.correlation_id == str(
-        request_event.traceId
-    )
+    assert message.message_id == str(dead_letter_event.eventId)
+    assert message.correlation_id == str(request_event.traceId)
     assert message.headers["sanitized"] is True
 
     body_text = message.body.decode("utf-8")
     body = json.loads(body_text)
 
     assert body["analysisId"] == 123
-    assert body["traceId"] == str(
-        request_event.traceId
-    )
-    assert (
-        body["failureCode"]
-        == "PROCESSING_RETRIES_EXHAUSTED"
-    )
+    assert body["traceId"] == str(request_event.traceId)
+    assert body["failureCode"] == "PROCESSING_RETRIES_EXHAUSTED"
     assert "payload" not in body
     assert "content" not in body
     assert "sender" not in body
@@ -133,6 +115,7 @@ async def test_publish_without_valid_request_uses_no_analysis_data():
 @pytest.mark.asyncio
 async def test_publish_timeout_becomes_retryable_error():
     """DLQ timeout은 원본 재전달을 위한 재시도 오류로 변환합니다."""
+
     async def delayed_publish(*args, **kwargs):
         await asyncio.sleep(0.1)
 
@@ -161,9 +144,7 @@ async def test_publish_timeout_becomes_retryable_error():
 async def test_publish_failure_becomes_retryable_error():
     """브로커 발행 실패는 재시도 가능한 오류로 변환합니다."""
     exchange = AsyncMock()
-    exchange.publish.side_effect = RuntimeError(
-        "RabbitMQ unavailable"
-    )
+    exchange.publish.side_effect = RuntimeError("RabbitMQ unavailable")
 
     publisher = DeadLetterPublisher(
         exchange=exchange,

@@ -38,13 +38,11 @@ def classify_execution(
     text_result = text_analysis.get("result") or {}
     stage1_result = text_analysis.get("stage1_naive_bayes") or {}
 
-    text_failed = (
-        text_result.get("grade") == "UNKNOWN"
-        or text_result.get("error_message")
+    text_failed = text_result.get("grade") == "UNKNOWN" or text_result.get(
+        "error_message"
     )
-    stage1_failed = (
-        stage1_result.get("grade") == "UNKNOWN"
-        or stage1_result.get("error_message")
+    stage1_failed = stage1_result.get("grade") == "UNKNOWN" or stage1_result.get(
+        "error_message"
     )
 
     if text_failed:
@@ -62,10 +60,7 @@ def classify_execution(
     if result.url_analysis is not None and not url_available:
         failed_tracks.append("URL")
     else:
-        failed_tracks.extend(
-            f"URL:{provider}"
-            for provider in failed_providers
-        )
+        failed_tracks.extend(f"URL:{provider}" for provider in failed_providers)
 
     rule_analysis = result.rule_analysis or {}
     if rule_analysis.get("error_message"):

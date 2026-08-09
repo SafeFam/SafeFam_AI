@@ -17,15 +17,9 @@ from app.infrastructure.rabbitmq.schemas import (
 def _publisher():
     exchange = AsyncMock()
     app_settings = SimpleNamespace(
-        RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY=(
-            "analysis.completed.v1"
-        ),
-        RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY=(
-            "analysis.partial.v1"
-        ),
-        RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY=(
-            "analysis.failed.v1"
-        ),
+        RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY=("analysis.completed.v1"),
+        RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY=("analysis.partial.v1"),
+        RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY=("analysis.failed.v1"),
         RABBITMQ_PUBLISH_TIMEOUT_SECONDS=1,
     )
     return (
@@ -58,18 +52,13 @@ async def test_publisher_classifies_timeout_as_retryable():
     ) as captured:
         await publisher.publish(_event())
 
-    assert (
-        captured.value.failure_code
-        == "RESULT_PUBLISH_TIMEOUT"
-    )
+    assert captured.value.failure_code == "RESULT_PUBLISH_TIMEOUT"
 
 
 @pytest.mark.asyncio
 async def test_publisher_classifies_publish_failure_as_retryable():
     publisher, exchange = _publisher()
-    exchange.publish.side_effect = RuntimeError(
-        "unroutable"
-    )
+    exchange.publish.side_effect = RuntimeError("unroutable")
 
     with pytest.raises(
         RetryableProcessingError,
@@ -77,7 +66,4 @@ async def test_publisher_classifies_publish_failure_as_retryable():
     ) as captured:
         await publisher.publish(_event())
 
-    assert (
-        captured.value.failure_code
-        == "RESULT_PUBLISH_FAILED"
-    )
+    assert captured.value.failure_code == "RESULT_PUBLISH_FAILED"

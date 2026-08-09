@@ -1,5 +1,5 @@
-import json
 import asyncio
+import json
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -16,26 +16,19 @@ from app.infrastructure.rabbitmq.consumer import (
     AnalysisRequestConsumer,
 )
 
+
 def create_valid_message_body() -> bytes:
     event_data = {
         "schemaVersion": "1.0",
-        "eventId": (
-            "1fb898fa-d89d-4d0b-a43f-a8b00daeb765"
-        ),
+        "eventId": ("1fb898fa-d89d-4d0b-a43f-a8b00daeb765"),
         "analysisId": 123,
         "clientMessageId": "sms-20260728-001",
-        "traceId": (
-            "2d59c74e-0691-4f01-bde3-c657ba4c90cd"
-        ),
+        "traceId": ("2d59c74e-0691-4f01-bde3-c657ba4c90cd"),
         "occurredAt": "2026-07-28T01:30:00Z",
         "payload": {
             "sender": "1588-0000",
-            "content": (
-                "[국민은행] 계좌가 정지되었습니다."
-            ),
-            "receivedAt": (
-                "2026-07-28T10:29:00+09:00"
-            ),
+            "content": ("[국민은행] 계좌가 정지되었습니다."),
+            "receivedAt": ("2026-07-28T10:29:00+09:00"),
             "source": "AUTO",
         },
     }
@@ -44,6 +37,7 @@ def create_valid_message_body() -> bytes:
         event_data,
         ensure_ascii=False,
     ).encode("utf-8")
+
 
 def create_success_result() -> SmishingAnalysisResponse:
     return SmishingAnalysisResponse(
@@ -93,6 +87,7 @@ def create_message(
 
     return message
 
+
 def create_consumer():
     request_queue = AsyncMock()
     handler = AsyncMock()
@@ -103,9 +98,7 @@ def create_consumer():
     result_factory = Mock()
     result_factory.create.return_value = Mock(
         eventId="result-event-id",
-        eventType=Mock(
-            value="ANALYSIS_COMPLETED"
-        ),
+        eventType=Mock(value="ANALYSIS_COMPLETED"),
     )
 
     dead_letter_publisher = Mock()
@@ -122,6 +115,7 @@ def create_consumer():
 
     return consumer, request_queue, handler
 
+
 @pytest.mark.asyncio
 async def test_consumer_acknowledges_successful_message():
     """정상 처리 ACK 테스트"""
@@ -137,26 +131,15 @@ async def test_consumer_acknowledges_successful_message():
 
     handled_event = handler.handle.await_args.args[0]
     assert handled_event.analysisId == 123
-    assert handled_event.payload.content == (
-        "[국민은행] 계좌가 정지되었습니다."
-    )
+    assert handled_event.payload.content == ("[국민은행] 계좌가 정지되었습니다.")
 
     consumer.result_factory.create.assert_called_once()
-    factory_arguments = (
-        consumer.result_factory.create.call_args.kwargs
-    )
+    factory_arguments = consumer.result_factory.create.call_args.kwargs
     assert factory_arguments["request"] is handled_event
-    assert (
-        factory_arguments["execution"].status.value
-        == "COMPLETED"
-    )
+    assert factory_arguments["execution"].status.value == "COMPLETED"
 
-    result_event = (
-        consumer.result_factory.create.return_value
-    )
-    consumer.result_publisher.publish.assert_awaited_once_with(
-        result_event
-    )
+    result_event = consumer.result_factory.create.return_value
+    consumer.result_publisher.publish.assert_awaited_once_with(result_event)
 
     message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
@@ -170,8 +153,8 @@ async def test_consumer_does_not_ack_when_publication_fails():
     message = create_message()
 
     handler.handle.return_value = create_success_result()
-    consumer.result_publisher.publish.side_effect = (
-        RuntimeError("RabbitMQ publish failed")
+    consumer.result_publisher.publish.side_effect = RuntimeError(
+        "RabbitMQ publish failed"
     )
 
     await consumer._on_message(message)
@@ -192,16 +175,12 @@ async def test_consumer_publishes_failed_result_and_acks():
 
     await consumer._on_message(message)
 
-    factory_arguments = (
-        consumer.result_factory.create.call_args.kwargs
-    )
-    assert (
-        factory_arguments["execution"].status.value
-        == "FAILED"
-    )
+    factory_arguments = consumer.result_factory.create.call_args.kwargs
+    assert factory_arguments["execution"].status.value == "FAILED"
     consumer.result_publisher.publish.assert_awaited_once()
     message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
+
 
 @pytest.mark.asyncio
 async def test_consumer_routes_invalid_json_to_sanitized_dlq():
@@ -221,6 +200,7 @@ async def test_consumer_routes_invalid_json_to_sanitized_dlq():
     message.nack.assert_not_awaited()
     message.reject.assert_not_awaited()
 
+
 @pytest.mark.asyncio
 async def test_consumer_routes_unsupported_schema_to_dlq():
     """지원하지 않는 버전은 정제된 DLQ 이벤트로 격리합니다."""
@@ -232,9 +212,7 @@ async def test_consumer_routes_unsupported_schema_to_dlq():
         "analysisId": 0,
     }
 
-    message = create_message(
-        body=json.dumps(invalid_event).encode("utf-8")
-    )
+    message = create_message(body=json.dumps(invalid_event).encode("utf-8"))
 
     await consumer._on_message(message)
 
@@ -274,24 +252,22 @@ async def test_consumer_routes_invalid_event_schema_to_dlq():
     message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
 
+
 @pytest.mark.asyncio
 async def test_consumer_requeues_first_processing_failure():
     """최초 분석 실패 재시도 테스트"""
     consumer, _, handler = create_consumer()
     message = create_message(redelivered=False)
 
-    handler.handle.side_effect = RuntimeError(
-        "Temporary analysis failure"
-    )
+    handler.handle.side_effect = RuntimeError("Temporary analysis failure")
 
     await consumer._on_message(message)
 
     handler.handle.assert_awaited_once()
-    message.nack.assert_awaited_once_with(
-        requeue=True
-    )
+    message.nack.assert_awaited_once_with(requeue=True)
     message.ack.assert_not_awaited()
     message.reject.assert_not_awaited()
+
 
 @pytest.mark.asyncio
 async def test_consumer_treats_redelivery_as_retry_attempt():
@@ -299,9 +275,7 @@ async def test_consumer_treats_redelivery_as_retry_attempt():
     consumer, _, handler = create_consumer()
     message = create_message(redelivered=True)
 
-    handler.handle.side_effect = RuntimeError(
-        "Temporary analysis failure"
-    )
+    handler.handle.side_effect = RuntimeError("Temporary analysis failure")
 
     await consumer._on_message(message)
 
@@ -310,6 +284,7 @@ async def test_consumer_treats_redelivery_as_retry_attempt():
     message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
 
+
 @pytest.mark.asyncio
 async def test_consumer_routes_to_dlq_after_retry_fails():
     """기록된 재시도까지 실패하면 정제 DLQ로 격리합니다."""
@@ -317,28 +292,15 @@ async def test_consumer_routes_to_dlq_after_retry_fails():
     first_message = create_message(redelivered=False)
     second_message = create_message(redelivered=True)
 
-    handler.handle.side_effect = RuntimeError(
-        "Analysis failure"
-    )
+    handler.handle.side_effect = RuntimeError("Analysis failure")
 
     await consumer._on_message(first_message)
     await consumer._on_message(second_message)
 
-    first_message.nack.assert_awaited_once_with(
-        requeue=True
-    )
-    dlq_arguments = (
-        consumer.dead_letter_publisher
-        .publish.call_args.kwargs
-    )
-    assert (
-        dlq_arguments["original_message_id"]
-        == second_message.message_id
-    )
-    assert (
-        dlq_arguments["failure_code"]
-        == "PROCESSING_RETRIES_EXHAUSTED"
-    )
+    first_message.nack.assert_awaited_once_with(requeue=True)
+    dlq_arguments = consumer.dead_letter_publisher.publish.call_args.kwargs
+    assert dlq_arguments["original_message_id"] == second_message.message_id
+    assert dlq_arguments["failure_code"] == "PROCESSING_RETRIES_EXHAUSTED"
     assert dlq_arguments["request_event"].analysisId == 123
     second_message.ack.assert_awaited_once()
     second_message.reject.assert_not_awaited()
@@ -350,9 +312,7 @@ async def test_consumer_requeues_when_dlq_publication_fails():
     consumer, _, handler = create_consumer()
     message = create_message(body=b"{invalid-json")
 
-    consumer.dead_letter_publisher.publish.side_effect = (
-        RuntimeError("DLQ unavailable")
-    )
+    consumer.dead_letter_publisher.publish.side_effect = RuntimeError("DLQ unavailable")
 
     await consumer._on_message(message)
 
@@ -375,17 +335,12 @@ async def test_consumer_routes_non_retryable_processing_error_to_dlq():
 
     await consumer._on_message(message)
 
-    dlq_arguments = (
-        consumer.dead_letter_publisher
-        .publish.call_args.kwargs
-    )
-    assert (
-        dlq_arguments["failure_code"]
-        == "INVALID_PROVIDER_CREDENTIALS"
-    )
+    dlq_arguments = consumer.dead_letter_publisher.publish.call_args.kwargs
+    assert dlq_arguments["failure_code"] == "INVALID_PROVIDER_CREDENTIALS"
     assert dlq_arguments["request_event"].analysisId == 123
     message.ack.assert_awaited_once()
     message.nack.assert_not_awaited()
+
 
 @pytest.mark.asyncio
 async def test_consumer_uses_broker_delivery_count():
@@ -394,23 +349,20 @@ async def test_consumer_uses_broker_delivery_count():
     message = create_message()
     message.headers = {"x-delivery-count": 1}
 
-    handler.handle.side_effect = RuntimeError(
-        "Temporary analysis failure"
-    )
+    handler.handle.side_effect = RuntimeError("Temporary analysis failure")
 
     await consumer._on_message(message)
 
     consumer.dead_letter_publisher.publish.assert_awaited_once()
     message.ack.assert_awaited_once()
 
+
 @pytest.mark.asyncio
 async def test_consumer_start_subscribes_to_queue():
     """Consumer 시작 테스트"""
     consumer, request_queue, _ = create_consumer()
 
-    request_queue.consume.return_value = (
-        "analysis-consumer-tag"
-    )
+    request_queue.consume.return_value = "analysis-consumer-tag"
 
     await consumer.start()
 
@@ -418,23 +370,21 @@ async def test_consumer_start_subscribes_to_queue():
         consumer._on_message,
         no_ack=False,
     )
-    assert consumer.consumer_tag == (
-        "analysis-consumer-tag"
-    )
+    assert consumer.consumer_tag == ("analysis-consumer-tag")
+
 
 @pytest.mark.asyncio
 async def test_consumer_start_is_idempotent():
     """Consumer 중복 시작 방지 테스트"""
     consumer, request_queue, _ = create_consumer()
 
-    request_queue.consume.return_value = (
-        "analysis-consumer-tag"
-    )
+    request_queue.consume.return_value = "analysis-consumer-tag"
 
     await consumer.start()
     await consumer.start()
 
     request_queue.consume.assert_awaited_once()
+
 
 @pytest.mark.asyncio
 async def test_consumer_stop_cancels_subscription():
@@ -444,10 +394,9 @@ async def test_consumer_stop_cancels_subscription():
 
     await consumer.stop()
 
-    request_queue.cancel.assert_awaited_once_with(
-        "analysis-consumer-tag"
-    )
+    request_queue.cancel.assert_awaited_once_with("analysis-consumer-tag")
     assert consumer.consumer_tag is None
+
 
 @pytest.mark.asyncio
 async def test_consumer_stop_before_start_does_nothing():
@@ -469,9 +418,7 @@ async def test_consumer_stop_waits_for_in_flight_task():
 
     await consumer.stop()
 
-    request_queue.cancel.assert_awaited_once_with(
-        "analysis-consumer-tag"
-    )
+    request_queue.cancel.assert_awaited_once_with("analysis-consumer-tag")
     assert task.done()
 
 
@@ -488,9 +435,7 @@ async def test_consumer_stop_returns_after_shutdown_timeout():
     try:
         await consumer.stop()
 
-        request_queue.cancel.assert_awaited_once_with(
-            "analysis-consumer-tag"
-        )
+        request_queue.cancel.assert_awaited_once_with("analysis-consumer-tag")
         assert not task.done()
     finally:
         task.cancel()

@@ -1,8 +1,9 @@
 import unittest
+
 from app.analysis.url.tracker import extract_urls as extract_urls_from_text
 
-class TestUrlExtractor(unittest.TestCase):
 
+class TestUrlExtractor(unittest.TestCase):
     def test_no_url_text(self):
         """시나리오 1: URL이 아예 없는 순수 대화 텍스트 -> 빈 리스트 반환"""
         text = "안녕하세요! 오늘 점심 뭐 드실래요? 맛있는 거 추천해주세요."
@@ -32,5 +33,6 @@ class TestUrlExtractor(unittest.TestCase):
         expected = ["https://bit.ly/3xyz"]
         self.assertEqual(extract_urls_from_text(text), expected)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

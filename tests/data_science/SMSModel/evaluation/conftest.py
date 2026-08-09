@@ -1,6 +1,5 @@
 """공통 평가기 테스트에서 사용하는 가짜 모델과 데이터."""
 
-import numpy as np
 import pandas as pd
 import pytest
 

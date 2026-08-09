@@ -4,7 +4,9 @@
 (pytest.ini의 `-m "not integration"`), 필요할 때 `pytest -m integration`으로 명시적으로
 실행해야 한다. 결정론적인 단위 동작 검증은 tests/url/test_url_tracer.py가 담당한다.
 """
+
 import pytest
+
 from app.analysis.url.tracker import trace_url
 
 

@@ -1,15 +1,22 @@
-import logging
 import asyncio
-from typing import Awaitable, Callable, Optional
-from app.analysis.schemas import SmishingAnalysisResponse, UrlAnalysisResponse, RiskGrade, ContributionBreakdown
-from app.analysis.url.tracker import extract_urls, trace_url
+import logging
+from collections.abc import Awaitable, Callable
+
+from app.analysis.rules.analyzer import analyze_text_with_rules
+from app.analysis.schemas import (
+    ContributionBreakdown,
+    RiskGrade,
+    SmishingAnalysisResponse,
+    UrlAnalysisResponse,
+)
 from app.analysis.scoring import RiskScoringEngine
 from app.analysis.text.gemini_analyzer import analyze_text_with_gemini
 from app.analysis.text.naive_bayes_analyzer import analyze_text_with_naive_bayes
-from app.analysis.rules.analyzer import analyze_text_with_rules
 from app.analysis.url.analyzer import HybridUrlAnalyzer
+from app.analysis.url.tracker import extract_urls, trace_url
 
 logger = logging.getLogger(__name__)
+
 
 class SmishingAnalysisService:
     def __init__(
@@ -20,13 +27,15 @@ class SmishingAnalysisService:
         rule_analyzer: Callable[[str, str | None], dict] | None = None,
     ):
         self.url_analyzer = url_analyzer or HybridUrlAnalyzer()
-        self.naive_bayes_analyzer = naive_bayes_analyzer or analyze_text_with_naive_bayes
+        self.naive_bayes_analyzer = (
+            naive_bayes_analyzer or analyze_text_with_naive_bayes
+        )
         self.gemini_analyzer = gemini_analyzer or analyze_text_with_gemini
         self.rule_analyzer = rule_analyzer or analyze_text_with_rules
 
     # 1차 나이브 베이즈 선별 후, SAFE 기준 미만(의심)일 때만 Gemini 2차 검증을 호출하는 하이브리드 텍스트 트랙
     # 반환값: (text_analysis 응답용 dict, 나이브 베이즈 점수(미수행 시 None), Gemini 2차 검증 정상 수행 여부)
-    async def _analyze_text_hybrid(self, text: str) -> tuple[dict, Optional[int], bool]:
+    async def _analyze_text_hybrid(self, text: str) -> tuple[dict, int | None, bool]:
         nb_result = await self.naive_bayes_analyzer(text)
         nb_grade = nb_result.get("result", {}).get("grade")
         nb_score = nb_result.get("result", {}).get("risk_score", 0)
@@ -57,15 +66,20 @@ class SmishingAnalysisService:
 
             if has_url:
                 original_url = urls[0]
+
                 async def url_track():
                     traced = await trace_url(original_url)
                     res = await self.url_analyzer.scan_url(traced)
                     return traced, res
+
                 url_task = asyncio.create_task(url_track())
 
             # 병렬 실행 공정
             if url_task:
-                (text_analysis, naive_bayes_score, llm_available), (traced_url, hybrid_res) = await asyncio.gather(text_task, url_task)
+                (
+                    (text_analysis, naive_bayes_score, llm_available),
+                    (traced_url, hybrid_res),
+                ) = await asyncio.gather(text_task, url_task)
             else:
                 (
                     text_analysis,
@@ -93,10 +107,7 @@ class SmishingAnalysisService:
                 else {}
             )
             llm_score = text_result.get("risk_score", 0)
-            text_available = (
-                naive_bayes_score is not None
-                or llm_available
-            )
+            text_available = naive_bayes_score is not None or llm_available
 
             # 로컬 규칙 기반 트랙: 금융기관 DB 대조 + 금융 키워드 + 계좌/카드번호 패턴 + 도메인 룰(.ru 등)
             try:
@@ -114,10 +125,7 @@ class SmishingAnalysisService:
                 }
 
             rules_available = not bool(rule_result.get("error_message"))
-            url_available = (
-                has_url
-                and hybrid_res.get("available", False)
-            )
+            url_available = has_url and hybrid_res.get("available", False)
 
             if rule_result.get("has_malicious_domain_pattern", False):
                 hybrid_res["is_malicious"] = True
@@ -135,14 +143,10 @@ class SmishingAnalysisService:
             )
 
             no_reliable_signal = (
-                not text_available
-                and not url_available
-                and not rules_available
+                not text_available and not url_available and not rules_available
             )
             if no_reliable_signal:
-                raise ValueError(
-                    "No reliable analysis signal is available"
-                )
+                raise ValueError("No reliable analysis signal is available")
 
             # 3중 스코어링 최종 계산 (텍스트 트랙은 나이브 베이즈 + Gemini 하이브리드 결합 점수 사용,
             # URL 없으면 URL 트랙(30%)이 LLM/규칙 트랙으로 재배분됨)
@@ -190,7 +194,7 @@ class SmishingAnalysisService:
                 contribution_breakdown=breakdown,
                 text_analysis=text_analysis,
                 url_analysis=real_url_analysis,
-                rule_analysis=rule_result
+                rule_analysis=rule_result,
             )
         except Exception as exception:
             logger.error(
@@ -207,31 +211,33 @@ class SmishingAnalysisService:
                 message="분석 파이프라인 처리 중 오류가 발생했습니다.",
                 final_score=RiskScoringEngine.PIPELINE_FAILURE_FALLBACK_SCORE,
                 risk_grade=RiskGrade.MEDIUM,
-                contribution_breakdown=ContributionBreakdown(llm=0, hybrid_url=0, rules=0),
+                contribution_breakdown=ContributionBreakdown(
+                    llm=0, hybrid_url=0, rules=0
+                ),
                 text_analysis=None,
                 url_analysis=None,
-                rule_analysis=None
+                rule_analysis=None,
             )
 
     async def scan_message_text(self, message: str) -> UrlAnalysisResponse:
         urls = extract_urls(message)
-        if not urls: 
+        if not urls:
             return UrlAnalysisResponse(
-                has_url=False, 
-                original_url=None, 
-                traced_url=None, 
-                is_url_malicious=False, 
-                url_risk_score=0.0, 
-                engine_source="Pre-Processing-Filter"
+                has_url=False,
+                original_url=None,
+                traced_url=None,
+                is_url_malicious=False,
+                url_risk_score=0.0,
+                engine_source="Pre-Processing-Filter",
             )
         traced_url = await trace_url(urls[0])
         res = await self.url_analyzer.scan_url(traced_url)
         return UrlAnalysisResponse(
-            has_url=True, 
-            original_url=urls[0], 
-            traced_url=traced_url, 
-            is_url_malicious=res["is_malicious"], 
-            url_risk_score=res["url_risk_score"], 
-            engine_source=res["source"], 
-            error_message=res["error_message"]
+            has_url=True,
+            original_url=urls[0],
+            traced_url=traced_url,
+            is_url_malicious=res["is_malicious"],
+            url_risk_score=res["url_risk_score"],
+            engine_source=res["source"],
+            error_message=res["error_message"],
         )

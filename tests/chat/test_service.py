@@ -1,6 +1,7 @@
+from unittest.mock import AsyncMock, patch
+
 import httpx
 import pytest
-from unittest.mock import AsyncMock, patch
 
 from app.chat.schemas import AnalysisContext, ChatMessage, ChatRequest, ChatRole
 from app.chat.service import ChatService, ChatServiceError
@@ -92,7 +93,9 @@ async def test_get_response_raises_on_rate_limit():
     error = httpx.HTTPStatusError(
         "rate limited",
         request=httpx.Request("POST", "https://example.com"),
-        response=httpx.Response(429, request=httpx.Request("POST", "https://example.com")),
+        response=httpx.Response(
+            429, request=httpx.Request("POST", "https://example.com")
+        ),
     )
 
     with patch(

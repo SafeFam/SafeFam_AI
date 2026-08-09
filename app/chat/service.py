@@ -56,9 +56,7 @@ class ChatService:
 
         payload = {
             "system_instruction": {
-                "parts": [
-                    {"text": build_system_prompt(request.analysisContext)}
-                ]
+                "parts": [{"text": build_system_prompt(request.analysisContext)}]
             },
             "contents": _build_contents(request.messages),
         }

@@ -10,7 +10,6 @@ from sklearn.neighbors import NearestNeighbors
 from .config import TemplateGroupingConfig
 from .fingerprint import add_text_fingerprints
 
-
 GROUP_ID_HASH_LENGTH = 12
 
 
@@ -81,9 +80,7 @@ def _find_similar_pairs(
     for left, (row_distances, row_indices) in enumerate(
         zip(distances, indices, strict=True)
     ):
-        for distance, right_value in zip(
-            row_distances, row_indices, strict=True
-        ):
+        for distance, right_value in zip(row_distances, row_indices, strict=True):
             right = int(right_value)
             if left >= right:
                 continue
