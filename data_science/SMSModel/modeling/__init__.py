@@ -8,12 +8,20 @@ from .base import (
     ScoreOutput,
     ScoreType,
 )
+from .linear_svm import (
+    LinearSvmPhishingClassifier,
+)
+from .logistic_regression import (
+    LogisticRegressionPhishingClassifier,
+)
 from .naive_bayes import (
     NaiveBayesPhishingClassifier,
 )
 
 __all__ = [
     "BasePhishingClassifier",
+    "LinearSvmPhishingClassifier",
+    "LogisticRegressionPhishingClassifier",
     "NaiveBayesPhishingClassifier",
     "ScoreOutput",
     "ScoreType",
