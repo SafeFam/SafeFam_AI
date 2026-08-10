@@ -57,7 +57,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    analysisContext: AnalysisContext
+    analysisContext: AnalysisContext | None = None
     messages: list[ChatMessage] = Field(..., min_length=1)
 
 
