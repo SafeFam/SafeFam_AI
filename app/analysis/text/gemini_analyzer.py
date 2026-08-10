@@ -30,7 +30,7 @@ RESPONSE_SCHEMA = {
         "evidence": {
             "type": "ARRAY",
             "items": {"type": "STRING"},
-            "description": "위험도 판단의 구체적 근거가 된 문장/표현 인용 목록 (SAFE 일상 대화인 경우 반드시 빈 리스트 [])",
+            "description": "위험도 판단 근거를 AI가 분석하여 생성한 설명 목록 (원문 인용 금지. SAFE인 경우 반드시 빈 리스트 [])",
         },
         "reason": {"type": "STRING", "description": "종합 판단 이유 요약"},
     },
@@ -66,7 +66,7 @@ SYSTEM_PROMPT = (
     "  Output: {\n"
     '    "risk_score": 90,\n'
     '    "tone_analysis": "공공기관 사칭 및 데드라인 설정을 통한 심리적 긴급성 유도 어조",\n'
-    '    "evidence": ["국민건강보험", "즉시 확인하세요"],\n'
+    '    "evidence": ["공공기관 사칭이 감지되었습니다.", "긴급성을 유도하는 표현이 포함되어 있습니다."],\n'
     '    "reason": "공공기관인 국민건강보험공단을 사칭하고 있으며, \'즉시\'라는 표현으로 사용자의 불안감과 급박한 심리를 자극하여 첨부된 출처 불명의 악성 URL 링크 클릭을 유도하는 전형적인 기관 사칭형 피싱 메시지입니다."\n'
     "  }\n\n"
     "--- OUTPUT COMPLIANCE ---\n"
