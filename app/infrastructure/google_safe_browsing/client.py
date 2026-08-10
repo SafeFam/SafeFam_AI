@@ -7,6 +7,12 @@ from app.infrastructure.http_retry import request_with_retry
 
 logger = logging.getLogger(__name__)
 
+# GSB API는 키를 URL 쿼리 파라미터로 요구하는데, httpx는 INFO 레벨에서 요청 URL 전체를
+# 그대로 로깅한다. 이 클라이언트를 임포트하는 모든 진입점(운영 서버뿐 아니라 임시
+# 스크립트 포함)에서 키가 로그로 새는 것을 막기 위해 임포트 시점에 httpx 로거를 낮춘다.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 
 class GoogleSafeBrowsingClient:
     """Google Safe Browsing API를 사용하여 URL의 악성 여부를 검사"""
