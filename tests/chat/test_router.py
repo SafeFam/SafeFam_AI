@@ -60,11 +60,11 @@ def test_chat_endpoint_rejects_blank_message_content():
     assert response.status_code == 422
 
 
-def test_chat_endpoint_rejects_missing_analysis_context():
+def test_chat_endpoint_accepts_missing_analysis_context():
     payload = _payload()
     del payload["analysisContext"]
     response = client.post("/api/chat", json=payload)
-    assert response.status_code == 422
+    assert response.status_code == 200
 
 
 def test_chat_endpoint_returns_502_on_service_error():
