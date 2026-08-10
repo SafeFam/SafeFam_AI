@@ -25,7 +25,7 @@ _classifier: StackingPhishingClassifier | None = None
 _load_error: str | None = None
 
 def _load_classifier(
-    model_path: Path = DEFAULT_STACKING_MODEL_PATH,    
+    model_path: Path = DEFAULT_STACKING_MODEL_PATH,
 ) -> None:
     """artifact를 프로세스당 한 번만 안전하게 로드"""
 

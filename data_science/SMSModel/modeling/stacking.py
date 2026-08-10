@@ -34,6 +34,18 @@ from data_science.SMSModel.modeling.naive_bayes import (
 DEFAULT_OOF_SPLITS = 5
 DEFAULT_RANDOM_STATE = 42
 
+
+def _build_text_only_naive_bayes() -> BasePhishingClassifier:
+    """구조 특징을 중복 사용하지 않는 Naive Bayes를 생성합니다.
+
+    Artifact 직렬화를 지원하려면 factory가 pickle로 참조 가능한 모듈
+    최상위 함수여야 합니다. 지역 lambda는 joblib로 저장할 수 없습니다.
+    """
+
+    return NaiveBayesPhishingClassifier(
+        include_structural_features=False
+    )
+
 @dataclass(frozen=True)
 class StackingPrediction:
     """자체 stacking 모델의 단일 메시지 예측 결과"""
@@ -53,9 +65,7 @@ def _default_base_model_factories(
     return {
         # 구조 특징은 meta-classifier에 별도로 제공
         # 따라서 NB에는 구조 특징을 다시 넣지 않아 중복 반영을 피함
-        "naive_bayes": lambda: NaiveBayesPhishingClassifier(
-            include_structural_features=False
-        ),
+        "naive_bayes": _build_text_only_naive_bayes,
         "logistic_regression": LogisticRegressionPhishingClassifier,
         "linear_svm": LinearSvmPhishingClassifier,
     }
@@ -166,7 +176,7 @@ class StackingPhishingClassifier:
         *,
         base_scores: dict[str, np.ndarray],
         availability: dict[str, np.ndarray],
-        structural_features: np.ndarray,   
+        structural_features: np.ndarray,
     ) -> np.ndarray:
         """모델 점수, 가용 상태, 구조 특징을 하나의 행렬로 결합"""
 
@@ -281,7 +291,7 @@ class StackingPhishingClassifier:
 
     def _predict_base_features(
         self,
-        df: pd.DataFrame,    
+        df: pd.DataFrame,
     ) -> tuple[
         dict[str, np.ndarray],
         dict[str, np.ndarray],
@@ -321,11 +331,15 @@ class StackingPhishingClassifier:
             tuple(unavailable_models),
         )
 
-    def predict_probabilities(
-            self,
-            df: pd.DataFrame,
-    ) -> tuple[np.ndarray, tuple[str, ...]]:
-        """피싱 클래스 확률과 사용할 수 없었던 모델 목록 반환"""
+    def _predict_probability_details(
+        self,
+        df: pd.DataFrame,
+    ) -> tuple[
+        np.ndarray,
+        tuple[str, ...],
+        dict[str, np.ndarray],
+    ]:
+        """한 번의 base 추론으로 확률과 단계별 세부 정보를 반환합니다."""
 
         self._require_fitted()
         self._validate_dataframe(
@@ -377,7 +391,22 @@ class StackingPhishingClassifier:
                 # 모든 모델이 실패한 경우 정상 판정 반환 X
                 probabilities = np.ones(len(df), dtype=np.float64)
 
-        return np.clip(probabilities, 0.0, 1.0), unavailable
+        return (
+            np.clip(probabilities, 0.0, 1.0),
+            unavailable,
+            base_scores,
+        )
+
+    def predict_probabilities(
+        self,
+        df: pd.DataFrame,
+    ) -> tuple[np.ndarray, tuple[str, ...]]:
+        """피싱 클래스 확률과 사용할 수 없었던 모델 목록을 반환합니다."""
+
+        probabilities, unavailable, _base_scores = (
+            self._predict_probability_details(df)
+        )
+        return probabilities, unavailable
 
     def predict_one(self, text: str) -> StackingPrediction:
         """단일 메시지의 위험 점수와 신뢰도를 반환"""
@@ -400,13 +429,13 @@ class StackingPhishingClassifier:
             ]
         )
 
-        probabilities, unavailable = self.predict_probabilities(df)
+        probabilities, unavailable, base_scores = (
+            self._predict_probability_details(df)
+        )
         probability = float(probabilities[0])
 
         # 0.5에서 멀수록 확신이 높은 것으로 정의
         confidence = min(1.0, abs(probability - 0.5) * 2.0)
-
-        base_scores, _, _ = self._predict_base_features(df)
 
         return StackingPrediction(
             risk_probability=probability,

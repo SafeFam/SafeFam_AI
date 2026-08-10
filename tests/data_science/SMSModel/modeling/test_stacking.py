@@ -171,3 +171,37 @@ def test_prediction_is_reproducible(
     second = classifier.predict_one("즉시 계좌로 송금하세요")
 
     assert first == second
+
+
+def test_predict_one_runs_each_base_model_once(
+    stacking_training_dataframe: pd.DataFrame,
+) -> None:
+    classifier = StackingPhishingClassifier(
+        n_splits=3,
+        base_model_factories=build_factories(),
+    )
+    classifier.fit(stacking_training_dataframe)
+
+    call_counts: dict[str, int] = {}
+
+    for name, model in classifier.base_models.items():
+        original_predict_scores = model.predict_scores
+
+        def counted_predict_scores(
+            df: pd.DataFrame,
+            *,
+            model_name: str = name,
+            predict=original_predict_scores,
+        ) -> ScoreOutput:
+            call_counts[model_name] = call_counts.get(model_name, 0) + 1
+            return predict(df)
+
+        model.predict_scores = counted_predict_scores  # type: ignore[method-assign]
+
+    classifier.predict_one("즉시 계좌로 송금하세요")
+
+    assert call_counts == {
+        "model_a": 1,
+        "model_b": 1,
+        "model_c": 1,
+    }

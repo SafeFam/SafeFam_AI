@@ -47,19 +47,48 @@ def select_validation_threshold(
     probabilities: np.ndarray,
     labels: pd.Series,
     *,
-    target_recall: float = TARGET_RECALL,   
+    target_recall: float = TARGET_RECALL,
 ) -> tuple[float, dict[str, float]]:
     """Recall 목표를 만족하는 후보 중 F2가 가장 높은 임계 값을 선택"""
 
+    probability_array = np.asarray(probabilities, dtype=np.float64)
+
+    if probability_array.ndim != 1:
+        raise ValueError("probabilities must be one-dimensional")
+
+    if len(probability_array) != len(labels):
+        raise ValueError("probabilities and labels must have the same length")
+
+    if len(probability_array) == 0:
+        raise ValueError("validation data must not be empty")
+
+    if not np.isfinite(probability_array).all():
+        raise ValueError("probabilities must contain only finite values")
+
+    if ((probability_array < 0.0) | (probability_array > 1.0)).any():
+        raise ValueError("probabilities must be between 0 and 1")
+
+    if not 0.0 < target_recall <= 1.0:
+        raise ValueError("target_recall must be between 0 and 1")
+
+    normalized_labels = labels.astype(str)
+    supported_labels = {"normal", "phishing"}
+    observed_labels = set(normalized_labels)
+
+    if observed_labels != supported_labels:
+        raise ValueError(
+            "validation labels must contain normal and phishing"
+        )
+
     binary_labels = (
-        labels.astype(str) == "phishing"
+        normalized_labels == "phishing"
     ).astype(int).to_numpy()
 
     candidates = np.unique(
         np.concatenate(
             [
                 np.linspace(0.01, 0.99, 99),
-                probabilities,
+                probability_array,
             ]
         )
     )
@@ -67,7 +96,7 @@ def select_validation_threshold(
     best: tuple[float, float, float] | None = None
 
     for threshold in candidates:
-        predictions = (probabilities >= threshold).astype(int)
+        predictions = (probability_array >= threshold).astype(int)
         recall = recall_score(
             binary_labels,
             predictions,
@@ -92,7 +121,7 @@ def select_validation_threshold(
         # 목표 Recall을 만족하지 못하면 validation에서 Recall이
         # 최대가 되는 보수적인 최저 임계값을 사용
         threshold = float(np.min(candidates))
-        predictions = (probabilities >= threshold).astype(int)
+        predictions = (probability_array >= threshold).astype(int)
 
         return threshold, {
             "recall": float(
@@ -154,7 +183,9 @@ def save_artifact(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model": classifier.get_metadata(),
         "validation": validation_metrics,
-        "dataset_path": DATA_PATH.as_posix(),
+        "dataset_path": DATA_PATH.relative_to(
+            SMS_MODEL_DIRECTORY.parent
+        ).as_posix(),
         "split_manifest": SPLIT_MANIFEST_PATH.name,
         "model_sha256": calculate_sha256(STACKING_MODEL_PATH),
         # 원문 데이터, API Key 및 환경변수는 기록하지 않습니다.
@@ -172,7 +203,7 @@ def save_artifact(
     )
 
     # 저장 직후 로드하여 손상되거나 불완전한 artifact를 방지
-    loaded = joblib.load(STACKING_METADATA_PATH)
+    loaded = joblib.load(STACKING_MODEL_PATH)
 
     if loaded.get("schema_version") != 1:
         raise RuntimeError("invalid stacking artifact schema")

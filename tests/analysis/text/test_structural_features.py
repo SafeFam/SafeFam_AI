@@ -73,4 +73,4 @@ def test_empty_input_returns_empty_matrix() -> None:
 
 def test_rejects_non_string_input() -> None:
     with pytest.raises(TypeError, match="text must be a string"):
-        extract_stacking_structural_features(123)  
+        extract_stacking_structural_features(123)
