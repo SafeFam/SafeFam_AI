@@ -15,3 +15,4 @@ __pycache__/
 secrets/
 *.pem
 *.key
+scripts/adversarial_test/output/
