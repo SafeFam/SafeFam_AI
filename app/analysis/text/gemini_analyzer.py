@@ -113,7 +113,7 @@ async def analyze_text_with_gemini(text: str) -> dict:
         mock_data = {
             "risk_score": 85,
             "tone_analysis": "긴급성 유도 및 기관 사칭 권위적 어조 감지",
-            "evidence": ["발급 완료. 즉시 확인하세요.", "국민건강보험"],
+            "evidence": ["공공기관 사칭이 감지되었습니다.", "긴급성을 유도하는 표현이 포함되어 있습니다."],
             "reason": "[시연용 데이터] 건강검진 보고서 형식을 사칭하여 사용자의 급박한 클릭을 유도하는 전형적인 피싱 패턴입니다.",
         }
         return _build_result(mock_data, is_mock=True)
