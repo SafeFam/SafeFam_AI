@@ -116,20 +116,39 @@ def _text_detail(
     failed_tracks: tuple[str, ...],
 ) -> TextAnalysisDetail:
     result = text.get("result") or {}
-    stage1 = text.get("stage1_naive_bayes")
+    self_model = text.get("self_model") or {}
+
+    decision_source = text.get(
+        "decision_source"
+    )
+    gemini_called = bool(
+        text.get("gemini_called")
+    )
 
     if result.get("grade") == "UNKNOWN":
         method = TextAnalysisMethod.UNAVAILABLE
-    elif stage1 is not None:
-        method = TextAnalysisMethod.NAIVE_BAYES_GEMINI
-    elif text.get("engine") == "naive_bayes":
-        method = TextAnalysisMethod.NAIVE_BAYES
+
+    elif decision_source == "STACKING":
+        method = TextAnalysisMethod.STACKING
+
+    elif decision_source == "STACKING_FALLBACK":
+        method = (
+            TextAnalysisMethod.STACKING_FALLBACK
+        )
+
+    elif gemini_called:
+        method = (
+            TextAnalysisMethod.STACKING_GEMINI
+        )
+
     else:
         method = TextAnalysisMethod.GEMINI
 
     return TextAnalysisDetail(
         method=method,
-        score=_integer_score(result.get("risk_score")),
+        score=_integer_score(
+            result.get("risk_score")
+        ),
         grade=result.get("grade"),
         reason=result.get("reason"),
         evidence=result.get("evidence") or [],
@@ -138,6 +157,20 @@ def _text_detail(
             for track in failed_tracks
             if track.startswith("TEXT:")
         ],
+        selfModelScore=_integer_score(
+            self_model.get("risk_score")
+        ),
+        selfModelConfidence=(
+            self_model.get("confidence")
+        ),
+        geminiCalled=gemini_called,
+        decisionSource=decision_source,
+        routingReason=text.get(
+            "routing_reason"
+        ),
+        fallbackApplied=bool(
+            text.get("fallback_applied")
+        ),
     )
 
 

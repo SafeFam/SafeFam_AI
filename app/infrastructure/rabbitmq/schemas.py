@@ -70,6 +70,11 @@ class TextAnalysisMethod(str, Enum):
     NAIVE_BAYES = "NAIVE_BAYES"
     GEMINI = "GEMINI"
     NAIVE_BAYES_GEMINI = "NAIVE_BAYES_GEMINI"
+
+    STACKING = "STACKING"
+    STACKING_GEMINI = "STACKING_GEMINI"
+    STACKING_FALLBACK = "STACKING_FALLBACK"
+
     UNAVAILABLE = "UNAVAILABLE"
 
 
@@ -99,11 +104,34 @@ class TextAnalysisDetail(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     method: TextAnalysisMethod
-    score: int | None = Field(default=None, ge=0, le=100)
+    score: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
     grade: str | None = None
     reason: str | None = None
-    evidence: list[str] = Field(default_factory=list)
-    failedEngines: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(
+        default_factory=list
+    )
+    failedEngines: list[str] = Field(
+        default_factory=list
+    )
+
+    selfModelScore: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+    )
+    selfModelConfidence: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    geminiCalled: bool = False
+    decisionSource: str | None = None
+    routingReason: str | None = None
+    fallbackApplied: bool = False
 
 
 class UrlAnalysisDetail(BaseModel):
