@@ -101,6 +101,11 @@
 
 - 기존: `malicious × 0.15 + suspicious × 0.05` (임의 개수 기반 공식)
 - 변경: `malicious/전체엔진수 + (suspicious/전체엔진수) × 0.5` (실제 비율 기반)
+- 위 공식의 `raw_score` 단위는 **0~1**이다. RabbitMQ 외부 이벤트에서는
+  `app/infrastructure/rabbitmq/result_factory.py`의 `_url_score()`가 한 번만
+  0~100 점수로 변환한다. 호출자는 변환된 값을 다시 100배 하면 안 된다.
+- 경계 예시: `raw_score=0`은 외부 점수 `0`, `raw_score=1.0`은 외부 점수
+  `100`이다. 전체 엔진 수가 0이면 raw score와 외부 점수 모두 `0`이다.
 - `is_malicious` 판정(엔진 3개 이상 등 절대 개수 기준)은 그대로 유지 — 비율과는 별개 기준
 - 전체 엔진 풀이 크면(70~90개) 비율만으로는 점수가 낮아 보일 수 있는데, `hybrid_url_engine.py`에 이미 있던 개수 기반 하한선 로직(`max(비율점수, 하한선)`)이 이를 보완
 
@@ -108,9 +113,9 @@
 
 ## 최종 스코어링 요약
 
-```
-URL 있음:  최종점수 = LLM/NB 트랙(50%) + URL 트랙(30%) + 규칙 트랙(20%)
-URL 없음:  최종점수 = LLM/NB 트랙(65%)              + 규칙 트랙(35%)
+```text
+URL 있음:  최종점수 = 선택된 텍스트 트랙(50%) + URL 트랙(30%) + 규칙 트랙(20%)
+URL 없음:  최종점수 = 선택된 텍스트 트랙(65%)                  + 규칙 트랙(35%)
 
 단, 아래 중 하나라도 해당하면 위 계산과 무관하게 HIGH 강제:
   - GSB 블랙리스트 등재 확인
@@ -120,9 +125,33 @@ URL 없음:  최종점수 = LLM/NB 트랙(65%)              + 규칙 트랙(35%)
 등급: 0~39 LOW / 40~69 MEDIUM / 70~100 HIGH
 ```
 
+### 최종 등급과 Gemini 라우팅 임계값
+
+- `0~39`, `40~69`, `70~100`은 최종 합산 점수를 LOW/MEDIUM/HIGH로
+  분류하는 등급 임계값이다.
+- `STACKING_NORMAL_PROBABILITY_MAX`와
+  `STACKING_PHISHING_PROBABILITY_MIN`은 Stacking 확률이 불확실한지를
+  판단하여 Gemini를 호출하는 별도 라우팅 임계값이다.
+- 현재 런타임 기본값은 각각 `0.1`, `0.9`인 보수적 임시값이다. Gemini
+  validation 수집 완료 후 Recall, F2와 호출률을 기준으로 교체해야 한다.
+
+### Gemini validation 상태
+
+- validation 전체 123건 중 캐시에 기록된 항목은 17건이며, 사용 가능한
+  결과는 13건이다.
+- Gemini quota 제한으로 4건이 unavailable 상태이고 나머지 항목도 아직
+  수집되지 않았다.
+- fingerprint 캐시는 성공한 호출을 재사용하기 위한 재개 지점이다.
+  unavailable 또는 누락 항목이 남아 있는 동안 임계값 선정이 실패하는 것은
+  의도된 동작이며 회귀가 아니다.
+- 최종 Recall, F2, Gemini 호출률과 policy metadata는 전체 결과 수집 후
+  확정한다.
+
 ## 테스트 현황
 
-이번 세션에서 추가/수정된 테스트 기준 **59개 전부 통과**:
+기존 변경 범위 테스트 59개와 함께 최신 로컬 전체 테스트를 실행했다.
+전체 결과는 **459 passed, 3 deselected**였으며, 아래 목록은 과거 변경
+범위를 설명하기 위한 참고 목록이다.
 
 - `tests/security/test_naive_bayes_text_analyzer.py`
 - `tests/security/test_rule_based_analyzer.py`
@@ -133,4 +162,5 @@ URL 없음:  최종점수 = LLM/NB 트랙(65%)              + 규칙 트랙(35%)
 - `tests/url/test_url_tracer.py`
 - `tests/e2e/test_analyze_endpoint.py`
 
-**범위 밖(사전에 깨져 있던 파일, 이번 작업과 무관)**: `tests/security/test_security_engine.py`, `tests/security/test_gemini_text_analyzer.py`, `tests/url/test_url_extractor.py` — 이전 리팩터링 과정에서 참조 모듈 경로가 바뀌며 방치된 것으로 보임.
+Gemini 실호출 기반 최종 정책 검증은 quota 제한으로 완료하지 못했다.
+따라서 최종 라우팅 임계값과 예상 Gemini 호출률은 아직 provisional이다.

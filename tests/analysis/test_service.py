@@ -1,5 +1,7 @@
 """통합 분석 서비스의 하이브리드 텍스트 연결 테스트"""
 
+import asyncio
+
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -101,7 +103,7 @@ async def test_pipeline_uses_stacking_result_when_gemini_is_skipped() -> None:
 
 
 @pytest.mark.asyncio
-async def test_pipeline_combines_stacking_and_successful_gemini() -> None:
+async def test_pipeline_uses_selected_gemini_score_once() -> None:
     text_analyzer = SimpleNamespace(
         analyze=AsyncMock(
             return_value=_text_analysis(
@@ -123,7 +125,8 @@ async def test_pipeline_combines_stacking_and_successful_gemini() -> None:
     assert result.status == "SUCCESS"
     assert result.text_analysis["decision_source"] == "GEMINI"
     assert result.text_analysis["gemini_available"] is True
-    assert result.final_score >= 40
+    assert result.final_score == 58
+    assert result.contribution_breakdown.llm == 58
 
 
 @pytest.mark.asyncio
@@ -291,3 +294,40 @@ async def test_pipeline_does_not_fail_open_when_text_analyzer_raises() -> None:
     assert result.status == "ERROR"
     assert result.risk_grade != "LOW"
     assert result.final_score >= 40
+
+
+@pytest.mark.asyncio
+@patch("app.analysis.service.trace_url", new_callable=AsyncMock)
+async def test_pipeline_retrieves_sibling_task_when_url_fails(
+    mock_trace: AsyncMock,
+) -> None:
+    text_cancelled = False
+
+    async def slow_text_analysis(
+        _text: str,
+        *,
+        force_gemini: bool = False,
+    ) -> dict:
+        del force_gemini
+        nonlocal text_cancelled
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            text_cancelled = True
+            raise
+        return {}
+
+    mock_trace.side_effect = RuntimeError("URL trace failed")
+    service = SmishingAnalysisService(
+        text_analyzer=SimpleNamespace(
+            analyze=slow_text_analysis,
+        ),
+        rule_analyzer=_rule_result,
+    )
+
+    result = await service.analyze_pipeline(
+        "https://example.test"
+    )
+
+    assert result.status == "ERROR"
+    assert text_cancelled is True

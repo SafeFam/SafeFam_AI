@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -260,3 +261,39 @@ def test_factory_maps_unit_url_score_to_one_hundred() -> None:
     assert event.payload.rawScores.url == 100
     assert event.payload.urlAnalysis is not None
     assert event.payload.urlAnalysis.score == 100
+
+
+@pytest.mark.parametrize(
+    ("raw_confidence", "expected"),
+    [
+        (-0.5, 0.0),
+        (1.5, 1.0),
+        (float("nan"), None),
+        (float("inf"), None),
+        (True, None),
+        ("0.8", None),
+    ],
+)
+def test_factory_normalizes_self_model_confidence(
+    raw_confidence,
+    expected,
+) -> None:
+    result = _result()
+    result.text_analysis["self_model"]["confidence"] = (
+        raw_confidence
+    )
+
+    event = AnalysisResultEventFactory().create(
+        request=_request(),
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    confidence = event.payload.textAnalysis.selfModelConfidence
+    if expected is None:
+        assert confidence is None
+    else:
+        assert math.isclose(confidence, expected)

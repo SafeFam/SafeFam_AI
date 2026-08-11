@@ -166,6 +166,28 @@ async def test_calls_gemini_when_rules_force_review():
 
 
 @pytest.mark.asyncio
+async def test_forced_review_overrides_uncertainty_reason():
+    async def gemini_analyzer(_text: str):
+        return build_gemini_result(score=85)
+
+    analyzer = HybridTextAnalyzer(
+        policy=build_policy(),
+        stacking_analyzer=(
+            lambda _text: build_stacking_result(0.5)
+        ),
+        gemini_analyzer=gemini_analyzer,
+    )
+
+    result = await analyzer.analyze(
+        "기관 사칭 의심 문자",
+        force_gemini=True,
+    )
+
+    assert result["routing_decision"] == "GEMINI_REVIEW"
+    assert result["routing_reason"] == "RULE_RISK_ESCALATION"
+
+
+@pytest.mark.asyncio
 async def test_uses_stacking_when_gemini_fails():
     async def failed_gemini(_text: str):
         return {

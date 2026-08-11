@@ -19,14 +19,14 @@ class Settings(BaseSettings):
 
     # Stacking 자체 모델이 확실한 정상이라고 판단하는 최대 확률
     STACKING_NORMAL_PROBABILITY_MAX: float = Field(
-        default=0.0,
+        default=0.1,
         ge=0.0,
         le=1.0,
     )
 
     # Stacking 자체 모델이 확실한 피싱이라고 판단하는 최소 확률
     STACKING_PHISHING_PROBABILITY_MIN: float = Field(
-        default=1.0,
+        default=0.9,
         ge=0.0,
         le=1.0,
     )

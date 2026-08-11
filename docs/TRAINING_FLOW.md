@@ -88,6 +88,20 @@ n-gram이 못 잡는 신호를 boolean 6개로 보강: `has_url`, `has_short_url
 - `phishing_model_artifact.pkl` = `{model, threshold, classes}` (FastAPI 로드용)
 - `phishing_vectorizer.pkl` = 학습된 `CountVectorizer`
 
+### Stacking + Gemini 하이브리드 정책 선정
+
+- Stacking validation 확률과 Gemini validation 점수를 fingerprint 순서로
+  정렬해 동일 샘플끼리 비교한다.
+- 목표 Recall을 만족하는 후보 중 F2가 높은 정책을 우선하고, F2가 같으면
+  Gemini 호출률이 낮은 정상/피싱 경계값을 선택한다.
+- Gemini 결과는 fingerprint 기반 JSON 캐시에 저장하여 quota 제한이나 중단
+  이후에도 성공한 호출을 재사용한다.
+- 선택된 Recall, F2, 호출률과 경계값은 policy report 및 Stacking metadata의
+  `hybrid_policy`에 저장한다.
+- 현재 캐시는 123건 중 17건만 기록됐고 사용 가능한 결과는 13건이다.
+  unavailable 4건과 누락 항목이 남아 있어 최종 임계값과 호출률은
+  provisional이며, 이 상태에서 정책 선정이 중단되는 것은 의도된 동작이다.
+
 ### 서빙 시 참고 — `predict_risk_score()`
 학습 스크립트에 함께 정의된 추론 함수. 원문 텍스트 → 동일한 정규화/구조피처/벡터화 파이프라인 통과 → 보정된 `prob_phishing × 100`을 `risk_score`로, `RISK_HIGH_THRESHOLD=70` / `RISK_MEDIUM_THRESHOLD=40` 기준으로 `risk_level`(HIGH/MEDIUM/LOW) 산출.
 
@@ -114,7 +128,9 @@ Voice는 데이터 준비가 무거워서 3개 스크립트로 분리되어 있�
 - 1)의 결과물 `metadata_clean.csv`를 읽어 **정상(normal) 통화 합성 데이터를 추가**하고 같은 파일에 덮어쓴다
 - 유형별 생성: 병원/약국(50), 배달/택배(50), 통신사 CS(50), 은행 정식 안내(50), 지인/가족 일상(200, v2에서 50→200 증량), 쇼핑몰 CS(50), 금융기관 진짜 안내(150), 수사기관 진짜 안내(150), 쌍방향 일상 대화(100, v2 신규) — 총 850건
 - 설계 원칙: `is_augmented=True` / `source_dataset="synthetic"`로 식별 가능하게 태깅, 고정 면책 문구 미사용(v1에서 과적합 원인으로 확인됨), 마무리 표현 10종을 무작위 배분해 특정 표현 과의존 방지
-- `parent_call_id` prefix(`D63_H01` 등)로 유형 구분, 유형별 train/val/test 비율(68/16/16%)을 사전 계산해 배분
+- `parent_call_id` prefix(`D63_H01` 등)로 유형을 구분한다. 생성 단계의
+  train/val/test 표시는 참고용이며, 최종 학습에서는 이 값을 사용하지 않고
+  `_leak_free_split()`이 그룹 단위로 다시 분할한다.
 
 ### 3) `train_voice.py` — 학습 / 튜닝 / 평가
 ```
@@ -131,7 +147,7 @@ Voice는 데이터 준비가 무거워서 3개 스크립트로 분리되어 있�
 1. 증강 600건이 `parent_call_id`로 그룹화되지 않고 행 단위로 개별 split 배정 → 같은 통화의 세그먼트가 train/test에 흩어짐
 2. 보이스피싱 시나리오가 스크립트 템플릿을 재사용해, 서로 다른 통화인데 `text_clean`이 완전히 동일한 경우 존재 → `parent_call_id`만 묶어도 텍스트 누수가 남음
 
-→ `parent_call_id`와 `text_clean` **두 키 중 하나라도 같으면 같은 그룹으로 묶는 Union-Find**를 직접 구현해 메타데이터 split을 무시하고 그룹 단위 `StratifiedShuffleSplit` 2단계(test 15% → val 15%)로 재분할. 재분할 후 검증 셀에서 통화/텍스트 중복 0건 확인.
+→ `parent_call_id`와 `text_clean` **두 키 중 하나라도 같으면 같은 그룹으로 묶는 Union-Find**를 직접 구현해 메타데이터 split을 무시하고 그룹 단위 `StratifiedShuffleSplit` 2단계로 재분할한다. 먼저 전체 그룹의 15%를 test로 분리하고, 남은 85%에서 `15/85` 비율을 validation으로 분리하므로 최종 validation도 원본 전체의 15%다. 결과 비율은 train/validation/test 약 70/15/15이며, 재분할 후 통화/텍스트 중복 0건을 확인한다.
 
 #### ② 구조적 피처 — `_extract_struct_features()` (STT 특화 8개)
 `has_urgency`(긴급성 유도: "지금 바로", "즉시"), `has_authority`(검찰/경찰/금감원 등 사칭), `has_money`(대출/이자/송금 등), `has_personal`(주민번호/계좌번호 등 요구), `has_threat`(체포/구속/기소 등 위협), `has_safe_acct`(안전계좌 유도), `has_install`(앱설치/원격제어), `is_long_text`(200자 초과)

@@ -1,6 +1,7 @@
 """Stacking 자체 모델과 Gemini를 결합하는 텍스트 분석기"""
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -105,7 +106,10 @@ class HybridTextAnalyzer:
         # 전파하더라도 전체 파이프라인이 중단되지 않도록 unavailable
         # 결과로 정규화한 뒤 Gemini fallback 정책을 적용한다.
         try:
-            stacking_analysis = self.stacking_analyzer(text)
+            stacking_analysis = await asyncio.to_thread(
+                self.stacking_analyzer,
+                text,
+            )
         except Exception as exception:
             logger.error(
                 "[Hybrid Text] Stacking analyzer failed. "
@@ -130,7 +134,7 @@ class HybridTextAnalyzer:
 
         # 규칙 엔진이 위험 신호를 발견했거나 실패했다면,
         # Stacking 확신 구간이어도 Gemini 재검증을 수행한다.
-        if force_gemini and not routing.should_call_gemini:
+        if force_gemini:
             routing = HybridRoutingResult(
                 decision=(
                     HybridRoutingDecision.GEMINI_REVIEW

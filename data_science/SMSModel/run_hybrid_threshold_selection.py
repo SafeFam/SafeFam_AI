@@ -283,6 +283,23 @@ def _save_cached_predictions(
         },
     )
 
+
+def _is_available_gemini_result(
+    *,
+    score: Any,
+    grade: Any,
+    error_message: Any,
+) -> bool:
+    """Gemini validation 결과가 정책 선정에 사용 가능한지 검사."""
+
+    return (
+        isinstance(score, int)
+        and not isinstance(score, bool)
+        and 0 <= score <= 100
+        and grade != "UNKNOWN"
+        and not error_message
+    )
+
 async def collect_gemini_predictions(
     validation,
     *,
@@ -348,11 +365,10 @@ async def collect_gemini_predictions(
         )
         grade = result.get("grade")
 
-        available = (
-            isinstance(score, int)
-            and 0 <= score <= 100
-            and grade != "UNKNOWN"
-            and not error_message
+        available = _is_available_gemini_result(
+            score=score,
+            grade=grade,
+            error_message=error_message,
         )
 
         cached[fingerprint] = {

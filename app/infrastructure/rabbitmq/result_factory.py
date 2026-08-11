@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timezone
 from uuid import NAMESPACE_URL, uuid5
 
@@ -161,7 +162,9 @@ def _text_detail(
             self_model.get("risk_score")
         ),
         selfModelConfidence=(
-            self_model.get("confidence")
+            _confidence(
+                self_model.get("confidence")
+            )
         ),
         geminiCalled=gemini_called,
         decisionSource=decision_source,
@@ -203,6 +206,22 @@ def _integer_score(value) -> int | None:
     if value is None:
         return None
     return max(0, min(100, round(float(value))))
+
+
+def _confidence(value) -> float | None:
+    """Confidence를 외부 계약의 0.0~1.0 범위로 정규화."""
+
+    if isinstance(value, bool) or not isinstance(
+        value,
+        (int, float),
+    ):
+        return None
+
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        return None
+
+    return min(max(numeric, 0.0), 1.0)
 
 
 def _url_error_code(url: dict) -> str | None:

@@ -169,16 +169,31 @@ class SmishingAnalysisService:
 
             # 텍스트와 URL 분석을 가능한 한 병렬로 실행
             if url_task is not None:
-                (
-                    text_analysis,
+                try:
                     (
-                        traced_url,
-                        hybrid_url_result,
-                    ),
-                ) = await asyncio.gather(
-                    text_task,
-                    url_task,
-                )
+                        text_analysis,
+                        (
+                            traced_url,
+                            hybrid_url_result,
+                        ),
+                    ) = await asyncio.gather(
+                        text_task,
+                        url_task,
+                    )
+                except BaseException:
+                    # 한 트랙이 실패하면 아직 실행 중인 형제 task를
+                    # 취소하고 두 결과를 모두 회수해 orphan task와
+                    # "Task exception was never retrieved"를 방지한다.
+                    for task in (text_task, url_task):
+                        if not task.done():
+                            task.cancel()
+
+                    await asyncio.gather(
+                        text_task,
+                        url_task,
+                        return_exceptions=True,
+                    )
+                    raise
             else:
                 text_analysis = await text_task
 
@@ -206,25 +221,6 @@ class SmishingAnalysisService:
                 text_analysis.get("result") or {}
             )
 
-            # Stacking 자체 모델의 원본 결과
-            self_model_result = (
-                text_analysis.get("self_model") or {}
-            )
-
-            # Stacking 위험 점수,
-            # Stacking을 사용할 수 없다면 None
-            self_model_score = (
-                self_model_result.get("risk_score")
-            )
-
-            # Gemini 호출 결과를 최종 판정에 사용할 수 있는지 나타냄
-            gemini_available = bool(
-                text_analysis.get(
-                    "gemini_available",
-                    False,
-                )
-            )
-
             # 하이브리드 분석기가 최종 선택한 텍스트 점수
             selected_text_score = (
                 text_result.get("risk_score")
@@ -237,11 +233,9 @@ class SmishingAnalysisService:
                 else 0
             )
 
-            # Stacking 또는 Gemini 중 하나라도 결과를 제공했다면 텍스트 트랙은 사용 가능한 상태
-            text_available = (
-                self_model_score is not None
-                or gemini_available
-            )
+            # HybridTextAnalyzer가 선택한 단일 결과가 있을 때만
+            # 텍스트 트랙을 사용 가능한 상태로 본다.
+            text_available = selected_text_score is not None
 
             # 로컬 규칙 분석 실행
             try:
@@ -332,8 +326,6 @@ class SmishingAnalysisService:
                     "No reliable analysis signal is available"
                 )
 
-            # TODO: naive_bayes_scores 인자 이름을 추우 self_model_score 등으로 리팩터링
-            # 현재 scoring.py의 naive_bayes_score 인자는 이름만 Naive Bayes이고 실제 의미는 "자체 모델 점수"
             (
                 final_score,
                 risk_grade,
@@ -363,12 +355,13 @@ class SmishingAnalysisService:
 
                 has_url=has_url,
 
-                # stacking 점수를 전달
-                naive_bayes_score=self_model_score,
+                # HybridTextAnalyzer가 이미 하나의 최종 점수를
+                # 선택했으므로 자체 모델 점수를 다시 혼합하지 않는다.
+                naive_bayes_score=None,
 
-                # Gemini를 호출하지 않은 경우 False
-                # Gemini가 정상 성공한 경우 True
-                llm_available=gemini_available,
+                # 인자명은 기존 호환성을 유지하지만 실제 의미는
+                # 선택된 텍스트 점수의 사용 가능 여부다.
+                llm_available=text_available,
 
                 is_confirmed_malicious=(
                     is_confirmed_malicious
