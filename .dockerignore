@@ -19,9 +19,15 @@ requirements-dev.txt
 secrets
 data_science/**
 !data_science/SMSModel/
+!data_science/SMSModel/modeling/
+!data_science/SMSModel/modeling/**
+!data_science/SMSModel/tokenization/
+!data_science/SMSModel/tokenization/**
 !data_science/SMSModel/artifacts/
 !data_science/SMSModel/artifacts/phishing_model_artifact.pkl
 !data_science/SMSModel/artifacts/phishing_vectorizer.pkl
+!data_science/SMSModel/artifacts/stacking/
+!data_science/SMSModel/artifacts/stacking/**
 *.ipynb
 *.csv
 *.png
