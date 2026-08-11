@@ -89,7 +89,10 @@ async def test_pipeline_uses_stacking_result_when_gemini_is_skipped() -> None:
 
     result = await service.analyze_pipeline("오늘 저녁 같이 먹자")
 
-    text_analyzer.analyze.assert_awaited_once_with("오늘 저녁 같이 먹자")
+    text_analyzer.analyze.assert_awaited_once_with(
+        "오늘 저녁 같이 먹자",
+        force_gemini=False,
+    )
     assert result.status == "SUCCESS"
     assert result.text_analysis["decision_source"] == "STACKING"
     assert result.text_analysis["gemini_called"] is False
@@ -121,6 +124,86 @@ async def test_pipeline_combines_stacking_and_successful_gemini() -> None:
     assert result.text_analysis["decision_source"] == "GEMINI"
     assert result.text_analysis["gemini_available"] is True
     assert result.final_score >= 40
+
+
+@pytest.mark.asyncio
+async def test_pipeline_forces_gemini_when_rule_score_is_high() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=10,
+                selected_score=80,
+                gemini_called=True,
+                gemini_available=True,
+                decision_source="GEMINI",
+            )
+        )
+    )
+
+    def suspicious_rule_result(
+        _text: str,
+        _traced_url: str | None,
+    ) -> dict:
+        return {
+            "rule_score": 40,
+            "has_malicious_domain_pattern": False,
+            "matched_rules": ["institution_pattern"],
+            "error_message": None,
+        }
+
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=suspicious_rule_result,
+    )
+
+    result = await service.analyze_pipeline(
+        "기관 사칭 의심 문자"
+    )
+
+    text_analyzer.analyze.assert_awaited_once_with(
+        "기관 사칭 의심 문자",
+        force_gemini=True,
+    )
+    assert result.status == "SUCCESS"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_forces_gemini_when_rule_preview_fails() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=10,
+                selected_score=75,
+                gemini_called=True,
+                gemini_available=True,
+                decision_source="GEMINI",
+            )
+        )
+    )
+
+    def raising_rule_analyzer(
+        _text: str,
+        _traced_url: str | None,
+    ) -> dict:
+        raise RuntimeError("sensitive rule detail")
+
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=raising_rule_analyzer,
+    )
+
+    result = await service.analyze_pipeline(
+        "규칙 분석 실패 문자"
+    )
+
+    text_analyzer.analyze.assert_awaited_once_with(
+        "규칙 분석 실패 문자",
+        force_gemini=True,
+    )
+    assert result.status == "SUCCESS"
+    assert result.rule_analysis["error_message"] == (
+        "RULE_ANALYSIS_FAILED"
+    )
 
 
 @pytest.mark.asyncio

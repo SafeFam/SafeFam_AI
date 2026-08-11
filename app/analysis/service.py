@@ -7,6 +7,9 @@ from app.analysis.hybrid_policy import (
     ConditionalGeminiPolicy,
     HybridThresholds,
 )
+from app.analysis.risk_policy import (
+    RISK_MEDIUM_THRESHOLD,
+)
 from app.analysis.rules.analyzer import (
     analyze_text_with_rules,
 )
@@ -89,6 +92,27 @@ class SmishingAnalysisService:
             rule_analyzer or analyze_text_with_rules
         )
 
+    def _preview_rule_score(self, text: str) -> int:
+        """Gemini 강제 검증 여부를 판단할 규칙 점수를 계산."""
+
+        try:
+            result = self.rule_analyzer(text, None)
+            score = result.get("rule_score", 0)
+
+            if not isinstance(score, (int, float)):
+                return RISK_MEDIUM_THRESHOLD
+
+            return int(score)
+        except Exception as exception:
+            # 원문이나 예외 메시지는 로그에 남기지 않는다.
+            logger.error(
+                "[Analysis Service] Rule preview failed. "
+                "error_type=%s",
+                type(exception).__name__,
+            )
+            # 규칙 분석 실패를 안전 신호로 간주하지 않는다.
+            return RISK_MEDIUM_THRESHOLD
+
     async def analyze_pipeline(
         self,
         text: str,
@@ -101,9 +125,20 @@ class SmishingAnalysisService:
             urls = extract_urls(text)
             has_url = len(urls) > 0
 
+            rule_score_preview = self._preview_rule_score(
+                text
+            )
+            force_gemini = (
+                rule_score_preview
+                >= RISK_MEDIUM_THRESHOLD
+            )
+
             # 텍스트 분석은 항상 실행
             text_task = asyncio.create_task(
-                self.text_analyzer.analyze(text)
+                self.text_analyzer.analyze(
+                    text,
+                    force_gemini=force_gemini,
+                )
             )
 
             url_task = None

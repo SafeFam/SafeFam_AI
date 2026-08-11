@@ -8,6 +8,7 @@ from typing import Any
 from app.analysis.hybrid_policy import (
     ConditionalGeminiPolicy,
     HybridRoutingDecision,
+    HybridRoutingResult,
 )
 from app.analysis.risk_policy import (
     determine_text_risk_grade,
@@ -92,6 +93,8 @@ class HybridTextAnalyzer:
     async def analyze(
         self,
         text: str,
+        *,
+        force_gemini: bool = False,
     ) -> dict[str, Any]:
         """단일 메시지를 조건부 하이브리드 방식으로 분석"""
 
@@ -124,6 +127,17 @@ class HybridTextAnalyzer:
         routing = self.policy.route(
             stacking_analysis
         )
+
+        # 규칙 엔진이 위험 신호를 발견했거나 실패했다면,
+        # Stacking 확신 구간이어도 Gemini 재검증을 수행한다.
+        if force_gemini and not routing.should_call_gemini:
+            routing = HybridRoutingResult(
+                decision=(
+                    HybridRoutingDecision.GEMINI_REVIEW
+                ),
+                should_call_gemini=True,
+                reason="RULE_RISK_ESCALATION",
+            )
 
         stacking_result = (
             stacking_analysis.get("result") or {}
