@@ -56,7 +56,9 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
     OfficialInstitution("금융위원회", ("금융위원회",), ("fsc.go.kr",), ("02-2100-2500",)),
     OfficialInstitution("경찰청", ("경찰청",), ("police.go.kr",), ("182",)),
     OfficialInstitution("검찰청", ("검찰청",), ("spo.go.kr",), ("1301",)),
-    OfficialInstitution("국세청", ("국세청",), ("nts.go.kr",), ("126",)),
+    # 홈택스(hometax.go.kr)는 국세청이 직접 운영하는 전자세정 서비스 도메인이라 함께 등록 —
+    # 실제로 nts.go.kr보다 홈택스 링크가 더 흔히 쓰이므로 빠지면 정상 링크가 오탐됨
+    OfficialInstitution("국세청", ("국세청",), ("nts.go.kr", "hometax.go.kr"), ("126",)),
     OfficialInstitution("관세청", ("관세청",), ("customs.go.kr",), ("125",)),
     OfficialInstitution(
         "국민건강보험공단",

@@ -106,7 +106,7 @@ def test_institution_domain_mismatch_adds_score_and_is_exposed_structurally():
         "[국민은행] 계좌 확인 안내입니다.", traced_url="https://kb-bank-security.xyz/login"
     )
 
-    assert result["rule_score"] >= 60  # 기관명 언급(15) + 도메인 불일치(50)
+    assert result["rule_score"] == 65  # 기관명 언급(15) + 도메인 불일치(50)
     assert any("도메인 불일치" in r for r in result["matched_rules"])
     assert result["institution_match"]["mismatch"] is True
     assert result["institution_match"]["institution"] == "국민은행"

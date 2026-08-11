@@ -19,7 +19,13 @@ _RE_BRACKET_TAG = re.compile(r"\[([^\[\]]+)\]")
 
 
 def _extract_domain(url: str) -> str | None:
-    hostname = urlparse(url).hostname
+    # 잘못된 형식의 URL(예: 괄호가 안 닫힌 IPv6 authority)은 urlparse가 ValueError를 던질 수 있다.
+    # 이 함수는 규칙 엔진 미리보기 단계(traced_url 확정 전)에서도 호출되므로, 여기서 직접
+    # 방어해 호출부의 예외 처리에 기대지 않고 안전하게 "판정 불가(None)"로 처리한다.
+    try:
+        hostname = urlparse(url).hostname
+    except ValueError:
+        return None
     return hostname.lower() if hostname else None
 
 

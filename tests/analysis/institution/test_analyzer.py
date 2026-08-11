@@ -8,6 +8,15 @@ def test_no_url_skips_check():
     assert result["mismatch"] is False
 
 
+def test_malformed_url_does_not_raise():
+    """urlparse가 ValueError를 던질 수 있는 잘못된 형식의 URL(닫히지 않은 IPv6 authority
+    등)도 예외 없이 안전하게 checked=False로 처리해야 한다."""
+    result = analyze_institution_match("[국민은행] 계좌 확인 안내입니다.", traced_url="https://[::1")
+
+    assert result["checked"] is False
+    assert result["mismatch"] is False
+
+
 def test_no_institution_mentioned_skips_check():
     result = analyze_institution_match(
         "택배가 도착했습니다", traced_url="https://random-domain.xyz"
@@ -61,6 +70,17 @@ def test_institution_name_outside_bracket_tag_is_not_treated_as_sender():
     result = analyze_institution_match(text, traced_url="https://www.lotteglogis.com/12345")
 
     assert result["checked"] is False
+
+
+def test_nts_hometax_domain_is_recognized_as_official():
+    """국세청은 nts.go.kr뿐 아니라 실제로 더 흔히 쓰이는 홈택스(hometax.go.kr)도
+    직접 운영하는 공식 도메인이므로 공식으로 인정해야 한다."""
+    result = analyze_institution_match(
+        "[국세청] 홈택스 이용 안내", traced_url="https://www.hometax.go.kr/notice"
+    )
+
+    assert result["checked"] is True
+    assert result["mismatch"] is False
 
 
 def test_lookalike_domain_is_not_falsely_treated_as_official():
