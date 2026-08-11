@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from app.analysis.risk_policy import RISK_MEDIUM_THRESHOLD
 from app.analysis.service import SmishingAnalysisService
 
 
@@ -183,13 +184,47 @@ async def test_hybrid_text_track_escalates_when_rule_score_high_despite_naive_ba
         naive_bayes_score,
         llm_available,
     ) = await service._analyze_text_hybrid(
-        "[KB국민은행] 결제 완료 안내...", rule_score=55
+        "[KB국민은행] 결제 완료 안내...", rule_score=RISK_MEDIUM_THRESHOLD
     )
 
     mock_gemini.assert_awaited_once()
     assert text_analysis["result"]["risk_score"] == 85
     assert naive_bayes_score == 8
     assert llm_available is True
+
+
+@pytest.mark.asyncio
+@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
+@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
+async def test_analyze_pipeline_escalates_to_gemini_when_rule_preview_raises(
+    mock_nb, mock_gemini
+):
+    """
+    규칙 엔진 미리보기 계산 자체가 예외로 실패하면 "규칙 신호 없음(0점)"으로 단정할 수
+    없으므로, 나이브 베이즈가 SAFE로 판정하더라도 fail-safe로 Gemini 2차 검증을
+    반드시 호출해야 한다 (0점으로 폴백하면 조용히 스킵되는 fail-open 재발 방지).
+    """
+
+    def raising_rule_analyzer(text: str, traced_url: str | None) -> dict:
+        raise RuntimeError("규칙 엔진 계산 실패")
+
+    mock_nb.return_value = _nb_result("SAFE", 5)
+    mock_gemini.return_value = {
+        "is_mock": False,
+        "result": {
+            "grade": "SUSPICIOUS",
+            "risk_score": 45,
+            "tone_analysis": "",
+            "evidence": [],
+            "reason": "",
+        },
+    }
+
+    service = SmishingAnalysisService(rule_analyzer=raising_rule_analyzer)
+    result = await service.analyze_pipeline("규칙 분석이 실패해도 검증되어야 하는 문자")
+
+    mock_gemini.assert_awaited_once()
+    assert result.status == "SUCCESS"
 
 
 @pytest.mark.asyncio

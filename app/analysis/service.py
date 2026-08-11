@@ -69,7 +69,12 @@ class SmishingAnalysisService:
             try:
                 rule_score_preview = self.rule_analyzer(text, None).get("rule_score", 0)
             except Exception:
-                rule_score_preview = 0
+                # 규칙 미리보기 자체가 실패하면 "규칙 신호 없음(0점)"으로 단정할 수 없다.
+                # 0으로 폴백하면 나이브 베이즈 SAFE 판정과 맞물려 Gemini 2차 검증을
+                # 조용히 건너뛰는 동일한 fail-open 상황이 재발하므로, 안전 쪽으로
+                # fail-safe 처리해 Gemini 에스컬레이션을 강제한다.
+                logger.error("[Analysis Service] 규칙 미리보기 계산 중 오류 발생 - fail-safe로 에스컬레이션")
+                rule_score_preview = RISK_MEDIUM_THRESHOLD
 
             # 비동기 Task 스케줄링
             text_task = asyncio.create_task(self._analyze_text_hybrid(text, rule_score_preview))
