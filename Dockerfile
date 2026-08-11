@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -c "from kiwipiepy import Kiwi; assert Kiwi().tokenize('installation check')"
 
 COPY app app
+COPY data_science/SMSModel/modeling data_science/SMSModel/modeling
 COPY data_science/SMSModel/tokenization data_science/SMSModel/tokenization
 COPY data_science/SMSModel/artifacts/phishing_model_artifact.pkl models/phishing_model_artifact.pkl
 COPY data_science/SMSModel/artifacts/phishing_vectorizer.pkl models/phishing_vectorizer.pkl
