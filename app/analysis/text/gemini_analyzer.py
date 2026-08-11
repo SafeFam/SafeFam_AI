@@ -45,13 +45,21 @@ SYSTEM_PROMPT = (
     "- Personal, trivial, or informal interactions between family, friends, or colleagues (e.g., '엄마 오늘 저녁 메뉴 뭐야?', '나 늦을 거 같아', '오늘 소주 한잔 고?') "
     "MUST be unconditionally classified with a risk_score between 0 and 15, and isolated as 'SAFE'.\n"
     "- Unless there is an explicit presence of institutional impersonation (사칭), urgent coercive threats (협박), identity fraud, social engineering extortion, "
-    "or unverified sideloading file paths, DO NOT escalate the severity to SUSPICIOUS or DANGEROUS.\n\n"
+    "or unverified sideloading file paths, DO NOT escalate the severity to SUSPICIOUS or DANGEROUS.\n"
+    "- Polite or formal tone is NEVER a safety signal on its own (정중하거나 격식 있는 문체 자체는 안전 신호가 아니다). Formal greetings ('안녕하십니까'), "
+    "gratitude phrases ('이용해 주셔서 감사합니다'), bulleted official-looking layouts ('■ 항목: 값'), and polite closings ('감사합니다') are increasingly used "
+    "specifically to mimic authentic corporate/institutional notices and evade tone-based detection. If impersonation, account/institution details, or a redirect "
+    "to an unverified 'customer center'/'report line' co-occur with this formal tone, DO NOT lower the risk_score because the message 'sounds official' — "
+    "evaluate purely on the presence of indicators 1-5 below.\n\n"
     "--- SEMANTIC AUDIT MATRIX (위험도 산정 지표) ---\n"
     "Evaluate the text against the following smishing indicators:\n"
     "1. Impersonation (사칭): Posing as financial institutions, public services, judicial authorities, or courier services (e.g., 국민건강보험, 법원, 택배사, 시중은행).\n"
     "2. Urgency & Coercion (긴급성/압박): Forcing an immediate behavioral action via fear-inducing or urgent deadlines (e.g., '즉시 확인 요망', '계좌 정지 예정', '과태료 처분').\n"
     "3. Social Engineering Baiting (사회공학적 유도): Fabricating plausible crises or benefits to trigger high emotional distress or greed.\n"
-    "4. Sideloading/Malware Triggers (악성 유도): Forcing or enticing credentials, credential updates, personal identification disclosure, or third-party interactions.\n\n"
+    "4. Sideloading/Malware Triggers (악성 유도): Forcing or enticing credentials, credential updates, personal identification disclosure, or third-party interactions.\n"
+    "5. Tone Camouflage (문체 위장): Imitating authentic corporate/institutional notice formatting (formal greetings, bulleted transaction/account details, polite "
+    "closings) while still directing the recipient to an unverified contact channel for 'identity theft' or 'unauthorized transaction' verification. This is a "
+    "known evasion tactic that masks indicators 1-4 behind a calm, official-sounding surface — treat it as an aggravating signal, not a mitigating one.\n\n"
     "--- FEW-SHOT AUDIT REFERENCE (분석 참조 예시) ---\n"
     "Example 1 (Benign / Casual text):\n"
     "  Input: '엄마 오늘 저녁 메뉴 뭐야?'\n"
@@ -68,6 +76,17 @@ SYSTEM_PROMPT = (
     '    "tone_analysis": "공공기관 사칭 및 데드라인 설정을 통한 심리적 긴급성 유도 어조",\n'
     '    "evidence": ["공공기관 사칭이 감지되었습니다.", "긴급성을 유도하는 표현이 포함되어 있습니다."],\n'
     '    "reason": "공공기관인 국민건강보험공단을 사칭하고 있으며, \'즉시\'라는 표현으로 사용자의 불안감과 급박한 심리를 자극하여 첨부된 출처 불명의 악성 URL 링크 클릭을 유도하는 전형적인 기관 사칭형 피싱 메시지입니다."\n'
+    "  }\n\n"
+    "Example 3 (Malicious Smishing text disguised as a formal bank notice — Tone Camouflage):\n"
+    "  Input: '[KB국민은행] 결제 완료 안내\\n\\n000 고객님, 요청하신 물품 구매 건에 대해 결제가 정상적으로 완료되었습니다.\\n\\n"
+    "본인이 결제하지 않으셨거나 명의 도용 등의 금융 사고가 의심되는 경우, 즉시 아래의 고객센터로 연락하여 조치를 취하시기 바랍니다.\\n\\n"
+    "■ 신고 및 문의처: 02-330-4284'\n"
+    "  Output: {\n"
+    '    "risk_score": 85,\n'
+    '    "tone_analysis": "정중하고 격식 있는 은행 공지문 형식으로 위장했으나, 명의도용을 언급하며 미검증 연락처로 유도하는 전형적인 사칭형 문자",\n'
+    '    "evidence": ["금융기관(KB국민은행) 사칭이 감지되었습니다.", "명의 도용을 언급하며 별도 연락처로의 확인을 유도합니다."],\n'
+    '    "reason": "정중한 어조와 공식 공지문 형식(인사말, 항목별 안내, 정중한 마무리)을 사용했지만, 이는 사칭 사실을 감추기 위한 문체 위장(Tone Camouflage)일 뿐입니다. '
+    "금융기관을 사칭하며 명의도용 가능성을 언급해 불안을 조성하고, 검증되지 않은 자체 연락처로 확인을 유도하는 구조는 문체와 무관하게 전형적인 스미싱 패턴이므로 격식체라는 이유로 위험도를 낮추지 않았습니다.\"\n"
     "  }\n\n"
     "--- OUTPUT COMPLIANCE ---\n"
     "- All text outputs (tone_analysis, reason) must be cleanly generated in Korean (한국어) for target enterprise consumption.\n"

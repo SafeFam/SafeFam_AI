@@ -2,6 +2,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
+from app.analysis.risk_policy import RISK_MEDIUM_THRESHOLD
 from app.analysis.rules.analyzer import analyze_text_with_rules
 from app.analysis.schemas import (
     ContributionBreakdown,
@@ -35,7 +36,7 @@ class SmishingAnalysisService:
 
     # 1차 나이브 베이즈 선별 후, SAFE 기준 미만(의심)일 때만 Gemini 2차 검증을 호출하는 하이브리드 텍스트 트랙
     # 반환값: (text_analysis 응답용 dict, 나이브 베이즈 점수(미수행 시 None), Gemini 2차 검증 정상 수행 여부)
-    async def _analyze_text_hybrid(self, text: str) -> tuple[dict, int | None, bool]:
+    async def _analyze_text_hybrid(self, text: str, rule_score: int) -> tuple[dict, int | None, bool]:
         nb_result = await self.naive_bayes_analyzer(text)
         nb_grade = nb_result.get("result", {}).get("grade")
         nb_score = nb_result.get("result", {}).get("risk_score", 0)
@@ -43,7 +44,10 @@ class SmishingAnalysisService:
 
         # 모델이 정상 로드되어 SAFE로 판정한 경우에만 Gemini 호출 스킵.
         # 모델 로드 실패(UNKNOWN)는 안전하게 Gemini 2차 검증으로 폴백(fail-safe).
-        if nb_available and nb_grade == "SAFE":
+        # 단, 규칙 엔진이 이미 SUSPICIOUS 이상(계좌번호/기관명/긴급 키워드 등)을 감지했다면
+        # NB 단독의 SAFE 판정만으로 스킵하지 않는다 — "정중한 공지문처럼 문체만 바꾼" 변형이
+        # NB를 속여 SAFE로 오판시키고 Gemini 2차 검증 자체를 건너뛰게 만드는 것을 방지한다.
+        if nb_available and nb_grade == "SAFE" and rule_score < RISK_MEDIUM_THRESHOLD:
             logger.info("[Hybrid] 나이브 베이즈 SAFE 판정 - Gemini 2차 검증 스킵")
             return nb_result, nb_score, False
 
@@ -60,8 +64,20 @@ class SmishingAnalysisService:
             urls = extract_urls(text)
             has_url = len(urls) > 0
 
+            # NB 스킵 여부 판단에 쓸 규칙 점수를 URL 추적 이전에 미리 계산 (텍스트만으로 계산 가능한
+            # 계좌/기관명/긴급 키워드 신호면 충분 — 도메인 룰은 traced_url 확정 후 최종 rule_result에서 반영)
+            try:
+                rule_score_preview = self.rule_analyzer(text, None).get("rule_score", 0)
+            except Exception:
+                # 규칙 미리보기 자체가 실패하면 "규칙 신호 없음(0점)"으로 단정할 수 없다.
+                # 0으로 폴백하면 나이브 베이즈 SAFE 판정과 맞물려 Gemini 2차 검증을
+                # 조용히 건너뛰는 동일한 fail-open 상황이 재발하므로, 안전 쪽으로
+                # fail-safe 처리해 Gemini 에스컬레이션을 강제한다.
+                logger.error("[Analysis Service] 규칙 미리보기 계산 중 오류 발생 - fail-safe로 에스컬레이션")
+                rule_score_preview = RISK_MEDIUM_THRESHOLD
+
             # 비동기 Task 스케줄링
-            text_task = asyncio.create_task(self._analyze_text_hybrid(text))
+            text_task = asyncio.create_task(self._analyze_text_hybrid(text, rule_score_preview))
             url_task = None
 
             if has_url:
