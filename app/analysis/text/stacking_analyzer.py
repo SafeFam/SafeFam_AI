@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import logging
 import threading
@@ -53,16 +54,14 @@ def _load_classifier(model_path: Path | None = None) -> None:
             if not isinstance(expected_digest, str):
                 raise ValueError("stacking artifact checksum is missing")
 
-            digest = hashlib.sha256()
-
-            with model_path.open("rb") as artifact_file:
-                for chunk in iter(lambda: artifact_file.read(8192), b""):
-                    digest.update(chunk)
+            artifact_buffer = io.BytesIO(model_path.read_bytes())
+            digest = hashlib.sha256(artifact_buffer.read())
 
             if digest.hexdigest() != expected_digest:
                 raise ValueError("stacking artifact checksum mismatch")
 
-            payload = joblib.load(model_path)
+            artifact_buffer.seek(0)
+            payload = joblib.load(artifact_buffer)
 
             if not isinstance(payload, dict):
                 raise TypeError("stacking artifact must be a dictionary")

@@ -217,31 +217,54 @@ def test_default_classifier_is_joblib_serializable(
     classifier = StackingPhishingClassifier(n_splits=3)
     classifier.fit(stacking_training_dataframe)
     artifact_path = tmp_path / "stacking.joblib"
+    prediction_input = "즉시 계좌로 송금하세요"
+    original = classifier.predict_one(prediction_input)
 
     joblib.dump(classifier, artifact_path)
     loaded = joblib.load(artifact_path)
 
-    prediction = loaded.predict_one("즉시 계좌로 송금하세요")
-    assert 0.0 <= prediction.risk_probability <= 1.0
+    reloaded = loaded.predict_one(prediction_input)
+    assert reloaded.risk_probability == pytest.approx(
+        original.risk_probability
+    )
+    assert reloaded.confidence == pytest.approx(original.confidence)
+    assert reloaded.risk_score == original.risk_score
+    assert (
+        reloaded.is_suspected_phishing
+        is original.is_suspected_phishing
+    )
 
 
+@pytest.mark.parametrize(
+    ("probability", "expected_confidence"),
+    [
+        (0.1, 0.5),
+        (0.6, 0.5),
+    ],
+)
 def test_confidence_is_measured_from_active_threshold(
-    stacking_training_dataframe: pd.DataFrame,
+    monkeypatch: pytest.MonkeyPatch,
+    probability: float,
+    expected_confidence: float,
 ) -> None:
     classifier = StackingPhishingClassifier(
         n_splits=3,
         threshold=0.2,
         base_model_factories=build_factories(),
     )
-    classifier.fit(stacking_training_dataframe)
-
-    prediction = classifier.predict_one("오늘 같이 점심 먹자")
-
-    expected = (
-        (prediction.risk_probability - classifier.threshold)
-        / (1.0 - classifier.threshold)
-        if prediction.risk_probability >= classifier.threshold
-        else (classifier.threshold - prediction.risk_probability)
-        / classifier.threshold
+    monkeypatch.setattr(
+        classifier,
+        "_predict_probability_details",
+        lambda _df: (
+            np.asarray([probability]),
+            (),
+            {
+                name: np.asarray([probability])
+                for name in classifier.model_names
+            },
+        ),
     )
-    assert prediction.confidence == pytest.approx(expected)
+
+    prediction = classifier.predict_one("confidence branch test")
+
+    assert prediction.confidence == pytest.approx(expected_confidence)

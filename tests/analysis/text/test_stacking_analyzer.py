@@ -18,9 +18,25 @@ from data_science.SMSModel.modeling.stacking import (
 
 
 @pytest.fixture(autouse=True)
-def reset_stacking_model_cache():
+def reset_stacking_model_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
     """테스트 사이에 전역 모델 캐시가 공유되지 않도록 초기화"""
 
+    model_path = tmp_path / "model.joblib"
+    model_path.write_bytes(b"mock stacking artifact")
+    model_path.with_name("metadata.json").write_text(
+        json.dumps(
+            {
+                "model_sha256": hashlib.sha256(
+                    model_path.read_bytes()
+                ).hexdigest()
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(analyzer, "DEFAULT_STACKING_MODEL_PATH", model_path)
     analyzer.reset_stacking_model_for_test()
 
     yield

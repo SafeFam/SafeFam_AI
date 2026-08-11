@@ -20,9 +20,8 @@ COPY data_science/SMSModel/artifacts/phishing_vectorizer.pkl models/phishing_vec
 COPY data_science/SMSModel/artifacts/stacking data_science/SMSModel/artifacts/stacking
 
 RUN useradd --create-home --shell /usr/sbin/nologin safefam \
-    && chown -R safefam:safefam /app \
-    && chown -R root:root /app/data_science/SMSModel/artifacts/stacking \
-    && chmod -R a-w /app/data_science/SMSModel/artifacts/stacking
+    && chown -R root:root /app \
+    && chmod -R a-w /app
 
 USER safefam
 
