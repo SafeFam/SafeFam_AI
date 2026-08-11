@@ -98,8 +98,27 @@ class HybridTextAnalyzer:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
 
-        # 항상 자체 모델을 먼저 실행
-        stacking_analysis = self.stacking_analyzer(text)
+        # 항상 자체 모델을 먼저 실행한다. 분석기 구현이 예외를 그대로
+        # 전파하더라도 전체 파이프라인이 중단되지 않도록 unavailable
+        # 결과로 정규화한 뒤 Gemini fallback 정책을 적용한다.
+        try:
+            stacking_analysis = self.stacking_analyzer(text)
+        except Exception as exception:
+            logger.error(
+                "[Hybrid Text] Stacking analyzer failed. "
+                "error_type=%s",
+                type(exception).__name__,
+            )
+            stacking_analysis = {
+                "engine": "stacking",
+                "is_available": False,
+                "result": {
+                    "risk_probability": None,
+                    "risk_score": None,
+                    "confidence": 0.0,
+                    "error_message": "STACKING_MODEL_UNAVAILABLE",
+                },
+            }
 
         # 자체 모델 결과로 Gemini 호출 여부 결정
         routing = self.policy.route(
@@ -144,9 +163,28 @@ class HybridTextAnalyzer:
             routing.decision.value,
         )
 
-        gemini_analysis = await self.gemini_analyzer(
-            text
-        )
+        # Gemini 분석기가 예상 밖의 예외를 전파해도 사용 가능한
+        # stacking 결과로 fallback할 수 있도록 실패 응답으로 정규화한다.
+        try:
+            gemini_analysis = await self.gemini_analyzer(
+                text
+            )
+        except Exception as exception:
+            logger.error(
+                "[Hybrid Text] Gemini analyzer failed. "
+                "error_type=%s",
+                type(exception).__name__,
+            )
+            gemini_analysis = {
+                "result": {
+                    "grade": "UNKNOWN",
+                    "risk_score": None,
+                    "tone_analysis": "",
+                    "evidence": [],
+                    "reason": "Gemini 분석을 사용할 수 없습니다.",
+                    "error_message": "GEMINI_ANALYZER_FAILED",
+                }
+            }
         gemini_available = _gemini_is_available(
             gemini_analysis
         )

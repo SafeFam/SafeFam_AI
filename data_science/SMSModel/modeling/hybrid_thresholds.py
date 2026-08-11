@@ -10,7 +10,7 @@ from sklearn.metrics import (
     recall_score,
 )
 
-dataclass(frozen=True)
+@dataclass(frozen=True)
 class HybridThresholdSelection:
     """Validation 데이터에서 선택한 하이브리드 임계값과 성능"""
 

@@ -168,6 +168,53 @@ async def test_uses_stacking_when_gemini_fails():
 
 
 @pytest.mark.asyncio
+async def test_uses_stacking_when_gemini_raises():
+    async def raising_gemini(_text: str):
+        raise RuntimeError("secret upstream detail")
+
+    analyzer = HybridTextAnalyzer(
+        policy=build_policy(),
+        stacking_analyzer=(
+            lambda _text: build_stacking_result(0.5)
+        ),
+        gemini_analyzer=raising_gemini,
+    )
+
+    result = await analyzer.analyze("본인 확인이 필요합니다")
+
+    assert result["decision_source"] == "STACKING_FALLBACK"
+    assert result["gemini_available"] is False
+    assert result["fallback_applied"] is True
+    assert result["result"]["risk_score"] == 50
+    assert (
+        result["gemini"]["error_message"]
+        == "GEMINI_ANALYZER_FAILED"
+    )
+
+
+@pytest.mark.asyncio
+async def test_uses_gemini_when_stacking_raises():
+    def raising_stacking(_text: str):
+        raise RuntimeError("local model detail")
+
+    async def gemini_analyzer(_text: str):
+        return build_gemini_result(score=75)
+
+    analyzer = HybridTextAnalyzer(
+        policy=build_policy(),
+        stacking_analyzer=raising_stacking,
+        gemini_analyzer=gemini_analyzer,
+    )
+
+    result = await analyzer.analyze("본인 확인이 필요합니다")
+
+    assert result["decision_source"] == "GEMINI"
+    assert result["routing_decision"] == "GEMINI_FALLBACK"
+    assert result["self_model"]["risk_score"] is None
+    assert result["result"]["risk_score"] == 75
+
+
+@pytest.mark.asyncio
 async def test_does_not_fail_open_when_all_engines_fail():
     async def failed_gemini(_text: str):
         return {

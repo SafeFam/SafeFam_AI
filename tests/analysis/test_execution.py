@@ -32,15 +32,34 @@ def _result(
     )
 
 
+def _text_analysis(
+    *,
+    score: int | None = 30,
+    self_model_score: int | None = 30,
+    gemini_called: bool = False,
+    gemini_available: bool = False,
+    error_message: str | None = None,
+) -> dict:
+    """현재 하이브리드 텍스트 응답 스키마로 테스트 데이터를 만든다."""
+
+    return {
+        "result": {
+            "grade": "UNKNOWN" if score is None else "SAFE",
+            "risk_score": score,
+            "error_message": error_message,
+        },
+        "self_model": {
+            "risk_score": self_model_score,
+        },
+        "gemini_called": gemini_called,
+        "gemini_available": gemini_available,
+    }
+
+
 def test_classifies_successful_execution_as_completed() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "SAFE",
-                    "error_message": None,
-                },
-            },
+            text_analysis=_text_analysis(),
             url_analysis={
                 "available": True,
                 "failed_providers": [],
@@ -56,12 +75,7 @@ def test_classifies_successful_execution_as_completed() -> None:
 def test_classifies_provider_failure_as_partial() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "SAFE",
-                    "error_message": None,
-                },
-            },
+            text_analysis=_text_analysis(),
             url_analysis={
                 "available": True,
                 "failed_providers": ["GSB"],
@@ -77,12 +91,7 @@ def test_classifies_provider_failure_as_partial() -> None:
 def test_classifies_unavailable_url_track_as_partial() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "SAFE",
-                    "error_message": None,
-                },
-            },
+            text_analysis=_text_analysis(),
             url_analysis={
                 "available": False,
                 "failed_providers": [
@@ -105,19 +114,15 @@ def test_classifies_pipeline_error_as_failed() -> None:
     assert execution.failed_tracks == ("PIPELINE",)
 
 
-def test_classifies_gemini_failure_with_valid_naive_bayes() -> None:
+def test_classifies_gemini_failure_with_valid_stacking() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "UNKNOWN",
-                    "error_message": "RATE_LIMITED",
-                },
-                "stage1_naive_bayes": {
-                    "grade": "DANGEROUS",
-                    "error_message": None,
-                },
-            },
+            text_analysis=_text_analysis(
+                score=70,
+                self_model_score=70,
+                gemini_called=True,
+                gemini_available=False,
+            ),
             rule_analysis={"error_message": None},
         )
     )
@@ -126,57 +131,45 @@ def test_classifies_gemini_failure_with_valid_naive_bayes() -> None:
     assert execution.failed_tracks == ("TEXT:GEMINI",)
 
 
-def test_classifies_naive_bayes_failure_with_valid_gemini() -> None:
+def test_classifies_stacking_failure_with_valid_gemini() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "SAFE",
-                    "error_message": None,
-                },
-                "stage1_naive_bayes": {
-                    "grade": "UNKNOWN",
-                    "error_message": "MODEL_UNAVAILABLE",
-                },
-            },
+            text_analysis=_text_analysis(
+                score=20,
+                self_model_score=None,
+                gemini_called=True,
+                gemini_available=True,
+            ),
             rule_analysis={"error_message": None},
         )
     )
 
     assert execution.status == AnalysisExecutionStatus.PARTIAL
-    assert execution.failed_tracks == ("TEXT:NAIVE_BAYES",)
+    assert execution.failed_tracks == ("TEXT:STACKING",)
 
 
-def test_classifies_unknown_naive_bayes_without_error_code() -> None:
+def test_classifies_all_text_engines_unavailable() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "SAFE",
-                    "error_message": None,
-                },
-                "stage1_naive_bayes": {
-                    "grade": "UNKNOWN",
-                    "error_message": None,
-                },
-            },
+            text_analysis=_text_analysis(
+                score=None,
+                self_model_score=None,
+                gemini_called=True,
+                gemini_available=False,
+                error_message="ALL_TEXT_ENGINES_UNAVAILABLE",
+            ),
             rule_analysis={"error_message": None},
         )
     )
 
     assert execution.status == AnalysisExecutionStatus.PARTIAL
-    assert execution.failed_tracks == ("TEXT:NAIVE_BAYES",)
+    assert execution.failed_tracks == ("TEXT",)
 
 
 def test_classifies_rule_failure_as_partial() -> None:
     execution = classify_execution(
         _result(
-            text_analysis={
-                "result": {
-                    "grade": "SAFE",
-                    "error_message": None,
-                },
-            },
+            text_analysis=_text_analysis(),
             rule_analysis={
                 "error_message": "RULE_ANALYSIS_FAILED",
             },

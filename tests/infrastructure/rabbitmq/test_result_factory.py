@@ -63,10 +63,15 @@ def _result(
                     "reason": "금융기관 사칭",
                     "evidence": ["인증 요구"],
                 },
-                "stage1_naive_bayes": {
+                "self_model": {
                     "risk_score": 70,
-                    "grade": "SUSPICIOUS",
+                    "confidence": 0.72,
                 },
+                "gemini_called": True,
+                "gemini_available": True,
+                "decision_source": "GEMINI",
+                "routing_reason": "UNCERTAIN_SELF_MODEL_PREDICTION",
+                "fallback_applied": False,
             }
             if status == "SUCCESS"
             else None
@@ -136,6 +141,16 @@ def test_factory_maps_successful_execution(
     assert event.payload.rawScores.url == 90
     assert event.payload.rawScores.rules == 75
     assert event.payload.failedTracks == list(failed_tracks)
+    assert event.payload.textAnalysis is not None
+    assert event.payload.textAnalysis.method == TextAnalysisMethod.STACKING_GEMINI
+    assert event.payload.textAnalysis.selfModelScore == 70
+    assert event.payload.textAnalysis.selfModelConfidence == pytest.approx(0.72)
+    assert event.payload.textAnalysis.geminiCalled is True
+    assert event.payload.textAnalysis.decisionSource == "GEMINI"
+    assert event.payload.textAnalysis.routingReason == (
+        "UNCERTAIN_SELF_MODEL_PREDICTION"
+    )
+    assert event.payload.textAnalysis.fallbackApplied is False
 
 
 def test_factory_maps_failed_execution_without_message_content() -> None:

@@ -50,7 +50,24 @@ def create_success_result() -> SmishingAnalysisResponse:
             hybrid_url=25,
             rules=15,
         ),
-        text_analysis=None,
+        text_analysis={
+            "result": {
+                "grade": "DANGEROUS",
+                "risk_score": 84,
+                "reason": "금융기관 사칭",
+                "evidence": ["계좌 정지를 이용한 긴급성 유도"],
+                "error_message": None,
+            },
+            "self_model": {
+                "risk_score": 84,
+                "confidence": 0.9,
+            },
+            "gemini_called": False,
+            "gemini_available": False,
+            "decision_source": "STACKING",
+            "routing_reason": "HIGH_CONFIDENCE_PHISHING",
+            "fallback_applied": False,
+        },
         url_analysis=None,
         rule_analysis=None,
     )
