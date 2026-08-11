@@ -42,6 +42,39 @@ def test_production_settings_accept_complete_configuration():
     assert configured.MOCK_SECURITY_API is False
 
 
+def test_settings_accept_valid_stacking_probability_bounds():
+    configured = Settings(
+        STACKING_NORMAL_PROBABILITY_MAX=0.2,
+        STACKING_PHISHING_PROBABILITY_MIN=0.8,
+        _env_file=None,
+    )
+
+    assert configured.STACKING_NORMAL_PROBABILITY_MAX == 0.2
+    assert configured.STACKING_PHISHING_PROBABILITY_MIN == 0.8
+
+
+@pytest.mark.parametrize(
+    ("normal_max", "phishing_min"),
+    [
+        (0.5, 0.5),
+        (0.8, 0.2),
+    ],
+)
+def test_settings_reject_invalid_stacking_probability_bounds(
+    normal_max: float,
+    phishing_min: float,
+) -> None:
+    with pytest.raises(
+        ValidationError,
+        match="must be smaller",
+    ):
+        Settings(
+            STACKING_NORMAL_PROBABILITY_MAX=normal_max,
+            STACKING_PHISHING_PROBABILITY_MIN=phishing_min,
+            _env_file=None,
+        )
+
+
 def test_model_validation_rejects_missing_files(monkeypatch, tmp_path):
     missing_model = tmp_path / "missing-model.pkl"
     missing_vectorizer = tmp_path / "missing-vectorizer.pkl"

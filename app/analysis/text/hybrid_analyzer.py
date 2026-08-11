@@ -27,7 +27,7 @@ GeminiAnalyzer = Callable[
 
 def _stacking_to_public_result(
     stacking_analysis: dict[str, Any],
-) -> dics[str, Any]:
+) -> dict[str, Any]:
     """Stacking 결과를 기존 텍스트 result 형식으로 변환"""
      
     result = stacking_analysis.get("result") or {}

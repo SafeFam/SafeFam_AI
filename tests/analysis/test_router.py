@@ -1,11 +1,7 @@
-"""
-Swagger UI(/docs)가 문서화하는 POST /api/analyze 계약을 실제 HTTP 레벨에서 검증하는 E2E 시나리오 테스트.
+"""POST /api/analyze 계약을 실제 HTTP 레벨에서 검증하는 테스트.
 
-- 나이브 베이즈(1차)는 실제 로직을 그대로 태운다 (로컬/무료 자원).
-- URL 리다이렉트 추적기(trace_url)는 리다이렉트가 없는 고정값으로 Mock 처리한다 -
-  실제 동작은 tests/url/test_url_tracer.py에서 전담 검증하며, 여기서는 outbound
-  DNS/HTTP 호출과 CI 아웃바운드 의존성을 없애기 위함이다.
-- Gemini(2차)와 GSB+VT 하이브리드 URL 엔진은 결정론적인 Mock 모드로 우회한다 (유료/외부 API 의존성 제거).
+Stacking 결과는 시나리오별 고정값으로 대체하고 Gemini와 URL 공급자는
+mock 모드로 실행해 외부 API 및 학습 artifact 상태에 의존하지 않는다.
 """
 
 from unittest.mock import AsyncMock, patch
@@ -19,19 +15,56 @@ app = create_app(rabbitmq_consumer_enabled=False)
 client = TestClient(app)
 
 
+def _stacking_result(text: str) -> dict:
+    """일상 문장은 확실한 정상, 그 외 문장은 불확실 구간으로 반환."""
+
+    probability = 0.1 if (
+        "소주" in text or "테스트 메시지" in text
+    ) else 0.5
+
+    return {
+        "engine": "stacking",
+        "is_available": True,
+        "result": {
+            "risk_score": round(probability * 100),
+            "risk_probability": probability,
+            "confidence": 0.8,
+            "is_suspected_phishing": probability >= 0.5,
+            "threshold": 0.2,
+            "model_scores": {},
+            "unavailable_models": [],
+            "error_message": None,
+        },
+    }
+
+
 @pytest.fixture(autouse=True)
 def _mock_external_paid_apis():
     with (
         patch("app.analysis.text.gemini_analyzer.MOCK_ENABLED", True),
         patch("app.analysis.url.analyzer.MOCK_ENABLED", True),
+        patch(
+            "app.analysis.service.analyze_text_with_stacking",
+            side_effect=_stacking_result,
+        ),
+        patch(
+            "app.analysis.service.settings."
+            "STACKING_NORMAL_PROBABILITY_MAX",
+            0.2,
+        ),
+        patch(
+            "app.analysis.service.settings."
+            "STACKING_PHISHING_PROBABILITY_MIN",
+            0.8,
+        ),
     ):
         yield
 
 
 def test_casual_message_is_low_risk_and_skips_gemini():
     """
-    시나리오: 일상 대화 문자 -> 나이브 베이즈가 SAFE로 판정해 Gemini 2차 검증을 스킵하고
-    LOW 등급으로 응답해야 한다.
+    시나리오: 일상 대화 문자를 stacking이 확실한 정상으로 판정하면
+    Gemini를 호출하지 않고 LOW 등급으로 응답해야 한다.
     """
     response = client.post("/api/analyze", json={"text": "오늘 소주 한잔 고?"})
 
@@ -40,14 +73,17 @@ def test_casual_message_is_low_risk_and_skips_gemini():
     assert body["status"] == "SUCCESS"
     assert body["risk_grade"] == "LOW"
     assert body["url_analysis"] is None
-    assert body["text_analysis"]["engine"] == "naive_bayes"
-    assert "stage1_naive_bayes" not in body["text_analysis"]
+    assert body["text_analysis"]["engine"] == "hybrid_stacking_gemini"
+    assert body["text_analysis"]["gemini_called"] is False
+    assert body["text_analysis"]["decision_source"] == "STACKING"
+    assert body["text_analysis"]["self_model"]["risk_score"] == 10
 
 
 def test_phishing_text_without_url_escalates_to_gemini_and_is_high_risk():
     """
     시나리오: URL 없이 기관 사칭 + 긴급성 유도 문구만 있는 전형적 스미싱 문자 ->
-    나이브 베이즈가 의심 판정해 Gemini 2차 검증까지 실행되고, 최종 위험 등급도 높게 나와야 한다.
+    stacking이 불확실 구간으로 판정해 Gemini 재검증을 실행하고,
+    최종 위험 등급도 높게 나와야 한다.
     """
     text = "[검찰청] 귀하 명의로 대포통장이 개설되어 수사가 진행 중입니다. 즉시 아래 링크로 접속하여 신원을 확인하세요."
     response = client.post("/api/analyze", json={"text": text})
@@ -55,8 +91,10 @@ def test_phishing_text_without_url_escalates_to_gemini_and_is_high_risk():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "SUCCESS"
-    assert "stage1_naive_bayes" in body["text_analysis"]
-    assert body["text_analysis"]["stage1_naive_bayes"]["risk_score"] == 97
+    assert body["text_analysis"]["gemini_called"] is True
+    assert body["text_analysis"]["gemini_available"] is True
+    assert body["text_analysis"]["decision_source"] == "GEMINI"
+    assert body["text_analysis"]["self_model"]["risk_score"] == 50
     assert body["risk_grade"] in ("MEDIUM", "HIGH")
     assert body["url_analysis"] is None
 

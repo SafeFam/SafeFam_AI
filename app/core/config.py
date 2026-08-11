@@ -17,6 +17,20 @@ class Settings(BaseSettings):
     GOOGLE_SAFE_BROWSING_API_KEY: str | None = None
     MOCK_SECURITY_API: bool = False
 
+    # Stacking 자체 모델이 확실한 정상이라고 판단하는 최대 확률
+    STACKING_NORMAL_PROBABILITY_MAX: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+    )
+
+    # Stacking 자체 모델이 확실한 피싱이라고 판단하는 최소 확률
+    STACKING_PHISHING_PROBABILITY_MIN: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+    )
+
     NAIVE_BAYES_MODEL_PATH: Path = Path(
         "data_science/SMSModel/artifacts/phishing_model_artifact.pkl"
     )
@@ -75,6 +89,15 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_settings(self):
+        if (
+            self.STACKING_NORMAL_PROBABILITY_MAX
+            >= self.STACKING_PHISHING_PROBABILITY_MIN
+        ):
+            raise ValueError(
+                "STACKING_NORMAL_PROBABILITY_MAX must be smaller than "
+                "STACKING_PHISHING_PROBABILITY_MIN"
+            )
+
         if self.ENV != "prod":
             return self
 
