@@ -95,3 +95,27 @@ def test_masked_card_token_is_detected():
 
     assert result["rule_score"] >= 30
     assert any("카드번호" in r for r in result["matched_rules"])
+
+
+def test_institution_domain_mismatch_adds_score_and_is_exposed_structurally():
+    """
+    문자에 언급된 기관명과 실제 링크된 도메인이 그 기관의 공식 도메인이 아니면,
+    GSB/VT 블랙리스트 등재 여부와 무관하게 규칙 점수에 반영되고 구조화된 정보로 노출돼야 한다.
+    """
+    result = analyze_text_with_rules(
+        "[국민은행] 계좌 확인 안내입니다.", traced_url="https://kb-bank-security.xyz/login"
+    )
+
+    assert result["rule_score"] == 65  # 기관명 언급(15) + 도메인 불일치(50)
+    assert any("도메인 불일치" in r for r in result["matched_rules"])
+    assert result["institution_match"]["mismatch"] is True
+    assert result["institution_match"]["institution"] == "국민은행"
+
+
+def test_institution_official_domain_does_not_add_mismatch_score():
+    result = analyze_text_with_rules(
+        "[국민은행] 계좌 확인 안내입니다.", traced_url="https://obank.kbstar.com/login"
+    )
+
+    assert result["institution_match"]["mismatch"] is False
+    assert not any("도메인 불일치" in r for r in result["matched_rules"])

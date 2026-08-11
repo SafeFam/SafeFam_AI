@@ -1,6 +1,11 @@
 import logging
 import re
 
+from app.analysis.institution.analyzer import (
+    INSTITUTION_MISMATCH_SCORE,
+    analyze_institution_match,
+)
+
 logger = logging.getLogger(__name__)
 
 # 각 신호별 배점 (합산 후 100점 만점으로 캡)
@@ -149,6 +154,18 @@ def analyze_text_with_rules(text: str, traced_url: str | None = None) -> dict:
         matched_rules.append(f"금융 긴급 키워드 매치: {', '.join(urgency_categories)}")
         score += urgency_score
 
+    # 문자에 언급된 기관명과 실제 링크된 도메인이 그 기관의 공식 도메인과 일치하는지 대조.
+    # GSB/VT 블랙리스트는 신고 이력이 있어야 걸리지만, 이 검사는 신고 이력과 무관하게
+    # 신규 피싱 도메인도 "공식 도메인이 아니다"라는 사실만으로 즉시 잡아낼 수 있다.
+    institution_match = analyze_institution_match(text, traced_url)
+    if institution_match["mismatch"]:
+        matched_rules.append(
+            f"기관명-공식 도메인 불일치: {institution_match['institution']} 명의로 "
+            f"공식 도메인({', '.join(institution_match['official_domains'])})이 아닌 "
+            f"{institution_match['text_domain']}(으)로 유도"
+        )
+        score += INSTITUTION_MISMATCH_SCORE
+
     rule_score = min(score, 100)
 
     if matched_rules:
@@ -161,4 +178,6 @@ def analyze_text_with_rules(text: str, traced_url: str | None = None) -> dict:
         "matched_rules": matched_rules,
         # URL 트랙 자체의 악성 판정에도 영향을 주는 로컬 가드 도메인 룰 매치 여부 (scan_service에서 사용)
         "has_malicious_domain_pattern": has_malicious_domain,
+        # 기관명-공식 도메인 대조 결과 (Spring 등 소비자가 판정 근거를 그대로 노출할 수 있도록 구조화)
+        "institution_match": institution_match,
     }
