@@ -11,6 +11,7 @@ from scipy.special import expit
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedGroupKFold
 
+from app.analysis.text.preprocessing import URL_PATTERN, normalize_text
 from app.analysis.text.structural_features import (
     STACKING_STRUCTURAL_FEATURE_NAMES,
     extract_stacking_structural_matrix,
@@ -167,32 +168,24 @@ class StackingPhishingClassifier:
 
         return (
             *(f"{name}_score" for name in self.model_names),
-            *(f"{name}_available" for name in self.model_names),
             *STACKING_STRUCTURAL_FEATURE_NAMES,
         )
 
     def _build_meta_features(
-         self,
+        self,
         *,
         base_scores: dict[str, np.ndarray],
-        availability: dict[str, np.ndarray],
         structural_features: np.ndarray,
     ) -> np.ndarray:
-        """모델 점수, 가용 상태, 구조 특징을 하나의 행렬로 결합"""
+        """모델 점수와 구조 특징을 하나의 행렬로 결합"""
 
         score_columns = [
             np.asarray(base_scores[name], dtype=np.float64)
             for name in self.model_names
         ]
-        availability_columns = [
-            np.asarray(availability[name], dtype=np.float64)
-            for name in self.model_names
-        ]
-
         return np.column_stack(
             [
                 *score_columns,
-                *availability_columns,
                 structural_features,
             ]
         )
@@ -216,11 +209,6 @@ class StackingPhishingClassifier:
             name: np.full(len(train_df), np.nan, dtype=np.float64)
             for name in self.model_names
         }
-        availability = {
-            name: np.ones(len(train_df), dtype=np.float64)
-            for name in self.model_names
-        }
-
         for train_indices, oof_indices in splitter.split(
             train_df,
             y=labels,
@@ -248,7 +236,6 @@ class StackingPhishingClassifier:
 
         return self._build_meta_features(
             base_scores=base_scores,
-            availability=availability,
             structural_features=structural_features,
         )
 
@@ -294,24 +281,18 @@ class StackingPhishingClassifier:
         df: pd.DataFrame,
     ) -> tuple[
         dict[str, np.ndarray],
-        dict[str, np.ndarray],
         tuple[str, ...],
     ]:
         """개별 모델 오류를 격리하며 meta 입력 생성"""
 
         row_count = len(df)
         base_scores: dict[str, np.ndarray] = {}
-        availability: dict[str, np.ndarray] = {}
         unavailable_models: list[str] = []
 
         for name in self.model_names:
             try:
                 output = self.base_models[name].predict_scores(df)
                 base_scores[name] = normalize_base_scores(output)
-                availability[name] = np.ones(
-                    row_count,
-                    dtype=np.float64,
-                )
             except Exception:  # noqa: BLE001 - 모델별 실패를 격리
                 # 실패 모델을 0점으로 처리하면 위험 메시지를 정상으로 낮출 수 있으므로 중립값 0.5를 사용
                 base_scores[name] = np.full(
@@ -319,15 +300,10 @@ class StackingPhishingClassifier:
                     0.5,
                     dtype=np.float64,
                 )
-                availability[name] = np.zeros(
-                    row_count,
-                    dtype=np.float64,
-                )
                 unavailable_models.append(name)
 
         return (
             base_scores,
-            availability,
             tuple(unavailable_models),
         )
 
@@ -348,7 +324,7 @@ class StackingPhishingClassifier:
             require_group=False,
         )
 
-        base_scores, availability, unavailable = (
+        base_scores, unavailable = (
             self._predict_base_features(df)
         )
         structural_features = extract_stacking_structural_matrix(
@@ -357,7 +333,6 @@ class StackingPhishingClassifier:
 
         meta_features = self._build_meta_features(
             base_scores=base_scores,
-            availability=availability,
             structural_features=structural_features,
         )
 
@@ -415,16 +390,12 @@ class StackingPhishingClassifier:
             raise TypeError("text must be a string")
 
         # 기존 모델들이 요구하는 공통 DataFrame 계약을 구성
-        from app.analysis.text.preprocessing import normalize_text
-
         df = pd.DataFrame(
             [
                 {
                     "text": text,
                     "text_norm": normalize_text(text),
-                    "has_url": bool(
-                        extract_stacking_structural_matrix([text])[0][0]
-                    ),
+                    "has_url": bool(URL_PATTERN.search(text)),
                 }
             ]
         )
@@ -434,8 +405,20 @@ class StackingPhishingClassifier:
         )
         probability = float(probabilities[0])
 
-        # 0.5에서 멀수록 확신이 높은 것으로 정의
-        confidence = min(1.0, abs(probability - 0.5) * 2.0)
+        # 실제 판정 임계값에서 멀수록 확신이 높은 것으로 정의
+        if probability >= self.threshold:
+            confidence = (
+                1.0
+                if self.threshold == 1.0
+                else (probability - self.threshold) / (1.0 - self.threshold)
+            )
+        else:
+            confidence = (
+                1.0
+                if self.threshold == 0.0
+                else (self.threshold - probability) / self.threshold
+            )
+        confidence = min(1.0, max(0.0, confidence))
 
         return StackingPrediction(
             risk_probability=probability,

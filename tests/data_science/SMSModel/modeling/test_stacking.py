@@ -1,4 +1,7 @@
 """OOF stacking 분류기 테스트"""
+from pathlib import Path
+
+import joblib
 import numpy as np
 import pandas as pd
 import pytest
@@ -205,3 +208,40 @@ def test_predict_one_runs_each_base_model_once(
         "model_b": 1,
         "model_c": 1,
     }
+
+
+def test_default_classifier_is_joblib_serializable(
+    stacking_training_dataframe: pd.DataFrame,
+    tmp_path: Path,
+) -> None:
+    classifier = StackingPhishingClassifier(n_splits=3)
+    classifier.fit(stacking_training_dataframe)
+    artifact_path = tmp_path / "stacking.joblib"
+
+    joblib.dump(classifier, artifact_path)
+    loaded = joblib.load(artifact_path)
+
+    prediction = loaded.predict_one("즉시 계좌로 송금하세요")
+    assert 0.0 <= prediction.risk_probability <= 1.0
+
+
+def test_confidence_is_measured_from_active_threshold(
+    stacking_training_dataframe: pd.DataFrame,
+) -> None:
+    classifier = StackingPhishingClassifier(
+        n_splits=3,
+        threshold=0.2,
+        base_model_factories=build_factories(),
+    )
+    classifier.fit(stacking_training_dataframe)
+
+    prediction = classifier.predict_one("오늘 같이 점심 먹자")
+
+    expected = (
+        (prediction.risk_probability - classifier.threshold)
+        / (1.0 - classifier.threshold)
+        if prediction.risk_probability >= classifier.threshold
+        else (classifier.threshold - prediction.risk_probability)
+        / classifier.threshold
+    )
+    assert prediction.confidence == pytest.approx(expected)

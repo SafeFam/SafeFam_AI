@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+from pathlib import Path
 from types import SimpleNamespace
 
+import joblib
 import pytest
 
 from app.analysis.text import stacking_analyzer as analyzer
@@ -60,6 +64,67 @@ def test_loads_valid_artifact_once(
 
     # 두 번째 호출에서는 전역 캐시를 사용해야 합니다.
     assert load_calls == 1
+
+
+def test_loads_real_artifact_from_configured_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    classifier = build_classifier()
+    model_path = tmp_path / "model.joblib"
+    metadata_path = tmp_path / "metadata.json"
+    joblib.dump(
+        {"schema_version": 1, "classifier": classifier},
+        model_path,
+    )
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "model_sha256": hashlib.sha256(
+                    model_path.read_bytes()
+                ).hexdigest()
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(analyzer, "DEFAULT_STACKING_MODEL_PATH", model_path)
+
+    assert analyzer.is_stacking_model_loaded() is True
+
+
+def test_retries_after_transient_load_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    classifier = build_classifier()
+    load_calls = 0
+
+    def flaky_load(_model_path):
+        nonlocal load_calls
+        load_calls += 1
+        if load_calls == 1:
+            raise OSError("temporary read failure")
+        return {"schema_version": 1, "classifier": classifier}
+
+    monkeypatch.setattr(analyzer.joblib, "load", flaky_load)
+
+    assert analyzer.is_stacking_model_loaded() is False
+    assert analyzer.is_stacking_model_loaded() is True
+    assert load_calls == 2
+
+
+def test_rejects_artifact_with_checksum_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model_path = tmp_path / "model.joblib"
+    model_path.write_bytes(b"tampered")
+    model_path.with_name("metadata.json").write_text(
+        json.dumps({"model_sha256": "0" * 64}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(analyzer, "DEFAULT_STACKING_MODEL_PATH", model_path)
+
+    assert analyzer.is_stacking_model_loaded() is False
 
 
 def test_missing_artifact_returns_fail_safe_result(

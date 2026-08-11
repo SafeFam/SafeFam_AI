@@ -1,6 +1,8 @@
 """학습된 자체 모델을 사용하는 추론 서비스"""
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import threading
 from pathlib import Path
@@ -15,8 +17,10 @@ from data_science.SMSModel.modeling.stacking import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_STACKING_MODEL_PATH = Path(
-    "data_science/SMSModel/artifacts/stacking/model.joblib"
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_STACKING_MODEL_PATH = (
+    _REPOSITORY_ROOT
+    / "data_science/SMSModel/artifacts/stacking/model.joblib"
 )
 
 _load_lock = threading.Lock()
@@ -24,14 +28,15 @@ _load_attempted = False
 _classifier: StackingPhishingClassifier | None = None
 _load_error: str | None = None
 
-def _load_classifier(
-    model_path: Path = DEFAULT_STACKING_MODEL_PATH,
-) -> None:
+def _load_classifier(model_path: Path | None = None) -> None:
     """artifact를 프로세스당 한 번만 안전하게 로드"""
 
     global _load_attempted
     global _classifier
     global _load_error
+
+    if model_path is None:
+        model_path = DEFAULT_STACKING_MODEL_PATH
 
     if _load_attempted:
         return
@@ -41,6 +46,22 @@ def _load_classifier(
             return
 
         try:
+            metadata_path = model_path.with_name("metadata.json")
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            expected_digest = metadata.get("model_sha256")
+
+            if not isinstance(expected_digest, str):
+                raise ValueError("stacking artifact checksum is missing")
+
+            digest = hashlib.sha256()
+
+            with model_path.open("rb") as artifact_file:
+                for chunk in iter(lambda: artifact_file.read(8192), b""):
+                    digest.update(chunk)
+
+            if digest.hexdigest() != expected_digest:
+                raise ValueError("stacking artifact checksum mismatch")
+
             payload = joblib.load(model_path)
 
             if not isinstance(payload, dict):
@@ -62,6 +83,7 @@ def _load_classifier(
             # 모든 검증이 끝난 뒤 전역 상태 반영
             _classifier = classifier
             _load_error = None
+            _load_attempted = True
 
             logger.info(
                 "[Stacking] 모델 로드 완료 (threshold=%s)",
@@ -75,8 +97,6 @@ def _load_classifier(
                 "[Stacking] 모델 로드 실패. error_type=%s",
                 _load_error,
             )
-        finally:
-            _load_attempted = True
 
 def is_stacking_model_loaded() -> bool:
     """stacking 모델 사용 가능 여부 반환"""

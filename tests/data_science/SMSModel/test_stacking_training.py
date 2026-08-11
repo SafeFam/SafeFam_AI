@@ -106,7 +106,8 @@ def test_saves_and_reloads_model_artifact(
     assert isinstance(payload["classifier"], StackingPhishingClassifier)
     assert metadata["model_sha256"] == training.calculate_sha256(model_path)
     assert not Path(metadata["dataset_path"]).is_absolute()
-    assert "text" not in metadata
+    serialized_metadata = json.dumps(metadata, ensure_ascii=False)
+    assert '"text"' not in serialized_metadata
 
 
 def test_does_not_overwrite_existing_artifact_without_permission(
@@ -115,12 +116,15 @@ def test_does_not_overwrite_existing_artifact_without_permission(
 ) -> None:
     artifact_directory = tmp_path / "stacking"
     artifact_directory.mkdir()
+    model_path = artifact_directory / "model.joblib"
+    model_path.touch()
 
     monkeypatch.setattr(
         training,
         "STACKING_ARTIFACT_DIRECTORY",
         artifact_directory,
     )
+    monkeypatch.setattr(training, "STACKING_MODEL_PATH", model_path)
 
     classifier = StackingPhishingClassifier(n_splits=2)
 

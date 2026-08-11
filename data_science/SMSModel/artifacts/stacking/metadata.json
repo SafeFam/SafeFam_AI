@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-08-10T16:00:56.965718+00:00",
+  "created_at": "2026-08-11T00:13:11.792602+00:00",
   "dataset_path": "Data/SMSData/phishing_total_dataset_2705.csv",
   "model": {
     "base_models": [
@@ -12,9 +12,6 @@
       "naive_bayes_score",
       "logistic_regression_score",
       "linear_svm_score",
-      "naive_bayes_available",
-      "logistic_regression_available",
-      "linear_svm_available",
       "has_url",
       "has_short_url",
       "has_phone",
@@ -31,13 +28,13 @@
     "model_name": "stacking_phishing_classifier",
     "oof_splits": 5,
     "random_state": 42,
-    "threshold": 0.07617260083880244
+    "threshold": 0.08844759684377157
   },
-  "model_sha256": "aabf00bddf46c3b1e1eece9fb352f99b22173c9f7cca122cb6aa7eae277e2f76",
+  "model_sha256": "fa99576f1d655625410ddb3b6b36ab55faca5a780f296dae9041e37593c063fe",
   "schema_version": 1,
   "split_manifest": "sms_split_v1.csv",
   "validation": {
-    "f2": 0.9203296703296703,
+    "f2": 0.9153005464480874,
     "recall": 1.0,
     "target_recall": 0.95,
     "target_recall_met": true

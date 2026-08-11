@@ -160,7 +160,7 @@ def save_artifact(
 ) -> None:
     """모델과 비민감 metadata를 저장하고 재로드 검증"""
 
-    if STACKING_ARTIFACT_DIRECTORY.exists() and not overwrite:
+    if STACKING_MODEL_PATH.is_file() and not overwrite:
         raise FileExistsError(
             "stacking artifact already exists; "
             "use --overwrite-artifacts to replace it"
@@ -177,6 +177,19 @@ def save_artifact(
     }
 
     joblib.dump(payload, STACKING_MODEL_PATH)
+
+    loaded = joblib.load(STACKING_MODEL_PATH)
+
+    if loaded.get("schema_version") != 1:
+        raise RuntimeError("invalid stacking artifact schema")
+
+    loaded_classifier = loaded.get("classifier")
+
+    if not isinstance(
+        loaded_classifier,
+        StackingPhishingClassifier,
+    ):
+        raise RuntimeError("invalid stacking classifier artifact")
 
     metadata = {
         "schema_version": 1,
@@ -201,20 +214,6 @@ def save_artifact(
         + "\n",
         encoding="utf-8",
     )
-
-    # 저장 직후 로드하여 손상되거나 불완전한 artifact를 방지
-    loaded = joblib.load(STACKING_MODEL_PATH)
-
-    if loaded.get("schema_version") != 1:
-        raise RuntimeError("invalid stacking artifact schema")
-
-    loaded_classifier = loaded.get("classifier")
-
-    if not isinstance(
-        loaded_classifier,
-        StackingPhishingClassifier,
-    ):
-        raise RuntimeError("invalid stacking classifier artifact")
 
 def train_stacking(*, overwrite_artifacts: bool) -> None:
     """train으로 학습하고 validation으로 임계값을 선택"""
