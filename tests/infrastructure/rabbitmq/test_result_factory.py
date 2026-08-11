@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -63,10 +64,15 @@ def _result(
                     "reason": "금융기관 사칭",
                     "evidence": ["인증 요구"],
                 },
-                "stage1_naive_bayes": {
+                "self_model": {
                     "risk_score": 70,
-                    "grade": "SUSPICIOUS",
+                    "confidence": 0.72,
                 },
+                "gemini_called": True,
+                "gemini_available": True,
+                "decision_source": "GEMINI",
+                "routing_reason": "UNCERTAIN_SELF_MODEL_PREDICTION",
+                "fallback_applied": False,
             }
             if status == "SUCCESS"
             else None
@@ -136,6 +142,16 @@ def test_factory_maps_successful_execution(
     assert event.payload.rawScores.url == 90
     assert event.payload.rawScores.rules == 75
     assert event.payload.failedTracks == list(failed_tracks)
+    assert event.payload.textAnalysis is not None
+    assert event.payload.textAnalysis.method == TextAnalysisMethod.STACKING_GEMINI
+    assert event.payload.textAnalysis.selfModelScore == 70
+    assert event.payload.textAnalysis.selfModelConfidence == pytest.approx(0.72)
+    assert event.payload.textAnalysis.geminiCalled is True
+    assert event.payload.textAnalysis.decisionSource == "GEMINI"
+    assert event.payload.textAnalysis.routingReason == (
+        "UNCERTAIN_SELF_MODEL_PREDICTION"
+    )
+    assert event.payload.textAnalysis.fallbackApplied is False
 
 
 def test_factory_maps_failed_execution_without_message_content() -> None:
@@ -245,3 +261,39 @@ def test_factory_maps_unit_url_score_to_one_hundred() -> None:
     assert event.payload.rawScores.url == 100
     assert event.payload.urlAnalysis is not None
     assert event.payload.urlAnalysis.score == 100
+
+
+@pytest.mark.parametrize(
+    ("raw_confidence", "expected"),
+    [
+        (-0.5, 0.0),
+        (1.5, 1.0),
+        (float("nan"), None),
+        (float("inf"), None),
+        (True, None),
+        ("0.8", None),
+    ],
+)
+def test_factory_normalizes_self_model_confidence(
+    raw_confidence,
+    expected,
+) -> None:
+    result = _result()
+    result.text_analysis["self_model"]["confidence"] = (
+        raw_confidence
+    )
+
+    event = AnalysisResultEventFactory().create(
+        request=_request(),
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    confidence = event.payload.textAnalysis.selfModelConfidence
+    if expected is None:
+        assert confidence is None
+    else:
+        assert math.isclose(confidence, expected)

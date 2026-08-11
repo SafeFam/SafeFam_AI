@@ -1,0 +1,108 @@
+{
+  "predictions": [
+    {
+      "available": false,
+      "error_code": "GEMINI_VALIDATION_FAILED",
+      "risk_score": null,
+      "text_fingerprint": "289b21983f4d981cd429323483365d60e967d089656d930db86180446bbc44f0"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 92,
+      "text_fingerprint": "2ea8346732eddecebb3d5b0af2dadfe19eac847d63d1a54616e3c9780c0d0a9b"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 5,
+      "text_fingerprint": "301f545f30fe3a4b2ea8bf0be80d564782893f0137f7fc10645244a3d82eb833"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 92,
+      "text_fingerprint": "3256ba9d4ad81438c3a78ad2d9d9124a2f6db7d2ba33c934f2093f1ea2b55742"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 92,
+      "text_fingerprint": "354a654dd179372d1c17ae688d9cffbc5ff4afaddf944bffe01a178152368903"
+    },
+    {
+      "available": false,
+      "error_code": "GEMINI_VALIDATION_FAILED",
+      "risk_score": null,
+      "text_fingerprint": "3ee443e030ab5aff20c11eb1d2a3857f363d8fe4a989e99448b0e12e9069e216"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 85,
+      "text_fingerprint": "4142fcb037bf6abb39e3c8d499beba8b3f08276d63f3f041911c1ebd7a574222"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 5,
+      "text_fingerprint": "5580c99edd3218684721ed377d478d39496755e1956427c69ec48ccedee48db8"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 95,
+      "text_fingerprint": "638d116d425486fdd6c6d02756dbc9f8c32288aa05c6129adbcd6ef8ee8e127c"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 90,
+      "text_fingerprint": "6954d76bffa4df64d32eece72440e5da18f1f6546b2f98ec65b344bbdfac4056"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 10,
+      "text_fingerprint": "7243157b2c8f9fab1664cd2b01270de2d106b872c1620e2402a1c9329c2ba243"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 5,
+      "text_fingerprint": "828b133c682a90cf80dc66ddb563f0bad1add03d628f6ebb70e813269eba681f"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 75,
+      "text_fingerprint": "af129827c3283f2218baef8752bf17dc48159f820b6793985bfcd7c83213f83b"
+    },
+    {
+      "available": false,
+      "error_code": "GEMINI_VALIDATION_FAILED",
+      "risk_score": null,
+      "text_fingerprint": "d032c79c99bf3ca9213f7263f47f32cfd8526e911d5a849518b237e4517ad7ba"
+    },
+    {
+      "available": false,
+      "error_code": "GEMINI_VALIDATION_FAILED",
+      "risk_score": null,
+      "text_fingerprint": "d12d5c8c893c7770de85d622bb84933abd4c5b8dd6da76a497f7db729c9cb1ca"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 92,
+      "text_fingerprint": "eb8f6d7e5925e119738ba91c9b0ed18f2ecb8d9b2a3a3bff7ae366435b3681d4"
+    },
+    {
+      "available": true,
+      "error_code": null,
+      "risk_score": 90,
+      "text_fingerprint": "ee03ab85bde5b1e60c128fbd34eabecc0c854d63f30131db8df9f8071ba28de8"
+    }
+  ],
+  "schema_version": 1,
+  "updated_at": "2026-08-11T05:19:14.067891+00:00"
+}

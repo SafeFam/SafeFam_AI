@@ -1,258 +1,250 @@
+"""통합 분석 서비스의 하이브리드 텍스트 연결 테스트"""
+
+import asyncio
+
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.analysis.risk_policy import RISK_MEDIUM_THRESHOLD
 from app.analysis.service import SmishingAnalysisService
 
 
-def _nb_result(grade: str, risk_score: int, is_available: bool = True) -> dict:
+def _text_analysis(
+    *,
+    self_model_score: int | None,
+    selected_score: int | None,
+    gemini_called: bool,
+    gemini_available: bool,
+    decision_source: str,
+) -> dict:
+    """서비스 테스트에서 사용할 하이브리드 텍스트 결과 생성"""
+
+    grade = "UNKNOWN" if selected_score is None else (
+        "DANGEROUS" if selected_score >= 70 else "SAFE"
+    )
+
     return {
-        "engine": "naive_bayes",
-        "is_available": is_available,
+        "engine": "hybrid_stacking_gemini",
         "result": {
             "grade": grade,
-            "risk_score": risk_score,
-            "is_suspected_phishing": grade != "SAFE",
-            "error_message": None if is_available else "Model Load Error",
-        },
-    }
-
-
-@pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_hybrid_text_track_skips_gemini_when_naive_bayes_is_safe(
-    mock_nb, mock_gemini
-):
-    """
-    1차 나이브 베이즈가 SAFE로 판정하면 Gemini API를 호출하지 않고
-    나이브 베이즈 결과를 그대로 text_analysis로 사용해야 한다.
-    Gemini가 안 돌았으므로 llm_available은 False, naive_bayes_score는 그 점수를 그대로 반환.
-    """
-    mock_nb.return_value = _nb_result("SAFE", 12)
-
-    service = SmishingAnalysisService()
-    (
-        text_analysis,
-        naive_bayes_score,
-        llm_available,
-    ) = await service._analyze_text_hybrid("엄마 오늘 저녁 메뉴 뭐야?", rule_score=0)
-
-    mock_gemini.assert_not_called()
-    assert text_analysis["engine"] == "naive_bayes"
-    assert text_analysis["result"]["risk_score"] == 12
-    assert naive_bayes_score == 12
-    assert llm_available is False
-
-
-@pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_hybrid_text_track_escalates_to_gemini_when_naive_bayes_is_suspicious(
-    mock_nb, mock_gemini
-):
-    """
-    1차 나이브 베이즈가 SAFE 기준을 넘는 위험도로 판정하면 Gemini 2차 검증을 호출하고,
-    1차 나이브 베이즈 점수도 stage1_naive_bayes로 함께 실어보내야 한다.
-    """
-    mock_nb.return_value = _nb_result("DANGEROUS", 91)
-    mock_gemini.return_value = {
-        "is_mock": False,
-        "result": {
-            "grade": "DANGEROUS",
-            "risk_score": 90,
+            "risk_score": selected_score,
             "tone_analysis": "",
             "evidence": [],
-            "reason": "",
+            "reason": "테스트 분석 결과",
+            "error_message": (
+                "ALL_TEXT_ENGINES_UNAVAILABLE"
+                if selected_score is None
+                else None
+            ),
         },
+        "self_model": {
+            "risk_score": self_model_score,
+            "risk_probability": (
+                None
+                if self_model_score is None
+                else self_model_score / 100
+            ),
+            "confidence": 0.8 if self_model_score is not None else 0.0,
+        },
+        "gemini": None,
+        "gemini_called": gemini_called,
+        "gemini_available": gemini_available,
+        "decision_source": decision_source,
+        "routing_decision": "TEST_DECISION",
+        "routing_reason": "TEST_REASON",
+        "fallback_applied": decision_source == "STACKING_FALLBACK",
     }
 
-    service = SmishingAnalysisService()
-    (
-        text_analysis,
-        naive_bayes_score,
-        llm_available,
-    ) = await service._analyze_text_hybrid(
-        "[국민건강보험] 즉시 확인하세요 http://bit.ly/fake", rule_score=0
+
+def _rule_result(
+    _text: str,
+    _traced_url: str | None,
+) -> dict:
+    """추가 위험 신호가 없는 정상 규칙 분석 결과"""
+
+    return {
+        "rule_score": 0,
+        "has_malicious_domain_pattern": False,
+        "matched_rules": [],
+        "error_message": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_pipeline_uses_stacking_result_when_gemini_is_skipped() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=10,
+                selected_score=10,
+                gemini_called=False,
+                gemini_available=False,
+                decision_source="STACKING",
+            )
+        )
+    )
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=_rule_result,
     )
 
-    mock_gemini.assert_awaited_once()
-    assert text_analysis["result"]["risk_score"] == 90
-    assert text_analysis["stage1_naive_bayes"]["risk_score"] == 91
-    assert naive_bayes_score == 91
-    assert llm_available is True
+    result = await service.analyze_pipeline("오늘 저녁 같이 먹자")
+
+    text_analyzer.analyze.assert_awaited_once_with(
+        "오늘 저녁 같이 먹자",
+        force_gemini=False,
+    )
+    assert result.status == "SUCCESS"
+    assert result.text_analysis["decision_source"] == "STACKING"
+    assert result.text_analysis["gemini_called"] is False
+    assert result.url_analysis is None
+    assert result.risk_grade == "LOW"
 
 
 @pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_hybrid_text_track_falls_back_to_gemini_when_naive_bayes_unavailable(
-    mock_nb, mock_gemini
-):
-    """
-    나이브 베이즈 모델 로드에 실패한 경우, SAFE 판정 여부와 무관하게
-    안전하게 Gemini 2차 검증으로 폴백해야 한다 (fail-safe). 이 경우 나이브 베이즈 점수는
-    스코어링에 반영할 수 없으므로 None으로 전달되어야 한다.
-    """
-    mock_nb.return_value = _nb_result("UNKNOWN", 0, is_available=False)
-    mock_gemini.return_value = {
-        "is_mock": False,
-        "result": {
-            "grade": "SAFE",
-            "risk_score": 5,
-            "tone_analysis": "",
-            "evidence": [],
-            "reason": "",
-        },
-    }
-
-    service = SmishingAnalysisService()
-    (
-        text_analysis,
-        naive_bayes_score,
-        llm_available,
-    ) = await service._analyze_text_hybrid("테스트 메시지", rule_score=0)
-
-    mock_gemini.assert_awaited_once()
-    assert text_analysis["result"]["risk_score"] == 5
-    assert naive_bayes_score is None
-    assert llm_available is True
-
-
-@pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_hybrid_text_track_marks_llm_unavailable_when_gemini_errors(
-    mock_nb, mock_gemini
-):
-    """
-    나이브 베이즈가 의심 판정해 에스컬레이션했지만 Gemini 호출 자체가 실패(UNKNOWN)한 경우,
-    llm_available=False로 표시되어 스코어링 단계에서 나이브 베이즈 점수를 fail-safe로 신뢰하도록 해야 한다.
-    """
-    mock_nb.return_value = _nb_result("DANGEROUS", 91)
-    mock_gemini.return_value = {
-        "is_mock": False,
-        "result": {
-            "grade": "UNKNOWN",
-            "risk_score": 0,
-            "tone_analysis": "",
-            "evidence": [],
-            "error_message": "Rate Limit",
-        },
-    }
-
-    service = SmishingAnalysisService()
-    (
-        _text_analysis,
-        naive_bayes_score,
-        llm_available,
-    ) = await service._analyze_text_hybrid(
-        "[국민건강보험] 즉시 확인하세요 http://bit.ly/fake", rule_score=0
+async def test_pipeline_uses_selected_gemini_score_once() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=50,
+                selected_score=90,
+                gemini_called=True,
+                gemini_available=True,
+                decision_source="GEMINI",
+            )
+        )
+    )
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=_rule_result,
     )
 
-    assert naive_bayes_score == 91
-    assert llm_available is False
+    result = await service.analyze_pipeline("본인 확인이 필요합니다")
+
+    assert result.status == "SUCCESS"
+    assert result.text_analysis["decision_source"] == "GEMINI"
+    assert result.text_analysis["gemini_available"] is True
+    assert result.final_score == 58
+    assert result.contribution_breakdown.llm == 58
 
 
 @pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_hybrid_text_track_escalates_when_rule_score_high_despite_naive_bayes_safe(
-    mock_nb, mock_gemini
-):
-    """
-    "정상 공지문처럼 문체만 바꾼" 변형 등으로 나이브 베이즈가 SAFE로 오판하더라도,
-    규칙 엔진이 이미 SUSPICIOUS 이상(계좌번호/기관명 패턴 등)을 감지했다면
-    Gemini 2차 검증을 스킵하지 않고 반드시 호출해야 한다.
-    """
-    mock_nb.return_value = _nb_result("SAFE", 8)
-    mock_gemini.return_value = {
-        "is_mock": False,
-        "result": {
-            "grade": "DANGEROUS",
-            "risk_score": 85,
-            "tone_analysis": "",
-            "evidence": [],
-            "reason": "",
-        },
-    }
-
-    service = SmishingAnalysisService()
-    (
-        text_analysis,
-        naive_bayes_score,
-        llm_available,
-    ) = await service._analyze_text_hybrid(
-        "[KB국민은행] 결제 완료 안내...", rule_score=RISK_MEDIUM_THRESHOLD
+async def test_pipeline_forces_gemini_when_rule_score_is_high() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=10,
+                selected_score=80,
+                gemini_called=True,
+                gemini_available=True,
+                decision_source="GEMINI",
+            )
+        )
     )
 
-    mock_gemini.assert_awaited_once()
-    assert text_analysis["result"]["risk_score"] == 85
-    assert naive_bayes_score == 8
-    assert llm_available is True
+    def suspicious_rule_result(
+        _text: str,
+        _traced_url: str | None,
+    ) -> dict:
+        return {
+            "rule_score": 40,
+            "has_malicious_domain_pattern": False,
+            "matched_rules": ["institution_pattern"],
+            "error_message": None,
+        }
 
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=suspicious_rule_result,
+    )
 
-@pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_analyze_pipeline_escalates_to_gemini_when_rule_preview_raises(
-    mock_nb, mock_gemini
-):
-    """
-    규칙 엔진 미리보기 계산 자체가 예외로 실패하면 "규칙 신호 없음(0점)"으로 단정할 수
-    없으므로, 나이브 베이즈가 SAFE로 판정하더라도 fail-safe로 Gemini 2차 검증을
-    반드시 호출해야 한다 (0점으로 폴백하면 조용히 스킵되는 fail-open 재발 방지).
-    """
+    result = await service.analyze_pipeline(
+        "기관 사칭 의심 문자"
+    )
 
-    def raising_rule_analyzer(text: str, traced_url: str | None) -> dict:
-        raise RuntimeError("규칙 엔진 계산 실패")
-
-    mock_nb.return_value = _nb_result("SAFE", 5)
-    mock_gemini.return_value = {
-        "is_mock": False,
-        "result": {
-            "grade": "SUSPICIOUS",
-            "risk_score": 45,
-            "tone_analysis": "",
-            "evidence": [],
-            "reason": "",
-        },
-    }
-
-    service = SmishingAnalysisService(rule_analyzer=raising_rule_analyzer)
-    result = await service.analyze_pipeline("규칙 분석이 실패해도 검증되어야 하는 문자")
-
-    mock_gemini.assert_awaited_once()
+    text_analyzer.analyze.assert_awaited_once_with(
+        "기관 사칭 의심 문자",
+        force_gemini=True,
+    )
     assert result.status == "SUCCESS"
 
 
 @pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-@patch("app.analysis.service.trace_url", new_callable=AsyncMock)
-async def test_analyze_pipeline_forces_high_when_local_domain_rule_matches(
-    mock_trace, mock_nb
-):
-    """
-    로컬 도메인 룰(.ru 등)이 매치되면 텍스트 문맥 점수가 아무리 낮아도(나이브 베이즈 SAFE라
-    Gemini조차 스킵된 상황) 확정 악성으로 승격되어 최종 등급이 HIGH로 강제되어야 한다.
-    """
-    mock_nb.return_value = _nb_result("SAFE", 5)
-    mock_trace.return_value = "https://malicious.ru/phish"
+async def test_pipeline_forces_gemini_when_rule_preview_fails() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=10,
+                selected_score=75,
+                gemini_called=True,
+                gemini_available=True,
+                decision_source="GEMINI",
+            )
+        )
+    )
 
-    service = SmishingAnalysisService()
+    def raising_rule_analyzer(
+        _text: str,
+        _traced_url: str | None,
+    ) -> dict:
+        raise RuntimeError("sensitive rule detail")
+
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=raising_rule_analyzer,
+    )
+
+    result = await service.analyze_pipeline(
+        "규칙 분석 실패 문자"
+    )
+
+    text_analyzer.analyze.assert_awaited_once_with(
+        "규칙 분석 실패 문자",
+        force_gemini=True,
+    )
+    assert result.status == "SUCCESS"
+    assert result.rule_analysis["error_message"] == (
+        "RULE_ANALYSIS_FAILED"
+    )
+
+
+@pytest.mark.asyncio
+@patch("app.analysis.service.trace_url", new_callable=AsyncMock)
+async def test_pipeline_forces_high_when_local_domain_rule_matches(
+    mock_trace: AsyncMock,
+) -> None:
+    mock_trace.return_value = "https://malicious.ru/phish"
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=5,
+                selected_score=5,
+                gemini_called=False,
+                gemini_available=False,
+                decision_source="STACKING",
+            )
+        )
+    )
+    service = SmishingAnalysisService(text_analyzer=text_analyzer)
     service.url_analyzer.scan_url = AsyncMock(
         return_value={
             "is_malicious": False,
             "url_risk_score": 0.0,
             "source": "Hybrid-Engine (GSB+VT)",
+            "available": True,
+            "failed_providers": [],
+            "pending_providers": [],
+            "provider_error_codes": {},
             "error_message": None,
             "is_gsb_confirmed": False,
             "is_vt_confirmed": False,
         }
     )
 
-    result = await service.analyze_pipeline("평범한 문자입니다 https://bit.ly/xyz")
+    result = await service.analyze_pipeline(
+        "평범한 문자입니다 https://bit.ly/xyz"
+    )
 
     assert result.risk_grade == "HIGH"
     assert result.final_score >= 70
@@ -260,30 +252,24 @@ async def test_analyze_pipeline_forces_high_when_local_domain_rule_matches(
 
 
 @pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_gemini", new_callable=AsyncMock)
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_analyze_pipeline_uses_available_zero_score_rules_when_text_engines_are_down(
-    mock_nb, mock_gemini
-):
-    """
-    나이브 베이즈 모델 로드 실패 + Gemini 호출도 동시에 실패(rate limit 등)하는 경우,
-    URL/규칙 신호가 전혀 없는 문자라도 최종 등급이 조용히 LOW로 나와선 안 된다.
-    두 분류기가 동시에 다운됐다는 인프라 장애가 "안전 확인됨"으로 둔갑하면 안 됨 (fail-open 방지).
-    """
-    mock_nb.return_value = _nb_result("UNKNOWN", 0, is_available=False)
-    mock_gemini.return_value = {
-        "is_mock": False,
-        "result": {
-            "grade": "UNKNOWN",
-            "risk_score": 0,
-            "tone_analysis": "",
-            "evidence": [],
-            "error_message": "Rate Limit",
-        },
-    }
+async def test_pipeline_does_not_fail_open_when_text_engines_are_down() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            return_value=_text_analysis(
+                self_model_score=None,
+                selected_score=None,
+                gemini_called=True,
+                gemini_available=False,
+                decision_source="UNAVAILABLE",
+            )
+        )
+    )
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=_rule_result,
+    )
 
-    service = SmishingAnalysisService()
-    result = await service.analyze_pipeline("URL도 없고 특이사항도 없는 문자")
+    result = await service.analyze_pipeline("URL이 없는 테스트 문자")
 
     assert result.status == "SUCCESS"
     assert result.rule_analysis["rule_score"] == 0
@@ -292,18 +278,56 @@ async def test_analyze_pipeline_uses_available_zero_score_rules_when_text_engine
 
 
 @pytest.mark.asyncio
-@patch("app.analysis.service.analyze_text_with_naive_bayes", new_callable=AsyncMock)
-async def test_analyze_pipeline_does_not_fail_open_when_pipeline_itself_throws(mock_nb):
-    """
-    나이브 베이즈/Gemini 개별 실패가 아니라 파이프라인 자체가 처리 중 예외로 죽는 경우
-    (네트워크 오류, 버그 등)에도 status="ERROR"만 보고 걸러내지 않는 소비자를 위해
-    risk_grade/final_score 자체가 조용히 LOW/0("안전 확인됨")으로 나와선 안 된다.
-    """
-    mock_nb.side_effect = RuntimeError("예기치 못한 파이프라인 장애")
+async def test_pipeline_does_not_fail_open_when_text_analyzer_raises() -> None:
+    text_analyzer = SimpleNamespace(
+        analyze=AsyncMock(
+            side_effect=RuntimeError("expected pipeline failure")
+        )
+    )
+    service = SmishingAnalysisService(
+        text_analyzer=text_analyzer,
+        rule_analyzer=_rule_result,
+    )
 
-    service = SmishingAnalysisService()
-    result = await service.analyze_pipeline("URL도 없고 특이사항도 없는 문자")
+    result = await service.analyze_pipeline("테스트 문자")
 
     assert result.status == "ERROR"
     assert result.risk_grade != "LOW"
     assert result.final_score >= 40
+
+
+@pytest.mark.asyncio
+@patch("app.analysis.service.trace_url", new_callable=AsyncMock)
+async def test_pipeline_retrieves_sibling_task_when_url_fails(
+    mock_trace: AsyncMock,
+) -> None:
+    text_cancelled = False
+
+    async def slow_text_analysis(
+        _text: str,
+        *,
+        force_gemini: bool = False,
+    ) -> dict:
+        del force_gemini
+        nonlocal text_cancelled
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            text_cancelled = True
+            raise
+        return {}
+
+    mock_trace.side_effect = RuntimeError("URL trace failed")
+    service = SmishingAnalysisService(
+        text_analyzer=SimpleNamespace(
+            analyze=slow_text_analysis,
+        ),
+        rule_analyzer=_rule_result,
+    )
+
+    result = await service.analyze_pipeline(
+        "https://example.test"
+    )
+
+    assert result.status == "ERROR"
+    assert text_cancelled is True

@@ -1,9 +1,18 @@
+"""스미싱 분석 파이프라인 조립 서비스"""
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 
-from app.analysis.risk_policy import RISK_MEDIUM_THRESHOLD
-from app.analysis.rules.analyzer import analyze_text_with_rules
+from app.analysis.hybrid_policy import (
+    ConditionalGeminiPolicy,
+    HybridThresholds,
+)
+from app.analysis.risk_policy import (
+    RISK_MEDIUM_THRESHOLD,
+)
+from app.analysis.rules.analyzer import (
+    analyze_text_with_rules,
+)
 from app.analysis.schemas import (
     ContributionBreakdown,
     RiskGrade,
@@ -11,103 +20,193 @@ from app.analysis.schemas import (
     UrlAnalysisResponse,
 )
 from app.analysis.scoring import RiskScoringEngine
-from app.analysis.text.gemini_analyzer import analyze_text_with_gemini
-from app.analysis.text.naive_bayes_analyzer import analyze_text_with_naive_bayes
-from app.analysis.url.analyzer import HybridUrlAnalyzer
-from app.analysis.url.tracker import extract_urls, trace_url
+from app.analysis.text.gemini_analyzer import (
+    analyze_text_with_gemini,
+)
+from app.analysis.text.hybrid_analyzer import (
+    HybridTextAnalyzer,
+)
+from app.analysis.text.stacking_analyzer import (
+    analyze_text_with_stacking,
+)
+from app.analysis.url.analyzer import (
+    HybridUrlAnalyzer,
+)
+from app.analysis.url.tracker import (
+    extract_urls,
+    trace_url,
+)
+from app.core.config import settings
+
 
 logger = logging.getLogger(__name__)
 
-
 class SmishingAnalysisService:
+    """텍스트, URL, 규칙 분석 결과를 최종 응답으로 조립"""
+
     def __init__(
         self,
         url_analyzer: HybridUrlAnalyzer | None = None,
-        naive_bayes_analyzer: Callable[[str], Awaitable[dict]] | None = None,
-        gemini_analyzer: Callable[[str], Awaitable[dict]] | None = None,
-        rule_analyzer: Callable[[str, str | None], dict] | None = None,
-    ):
-        self.url_analyzer = url_analyzer or HybridUrlAnalyzer()
-        self.naive_bayes_analyzer = (
-            naive_bayes_analyzer or analyze_text_with_naive_bayes
+        text_analyzer: HybridTextAnalyzer | None = None,
+        rule_analyzer: (
+            Callable[[str, str | None], dict] | None
+        ) = None,
+    ) -> None:
+        """분석 서비스가 사용할 각 분석기를 구성"""
+
+        self.url_analyzer = (
+            url_analyzer or HybridUrlAnalyzer()
         )
-        self.gemini_analyzer = gemini_analyzer or analyze_text_with_gemini
-        self.rule_analyzer = rule_analyzer or analyze_text_with_rules
 
-    # 1차 나이브 베이즈 선별 후, SAFE 기준 미만(의심)일 때만 Gemini 2차 검증을 호출하는 하이브리드 텍스트 트랙
-    # 반환값: (text_analysis 응답용 dict, 나이브 베이즈 점수(미수행 시 None), Gemini 2차 검증 정상 수행 여부)
-    async def _analyze_text_hybrid(self, text: str, rule_score: int) -> tuple[dict, int | None, bool]:
-        nb_result = await self.naive_bayes_analyzer(text)
-        nb_grade = nb_result.get("result", {}).get("grade")
-        nb_score = nb_result.get("result", {}).get("risk_score", 0)
-        nb_available = nb_result.get("is_available", False)
+        self.text_analyzer = (
+            text_analyzer
+            or HybridTextAnalyzer(
 
-        # 모델이 정상 로드되어 SAFE로 판정한 경우에만 Gemini 호출 스킵.
-        # 모델 로드 실패(UNKNOWN)는 안전하게 Gemini 2차 검증으로 폴백(fail-safe).
-        # 단, 규칙 엔진이 이미 SUSPICIOUS 이상(계좌번호/기관명/긴급 키워드 등)을 감지했다면
-        # NB 단독의 SAFE 판정만으로 스킵하지 않는다 — "정중한 공지문처럼 문체만 바꾼" 변형이
-        # NB를 속여 SAFE로 오판시키고 Gemini 2차 검증 자체를 건너뛰게 만드는 것을 방지한다.
-        if nb_available and nb_grade == "SAFE" and rule_score < RISK_MEDIUM_THRESHOLD:
-            logger.info("[Hybrid] 나이브 베이즈 SAFE 판정 - Gemini 2차 검증 스킵")
-            return nb_result, nb_score, False
+                # Stacking 확률을 기준으로
+                # Gemini 호출 여부를 결정하는 정책
+                policy=ConditionalGeminiPolicy(
+                    HybridThresholds(
+                        normal_max=(
+                            settings
+                            .STACKING_NORMAL_PROBABILITY_MAX
+                        ),
+                        phishing_min=(
+                            settings
+                            .STACKING_PHISHING_PROBABILITY_MIN
+                        ),
+                    )
+                ),
 
-        text_analysis = await self.gemini_analyzer(text)
-        text_analysis["stage1_naive_bayes"] = nb_result.get("result")
+                # 첫 번째 분석 엔진: 자체 stacking 모델
+                stacking_analyzer=(
+                    analyze_text_with_stacking
+                ),
 
-        llm_available = text_analysis.get("result", {}).get("grade") != "UNKNOWN"
-        return text_analysis, (nb_score if nb_available else None), llm_available
+                # 두 번째 분석 엔진: 불확실한 경우에만 호출되는 Gemini
+                gemini_analyzer=(
+                    analyze_text_with_gemini
+                ),
+            )
+        )
+        self.rule_analyzer = (
+            rule_analyzer or analyze_text_with_rules
+        )
 
-    # 텍스트 트랙과 URL 트랙을 병렬 조립하고 스코어링을 매핑
-    async def analyze_pipeline(self, text: str) -> SmishingAnalysisResponse:
+    def _preview_rule_score(self, text: str) -> int:
+        """Gemini 강제 검증 여부를 판단할 규칙 점수를 계산."""
 
         try:
+            result = self.rule_analyzer(text, None)
+            score = result.get("rule_score", 0)
+
+            if not isinstance(score, (int, float)):
+                return RISK_MEDIUM_THRESHOLD
+
+            return int(score)
+        except Exception as exception:
+            # 원문이나 예외 메시지는 로그에 남기지 않는다.
+            logger.error(
+                "[Analysis Service] Rule preview failed. "
+                "error_type=%s",
+                type(exception).__name__,
+            )
+            # 규칙 분석 실패를 안전 신호로 간주하지 않는다.
+            return RISK_MEDIUM_THRESHOLD
+
+    async def analyze_pipeline(
+        self,
+        text: str,
+    ) -> SmishingAnalysisResponse:
+
+        """텍스트, URL, 규칙 분석을 실행하고 최종 점수를 계산"""
+
+        try:
+            # 메시지에서 URL을 먼저 추출
             urls = extract_urls(text)
             has_url = len(urls) > 0
 
-            # NB 스킵 여부 판단에 쓸 규칙 점수를 URL 추적 이전에 미리 계산 (텍스트만으로 계산 가능한
-            # 계좌/기관명/긴급 키워드 신호면 충분 — 도메인 룰은 traced_url 확정 후 최종 rule_result에서 반영)
-            try:
-                rule_score_preview = self.rule_analyzer(text, None).get("rule_score", 0)
-            except Exception:
-                # 규칙 미리보기 자체가 실패하면 "규칙 신호 없음(0점)"으로 단정할 수 없다.
-                # 0으로 폴백하면 나이브 베이즈 SAFE 판정과 맞물려 Gemini 2차 검증을
-                # 조용히 건너뛰는 동일한 fail-open 상황이 재발하므로, 안전 쪽으로
-                # fail-safe 처리해 Gemini 에스컬레이션을 강제한다.
-                logger.error("[Analysis Service] 규칙 미리보기 계산 중 오류 발생 - fail-safe로 에스컬레이션")
-                rule_score_preview = RISK_MEDIUM_THRESHOLD
+            rule_score_preview = self._preview_rule_score(
+                text
+            )
+            force_gemini = (
+                rule_score_preview
+                >= RISK_MEDIUM_THRESHOLD
+            )
 
-            # 비동기 Task 스케줄링
-            text_task = asyncio.create_task(self._analyze_text_hybrid(text, rule_score_preview))
+            # 텍스트 분석은 항상 실행
+            text_task = asyncio.create_task(
+                self.text_analyzer.analyze(
+                    text,
+                    force_gemini=force_gemini,
+                )
+            )
+
             url_task = None
+            original_url = None
 
+            # URL이 있는 경우에만 URL 추적 및 보안 분석 실행
             if has_url:
                 original_url = urls[0]
 
                 async def url_track():
-                    traced = await trace_url(original_url)
-                    res = await self.url_analyzer.scan_url(traced)
-                    return traced, res
+                    """단축 URL을 추적한 뒤 보안 엔진으로 검사"""
 
-                url_task = asyncio.create_task(url_track())
+                    traced = await trace_url(
+                        original_url
+                    )
 
-            # 병렬 실행 공정
-            if url_task:
-                (
-                    (text_analysis, naive_bayes_score, llm_available),
-                    (traced_url, hybrid_res),
-                ) = await asyncio.gather(text_task, url_task)
+                    analysis = (
+                        await self.url_analyzer.scan_url(
+                            traced
+                        )
+                    )
+
+                    return traced, analysis
+
+                url_task = asyncio.create_task(
+                    url_track()
+                )
+
+            # 텍스트와 URL 분석을 가능한 한 병렬로 실행
+            if url_task is not None:
+                try:
+                    (
+                        text_analysis,
+                        (
+                            traced_url,
+                            hybrid_url_result,
+                        ),
+                    ) = await asyncio.gather(
+                        text_task,
+                        url_task,
+                    )
+                except BaseException:
+                    # 한 트랙이 실패하면 아직 실행 중인 형제 task를
+                    # 취소하고 두 결과를 모두 회수해 orphan task와
+                    # "Task exception was never retrieved"를 방지한다.
+                    for task in (text_task, url_task):
+                        if not task.done():
+                            task.cancel()
+
+                    await asyncio.gather(
+                        text_task,
+                        url_task,
+                        return_exceptions=True,
+                    )
+                    raise
             else:
-                (
-                    text_analysis,
-                    naive_bayes_score,
-                    llm_available,
-                ) = await text_task
+                text_analysis = await text_task
 
                 traced_url = None
-                hybrid_res = {
+
+                # URL이 없는 것은 URL 분석 실패가 아님
+                # 단순히 URL 트랙이 적용되지 않은 상태
+                hybrid_url_result = {
                     "is_malicious": False,
                     "url_risk_score": 0.0,
-                    "source": "Pre-Processing-Filter",
+                    "source": (
+                        "Pre-Processing-Filter"
+                    ),
                     "available": False,
                     "failed_providers": [],
                     "pending_providers": [],
@@ -117,94 +216,235 @@ class SmishingAnalysisService:
                     "is_vt_confirmed": False,
                 }
 
+            # HybridTextAnalyzer가 선택한 최종 텍스트 결과
             text_result = (
                 text_analysis.get("result") or {}
-                if isinstance(text_analysis, dict)
-                else {}
             )
-            llm_score = text_result.get("risk_score", 0)
-            text_available = naive_bayes_score is not None or llm_available
 
-            # 로컬 규칙 기반 트랙: 금융기관 DB 대조 + 금융 키워드 + 계좌/카드번호 패턴 + 도메인 룰(.ru 등)
+            # 하이브리드 분석기가 최종 선택한 텍스트 점수
+            selected_text_score = (
+                text_result.get("risk_score")
+            )
+
+            # 두 텍스트 엔진이 모두 실패한 경우 scoring engine이 fail-safe 점수를 적용할 수 있도록 0을 전달
+            scoring_text_score = (
+                int(selected_text_score)
+                if selected_text_score is not None
+                else 0
+            )
+
+            # HybridTextAnalyzer가 선택한 단일 결과가 있을 때만
+            # 텍스트 트랙을 사용 가능한 상태로 본다.
+            text_available = selected_text_score is not None
+
+            # 로컬 규칙 분석 실행
             try:
-                rule_result = self.rule_analyzer(text, traced_url)
+                rule_result = self.rule_analyzer(
+                    text,
+                    traced_url,
+                )
             except Exception as exception:
+                # 원문 메시지나 예외 메시지는 로그에 기록 X
                 logger.error(
-                    "[Analysis Service] 규칙 분석 중 오류 발생. error_type=%s",
+                    "[Analysis Service] 규칙 분석 실패. "
+                    "error_type=%s",
                     type(exception).__name__,
                 )
+
                 rule_result = {
                     "rule_score": 0,
-                    "has_malicious_domain_pattern": False,
+                    "has_malicious_domain_pattern": (
+                        False
+                    ),
                     "matched_rules": [],
-                    "error_message": "RULE_ANALYSIS_FAILED",
+                    "error_message": (
+                        "RULE_ANALYSIS_FAILED"
+                    ),
                 }
 
-            rules_available = not bool(rule_result.get("error_message"))
-            url_available = has_url and hybrid_res.get("available", False)
+            rules_available = not bool(
+                rule_result.get("error_message")
+            )
 
-            if rule_result.get("has_malicious_domain_pattern", False):
-                hybrid_res["is_malicious"] = True
-                hybrid_res["url_risk_score"] = max(
-                    hybrid_res.get("url_risk_score", 0.0),
+            # URL이 존재하면서 URL 보안 공급자 중 하나 이상이
+            # 정상 결과를 제공했을 때만 URL 트랙을 available로 봄
+            url_available = (
+                has_url
+                and hybrid_url_result.get(
+                    "available",
+                    False,
+                )
+            )
+
+            # 로컬 도메인 규칙에서 명확한 악성 패턴이 발견되면
+            # URL 결과의 최소 위험도를 0.75로 올림
+            if rule_result.get(
+                "has_malicious_domain_pattern",
+                False,
+            ):
+                hybrid_url_result[
+                    "is_malicious"
+                ] = True
+
+                hybrid_url_result[
+                    "url_risk_score"
+                ] = max(
+                    hybrid_url_result.get(
+                        "url_risk_score",
+                        0.0,
+                    ),
                     0.75,
                 )
 
-            # 확정 악성 판정 소스 3종 중 하나라도 해당하면 문맥 점수와 무관하게 HIGH 강제 오버라이드 대상.
-            # (GSB 블랙리스트 등재 / VT 다수 엔진 합의 / 로컬 도메인 룰 매치 — 신뢰도 낮은 VT 소수 탐지는 제외)
+            # 신뢰도가 높은 확정 악성 신호를 확인
+            # 다음 신호 중 하나라도 있으면 scoring engine에서 최종 등급을 최소 HIGH로 보정
             is_confirmed_malicious = (
-                hybrid_res.get("is_gsb_confirmed", False)
-                or hybrid_res.get("is_vt_confirmed", False)
-                or rule_result.get("has_malicious_domain_pattern", False)
+                hybrid_url_result.get(
+                    "is_gsb_confirmed",
+                    False,
+                )
+                or hybrid_url_result.get(
+                    "is_vt_confirmed",
+                    False,
+                )
+                or rule_result.get(
+                    "has_malicious_domain_pattern",
+                    False,
+                )
             )
 
+            # 텍스트, URL, 규칙이 전부 실패한 경우
+            # 정상 또는 LOW 응답을 반환하면 안됨
             no_reliable_signal = (
-                not text_available and not url_available and not rules_available
+                not text_available
+                and not url_available
+                and not rules_available
             )
-            if no_reliable_signal:
-                raise ValueError("No reliable analysis signal is available")
 
-            # 3중 스코어링 최종 계산 (텍스트 트랙은 나이브 베이즈 + Gemini 하이브리드 결합 점수 사용,
-            # URL 없으면 URL 트랙(30%)이 LLM/규칙 트랙으로 재배분됨)
-            final_score, risk_grade, breakdown = RiskScoringEngine.calculate_score(
-                llm_score=int(llm_score),
-                is_url_malicious=hybrid_res.get("is_malicious", False),
-                url_risk_score=hybrid_res.get("url_risk_score", 0.0),
-                rule_score=rule_result.get("rule_score", 0),
+            if no_reliable_signal:
+                raise ValueError(
+                    "No reliable analysis signal is available"
+                )
+
+            (
+                final_score,
+                risk_grade,
+                breakdown,
+            ) = RiskScoringEngine.calculate_score(
+                # HybridTextAnalyzer가 선택한 최종 텍스트 점수
+                llm_score=scoring_text_score,
+
+                is_url_malicious=(
+                    hybrid_url_result.get(
+                        "is_malicious",
+                        False,
+                    )
+                ),
+
+                url_risk_score=(
+                    hybrid_url_result.get(
+                        "url_risk_score",
+                        0.0,
+                    )
+                ),
+
+                rule_score=rule_result.get(
+                    "rule_score",
+                    0,
+                ),
+
                 has_url=has_url,
-                naive_bayes_score=naive_bayes_score,
-                llm_available=llm_available,
-                is_confirmed_malicious=is_confirmed_malicious,
+
+                # HybridTextAnalyzer가 이미 하나의 최종 점수를
+                # 선택했으므로 자체 모델 점수를 다시 혼합하지 않는다.
+                naive_bayes_score=None,
+
+                # 인자명은 기존 호환성을 유지하지만 실제 의미는
+                # 선택된 텍스트 점수의 사용 가능 여부다.
+                llm_available=text_available,
+
+                is_confirmed_malicious=(
+                    is_confirmed_malicious
+                ),
+
                 text_available=text_available,
                 url_available=url_available,
                 rules_available=rules_available,
             )
 
-            # URL 부재 시 예외 방어 및 스켈레톤 분기벽 구축
+            # URL이 실제로 포함된 경우에만
+            # URL 분석 상세 결과를 응답에 포함
             if has_url:
                 real_url_analysis = {
                     "has_url": True,
-                    "is_shortened": original_url != traced_url,
+
+                    "is_shortened": (
+                        original_url != traced_url
+                    ),
+
                     "origin_url": traced_url,
                     "original_url": original_url,
-                    "is_url_malicious": hybrid_res.get("is_malicious", False),
-                    "url_risk_score": hybrid_res.get("url_risk_score", 0.0),
-                    "engine_source": hybrid_res.get("source", "Hybrid-Engine"),
-                    "available": url_available,
-                    "failed_providers": hybrid_res.get("failed_providers", []),
-                    "pending_providers": hybrid_res.get("pending_providers", []),
-                    "provider_error_codes": hybrid_res.get(
-                        "provider_error_codes",
-                        {},
+
+                    "is_url_malicious": (
+                        hybrid_url_result.get(
+                            "is_malicious",
+                            False,
+                        )
                     ),
-                    "error_message": hybrid_res.get("error_message"),
+
+                    "url_risk_score": (
+                        hybrid_url_result.get(
+                            "url_risk_score",
+                            0.0,
+                        )
+                    ),
+
+                    "engine_source": (
+                        hybrid_url_result.get(
+                            "source",
+                            "Hybrid-Engine",
+                        )
+                    ),
+
+                    "available": url_available,
+
+                    "failed_providers": (
+                        hybrid_url_result.get(
+                            "failed_providers",
+                            [],
+                        )
+                    ),
+
+                    "pending_providers": (
+                        hybrid_url_result.get(
+                            "pending_providers",
+                            [],
+                        )
+                    ),
+
+                    "provider_error_codes": (
+                        hybrid_url_result.get(
+                            "provider_error_codes",
+                            {},
+                        )
+                    ),
+
+                    "error_message": (
+                        hybrid_url_result.get(
+                            "error_message"
+                        )
+                    ),
                 }
             else:
                 real_url_analysis = None
 
+            # 원문 메시지를 응답 또는 로그에 추가 X
             return SmishingAnalysisResponse(
                 status="SUCCESS",
-                message="3중 가중치 결합 스미싱 통합 분석이 완료되었습니다.",
+                message=(
+                    "3중 가중치 결합 스미싱 "
+                    "통합 분석이 완료되었습니다."
+                ),
                 final_score=final_score,
                 risk_grade=risk_grade,
                 contribution_breakdown=breakdown,
@@ -212,31 +452,48 @@ class SmishingAnalysisService:
                 url_analysis=real_url_analysis,
                 rule_analysis=rule_result,
             )
+
         except Exception as exception:
+            # 예외 타입만 로그에 기록
             logger.error(
-                "파이프라인 오류. error_type=%s",
+                "[Analysis Service] 파이프라인 실패. "
+                "error_type=%s",
                 type(exception).__name__,
             )
-            # 파이프라인이 통째로 죽어 어떤 트랙도 실행되지 못한 경우, final_score=0/LOW를
-            # 반환하면 "분석 실패"가 "안전 확인됨"으로 읽혀 fail-open이 된다 (텍스트 트랙
-            # 양쪽 엔진이 동시에 실패한 경우를 막는 BOTH_ENGINES_UNAVAILABLE_FALLBACK_SCORE와
-            # 같은 이유). status="ERROR"만 보고 걸러내지 않는 소비자를 위해 등급/점수 자체를
-            # 최소 MEDIUM으로 강제한다.
+
+            # 전체 파이프라인 실패를 0점/LOW로 반환하면
+            # 장애가 안전 판정으로 해석되는 fail-open이 발생
             return SmishingAnalysisResponse(
                 status="ERROR",
-                message="분석 파이프라인 처리 중 오류가 발생했습니다.",
-                final_score=RiskScoringEngine.PIPELINE_FAILURE_FALLBACK_SCORE,
+                message=(
+                    "분석 파이프라인 처리 중 "
+                    "오류가 발생했습니다."
+                ),
+                final_score=(
+                    RiskScoringEngine
+                    .PIPELINE_FAILURE_FALLBACK_SCORE
+                ),
                 risk_grade=RiskGrade.MEDIUM,
-                contribution_breakdown=ContributionBreakdown(
-                    llm=0, hybrid_url=0, rules=0
+                contribution_breakdown=(
+                    ContributionBreakdown(
+                        llm=0,
+                        hybrid_url=0,
+                        rules=0,
+                    )
                 ),
                 text_analysis=None,
                 url_analysis=None,
                 rule_analysis=None,
             )
 
-    async def scan_message_text(self, message: str) -> UrlAnalysisResponse:
+    async def scan_message_text(
+        self,
+        message: str,
+    ) -> UrlAnalysisResponse:
+        """메시지에 포함된 첫 번째 URL을 추적하고 검사"""
+
         urls = extract_urls(message)
+
         if not urls:
             return UrlAnalysisResponse(
                 has_url=False,
@@ -244,16 +501,28 @@ class SmishingAnalysisService:
                 traced_url=None,
                 is_url_malicious=False,
                 url_risk_score=0.0,
-                engine_source="Pre-Processing-Filter",
+                engine_source=(
+                    "Pre-Processing-Filter"
+                ),
             )
         traced_url = await trace_url(urls[0])
-        res = await self.url_analyzer.scan_url(traced_url)
+
+        result = await self.url_analyzer.scan_url(
+            traced_url
+        )
+
         return UrlAnalysisResponse(
             has_url=True,
             original_url=urls[0],
             traced_url=traced_url,
-            is_url_malicious=res["is_malicious"],
-            url_risk_score=res["url_risk_score"],
-            engine_source=res["source"],
-            error_message=res["error_message"],
+            is_url_malicious=result[
+                "is_malicious"
+            ],
+            url_risk_score=result[
+                "url_risk_score"
+            ],
+            engine_source=result["source"],
+            error_message=result[
+                "error_message"
+            ],
         )

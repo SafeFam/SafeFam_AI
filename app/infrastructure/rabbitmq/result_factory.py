@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timezone
 from uuid import NAMESPACE_URL, uuid5
 
@@ -116,20 +117,39 @@ def _text_detail(
     failed_tracks: tuple[str, ...],
 ) -> TextAnalysisDetail:
     result = text.get("result") or {}
-    stage1 = text.get("stage1_naive_bayes")
+    self_model = text.get("self_model") or {}
+
+    decision_source = text.get(
+        "decision_source"
+    )
+    gemini_called = bool(
+        text.get("gemini_called")
+    )
 
     if result.get("grade") == "UNKNOWN":
         method = TextAnalysisMethod.UNAVAILABLE
-    elif stage1 is not None:
-        method = TextAnalysisMethod.NAIVE_BAYES_GEMINI
-    elif text.get("engine") == "naive_bayes":
-        method = TextAnalysisMethod.NAIVE_BAYES
+
+    elif decision_source == "STACKING":
+        method = TextAnalysisMethod.STACKING
+
+    elif decision_source == "STACKING_FALLBACK":
+        method = (
+            TextAnalysisMethod.STACKING_FALLBACK
+        )
+
+    elif gemini_called:
+        method = (
+            TextAnalysisMethod.STACKING_GEMINI
+        )
+
     else:
         method = TextAnalysisMethod.GEMINI
 
     return TextAnalysisDetail(
         method=method,
-        score=_integer_score(result.get("risk_score")),
+        score=_integer_score(
+            result.get("risk_score")
+        ),
         grade=result.get("grade"),
         reason=result.get("reason"),
         evidence=result.get("evidence") or [],
@@ -138,6 +158,22 @@ def _text_detail(
             for track in failed_tracks
             if track.startswith("TEXT:")
         ],
+        selfModelScore=_integer_score(
+            self_model.get("risk_score")
+        ),
+        selfModelConfidence=(
+            _confidence(
+                self_model.get("confidence")
+            )
+        ),
+        geminiCalled=gemini_called,
+        decisionSource=decision_source,
+        routingReason=text.get(
+            "routing_reason"
+        ),
+        fallbackApplied=bool(
+            text.get("fallback_applied")
+        ),
     )
 
 
@@ -170,6 +206,22 @@ def _integer_score(value) -> int | None:
     if value is None:
         return None
     return max(0, min(100, round(float(value))))
+
+
+def _confidence(value) -> float | None:
+    """Confidence를 외부 계약의 0.0~1.0 범위로 정규화."""
+
+    if isinstance(value, bool) or not isinstance(
+        value,
+        (int, float),
+    ):
+        return None
+
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        return None
+
+    return min(max(numeric, 0.0), 1.0)
 
 
 def _url_error_code(url: dict) -> str | None:
