@@ -122,8 +122,8 @@ def _text_detail(
     decision_source = text.get(
         "decision_source"
     )
-    gemini_called = bool(
-        text.get("gemini_called")
+    llm_called = bool(
+        text.get("llm_called")
     )
 
     if result.get("grade") == "UNKNOWN":
@@ -137,13 +137,13 @@ def _text_detail(
             TextAnalysisMethod.STACKING_FALLBACK
         )
 
-    elif gemini_called:
+    elif llm_called:
         method = (
-            TextAnalysisMethod.STACKING_GEMINI
+            TextAnalysisMethod.STACKING_LLM
         )
 
     else:
-        method = TextAnalysisMethod.GEMINI
+        method = TextAnalysisMethod.LLM
 
     return TextAnalysisDetail(
         method=method,
@@ -166,7 +166,10 @@ def _text_detail(
                 self_model.get("confidence")
             )
         ),
-        geminiCalled=gemini_called,
+        llmCalled=llm_called,
+        llmProvider=text.get("llm_provider"),
+        llmModel=text.get("llm_model"),
+        geminiCalled=llm_called,
         decisionSource=decision_source,
         routingReason=text.get(
             "routing_reason"

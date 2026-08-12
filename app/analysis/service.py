@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable
 
 from app.analysis.hybrid_policy import (
-    ConditionalGeminiPolicy,
+    ConditionalLlmPolicy,
     HybridThresholds,
 )
 from app.analysis.risk_policy import (
@@ -20,8 +20,8 @@ from app.analysis.schemas import (
     UrlAnalysisResponse,
 )
 from app.analysis.scoring import RiskScoringEngine
-from app.analysis.text.gemini_analyzer import (
-    analyze_text_with_gemini,
+from app.analysis.text.llm_analyzer import (
+    analyze_text_with_llm,
 )
 from app.analysis.text.hybrid_analyzer import (
     HybridTextAnalyzer,
@@ -63,8 +63,8 @@ class SmishingAnalysisService:
             or HybridTextAnalyzer(
 
                 # Stacking 확률을 기준으로
-                # Gemini 호출 여부를 결정하는 정책
-                policy=ConditionalGeminiPolicy(
+                # LLM 호출 여부를 결정하는 정책
+                policy=ConditionalLlmPolicy(
                     HybridThresholds(
                         normal_max=(
                             settings
@@ -82,9 +82,9 @@ class SmishingAnalysisService:
                     analyze_text_with_stacking
                 ),
 
-                # 두 번째 분석 엔진: 불확실한 경우에만 호출되는 Gemini
-                gemini_analyzer=(
-                    analyze_text_with_gemini
+                # 두 번째 분석 엔진: 불확실한 경우에만 호출되는 LLM
+                llm_analyzer=(
+                    analyze_text_with_llm
                 ),
             )
         )
@@ -93,7 +93,7 @@ class SmishingAnalysisService:
         )
 
     def _preview_rule_score(self, text: str) -> int:
-        """Gemini 강제 검증 여부를 판단할 규칙 점수를 계산."""
+        """LLM 강제 검증 여부를 판단할 규칙 점수를 계산."""
 
         try:
             result = self.rule_analyzer(text, None)
@@ -128,7 +128,7 @@ class SmishingAnalysisService:
             rule_score_preview = self._preview_rule_score(
                 text
             )
-            force_gemini = (
+            force_llm = (
                 rule_score_preview
                 >= RISK_MEDIUM_THRESHOLD
             )
@@ -137,7 +137,7 @@ class SmishingAnalysisService:
             text_task = asyncio.create_task(
                 self.text_analyzer.analyze(
                     text,
-                    force_gemini=force_gemini,
+                    force_llm=force_llm,
                 )
             )
 

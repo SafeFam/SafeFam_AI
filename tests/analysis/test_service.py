@@ -25,7 +25,7 @@ def _text_analysis(
     )
 
     return {
-        "engine": "hybrid_stacking_gemini",
+        "engine": "hybrid_stacking_llm",
         "result": {
             "grade": grade,
             "risk_score": selected_score,
@@ -93,7 +93,7 @@ async def test_pipeline_uses_stacking_result_when_gemini_is_skipped() -> None:
 
     text_analyzer.analyze.assert_awaited_once_with(
         "오늘 저녁 같이 먹자",
-        force_gemini=False,
+        force_llm=False,
     )
     assert result.status == "SUCCESS"
     assert result.text_analysis["decision_source"] == "STACKING"
@@ -165,7 +165,7 @@ async def test_pipeline_forces_gemini_when_rule_score_is_high() -> None:
 
     text_analyzer.analyze.assert_awaited_once_with(
         "기관 사칭 의심 문자",
-        force_gemini=True,
+        force_llm=True,
     )
     assert result.status == "SUCCESS"
 
@@ -201,7 +201,7 @@ async def test_pipeline_forces_gemini_when_rule_preview_fails() -> None:
 
     text_analyzer.analyze.assert_awaited_once_with(
         "규칙 분석 실패 문자",
-        force_gemini=True,
+        force_llm=True,
     )
     assert result.status == "SUCCESS"
     assert result.rule_analysis["error_message"] == (
@@ -306,9 +306,9 @@ async def test_pipeline_retrieves_sibling_task_when_url_fails(
     async def slow_text_analysis(
         _text: str,
         *,
-        force_gemini: bool = False,
+        force_llm: bool = False,
     ) -> dict:
-        del force_gemini
+        del force_llm
         nonlocal text_cancelled
         try:
             await asyncio.sleep(60)

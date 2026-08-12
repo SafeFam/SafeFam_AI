@@ -36,8 +36,8 @@ def _text_analysis(
     *,
     score: int | None = 30,
     self_model_score: int | None = 30,
-    gemini_called: bool = False,
-    gemini_available: bool = False,
+    llm_called: bool = False,
+    llm_available: bool = False,
     error_message: str | None = None,
 ) -> dict:
     """현재 하이브리드 텍스트 응답 스키마로 테스트 데이터를 만든다."""
@@ -51,8 +51,8 @@ def _text_analysis(
         "self_model": {
             "risk_score": self_model_score,
         },
-        "gemini_called": gemini_called,
-        "gemini_available": gemini_available,
+        "llm_called": llm_called,
+        "llm_available": llm_available,
     }
 
 
@@ -120,15 +120,15 @@ def test_classifies_gemini_failure_with_valid_stacking() -> None:
             text_analysis=_text_analysis(
                 score=70,
                 self_model_score=70,
-                gemini_called=True,
-                gemini_available=False,
+                llm_called=True,
+                llm_available=False,
             ),
             rule_analysis={"error_message": None},
         )
     )
 
     assert execution.status == AnalysisExecutionStatus.PARTIAL
-    assert execution.failed_tracks == ("TEXT:GEMINI",)
+    assert execution.failed_tracks == ("TEXT:LLM",)
 
 
 def test_classifies_stacking_failure_with_valid_gemini() -> None:
@@ -137,8 +137,8 @@ def test_classifies_stacking_failure_with_valid_gemini() -> None:
             text_analysis=_text_analysis(
                 score=20,
                 self_model_score=None,
-                gemini_called=True,
-                gemini_available=True,
+                llm_called=True,
+                llm_available=True,
             ),
             rule_analysis={"error_message": None},
         )
@@ -154,8 +154,8 @@ def test_classifies_all_text_engines_unavailable() -> None:
             text_analysis=_text_analysis(
                 score=None,
                 self_model_score=None,
-                gemini_called=True,
-                gemini_available=False,
+                llm_called=True,
+                llm_available=False,
                 error_message="ALL_TEXT_ENGINES_UNAVAILABLE",
             ),
             rule_analysis={"error_message": None},

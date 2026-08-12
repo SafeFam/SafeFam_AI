@@ -1,4 +1,4 @@
-"""Stacking 자체 모델과 Gemini를 결합하는 텍스트 분석기"""
+"""Hybrid text analyzer combining stacking with a provider-neutral LLM."""
 from __future__ import annotations
 
 import asyncio
@@ -7,104 +7,87 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from app.analysis.hybrid_policy import (
-    ConditionalGeminiPolicy,
+    ConditionalLlmPolicy,
     HybridRoutingDecision,
     HybridRoutingResult,
 )
-from app.analysis.risk_policy import (
-    determine_text_risk_grade,
-)
+from app.analysis.risk_policy import determine_text_risk_grade
 
 logger = logging.getLogger(__name__)
 
-StackingAnalyzer = Callable[
-    [str],
-    dict[str, Any],
-]
+StackingAnalyzer = Callable[[str], dict[str, Any]]
+LlmAnalyzer = Callable[[str], Awaitable[dict[str, Any]]]
 
-GeminiAnalyzer = Callable[
-    [str],
-    Awaitable[dict[str, Any]],
-]
 
 def _stacking_to_public_result(
     stacking_analysis: dict[str, Any],
 ) -> dict[str, Any]:
-    """Stacking 결과를 기존 텍스트 result 형식으로 변환"""
-     
     result = stacking_analysis.get("result") or {}
     risk_score = result.get("risk_score")
 
-    if not isinstance(risk_score, int):
+    if isinstance(risk_score, bool) or not isinstance(risk_score, int):
         return {
             "grade": "UNKNOWN",
             "risk_score": None,
             "tone_analysis": "",
             "evidence": [],
-            "reason": (
-                "Stacking 자체 모델 결과를 "
-                "사용할 수 없습니다."
-            ),
-            "error_message": (
-                "STACKING_MODEL_UNAVAILABLE"
-            ),
+            "reason": "The stacking model result is unavailable.",
+            "error_message": "STACKING_MODEL_UNAVAILABLE",
         }
 
     return {
-        "grade": determine_text_risk_grade(
-            risk_score
-        ),
+        "grade": determine_text_risk_grade(risk_score),
         "risk_score": risk_score,
         "tone_analysis": "",
         "evidence": [],
-        "reason": (
-            "Stacking 자체 모델의 확신 구간 "
-            "판정을 사용했습니다."
-        ),
+        "reason": "The confident stacking model decision was used.",
         "error_message": None,
     }
 
-def _gemini_is_available(
-    gemini_analysis: dict[str, Any],
-) -> bool:
-    """Gemini 응답을 최종 판정에 사용할 수 있는지 검사"""
 
-    result = gemini_analysis.get("result") or {}
-
+def _llm_is_available(llm_analysis: dict[str, Any]) -> bool:
+    result = llm_analysis.get("result") or {}
+    risk_score = result.get("risk_score")
     return (
         result.get("grade") != "UNKNOWN"
-        and result.get("risk_score") is not None
+        and isinstance(risk_score, int)
+        and not isinstance(risk_score, bool)
+        and 0 <= risk_score <= 100
         and not result.get("error_message")
     )
 
+
+def _with_legacy_aliases(result: dict[str, Any]) -> dict[str, Any]:
+    """Maintain temporary compatibility with legacy SafeFam_BE events."""
+    result["gemini_called"] = result.get("llm_called", False)
+    result["gemini_available"] = result.get("llm_available", False)
+    result["gemini"] = result.get("llm")
+    return result
+
+
 class HybridTextAnalyzer:
-    """Stacking 분석 후 필요한 경우에만 Gemini 호출"""
+    """Call the LLM only for uncertain or unavailable stacking predictions."""
 
     def __init__(
         self,
         *,
-        policy: ConditionalGeminiPolicy,
+        policy: ConditionalLlmPolicy,
         stacking_analyzer: StackingAnalyzer,
-        gemini_analyzer: GeminiAnalyzer,
+        llm_analyzer: LlmAnalyzer,
     ) -> None:
         self.policy = policy
         self.stacking_analyzer = stacking_analyzer
-        self.gemini_analyzer = gemini_analyzer
+        self.llm_analyzer = llm_analyzer
 
     async def analyze(
         self,
         text: str,
         *,
-        force_gemini: bool = False,
+        force_llm: bool = False,
     ) -> dict[str, Any]:
-        """단일 메시지를 조건부 하이브리드 방식으로 분석"""
-
         if not isinstance(text, str):
             raise TypeError("text must be a string")
 
-        # 항상 자체 모델을 먼저 실행한다. 분석기 구현이 예외를 그대로
-        # 전파하더라도 전체 파이프라인이 중단되지 않도록 unavailable
-        # 결과로 정규화한 뒤 Gemini fallback 정책을 적용한다.
         try:
             stacking_analysis = await asyncio.to_thread(
                 self.stacking_analyzer,
@@ -112,8 +95,7 @@ class HybridTextAnalyzer:
             )
         except Exception as exception:
             logger.error(
-                "[Hybrid Text] Stacking analyzer failed. "
-                "error_type=%s",
+                "[Hybrid Text] Stacking analyzer failed. error_type=%s",
                 type(exception).__name__,
             )
             stacking_analysis = {
@@ -127,168 +109,116 @@ class HybridTextAnalyzer:
                 },
             }
 
-        # 자체 모델 결과로 Gemini 호출 여부 결정
-        routing = self.policy.route(
-            stacking_analysis
-        )
-
-        # 규칙 엔진이 위험 신호를 발견했거나 실패했다면,
-        # Stacking 확신 구간이어도 Gemini 재검증을 수행한다.
-        if force_gemini:
+        routing = self.policy.route(stacking_analysis)
+        if force_llm:
             routing = HybridRoutingResult(
-                decision=(
-                    HybridRoutingDecision.GEMINI_REVIEW
-                ),
-                should_call_gemini=True,
+                decision=HybridRoutingDecision.LLM_REVIEW,
+                should_call_llm=True,
                 reason="RULE_RISK_ESCALATION",
             )
 
-        stacking_result = (
-            stacking_analysis.get("result") or {}
-        )
-
-        # 자체 모델이 확실하면 Gemini 호출 X
-        if not routing.should_call_gemini:
+        stacking_result = stacking_analysis.get("result") or {}
+        if not routing.should_call_llm:
             logger.info(
-                "[Hybrid Text] Gemini skipped. "
-                "decision=%s risk_score=%s confidence=%s",
+                "[Hybrid Text] LLM skipped. decision=%s risk_score=%s "
+                "confidence=%s",
                 routing.decision.value,
                 stacking_result.get("risk_score"),
                 stacking_result.get("confidence"),
             )
+            return _with_legacy_aliases(
+                {
+                    "engine": "hybrid_stacking_llm",
+                    "result": _stacking_to_public_result(stacking_analysis),
+                    "self_model": stacking_result,
+                    "llm": None,
+                    "llm_called": False,
+                    "llm_available": False,
+                    "llm_provider": None,
+                    "llm_model": None,
+                    "decision_source": "STACKING",
+                    "routing_decision": routing.decision.value,
+                    "routing_reason": routing.reason,
+                    "fallback_applied": False,
+                }
+            )
 
-            return {
-                "engine": "hybrid_stacking_gemini",
-                "result": _stacking_to_public_result(
-                    stacking_analysis
-                ),
-                "self_model": stacking_result,
-                "gemini": None,
-                "gemini_called": False,
-                "gemini_available": False,
-                "decision_source": "STACKING",
-                "routing_decision": (
-                    routing.decision.value
-                ),
-                "routing_reason": routing.reason,
-                "fallback_applied": False,
-            }
-
-        # 불확실 구간 또는 자체 모델 장애일 때 Gemini 호출
         logger.info(
-            "[Hybrid Text] Gemini review requested. "
-            "decision=%s",
+            "[Hybrid Text] LLM review requested. decision=%s",
             routing.decision.value,
         )
-
-        # Gemini 분석기가 예상 밖의 예외를 전파해도 사용 가능한
-        # stacking 결과로 fallback할 수 있도록 실패 응답으로 정규화한다.
         try:
-            gemini_analysis = await self.gemini_analyzer(
-                text
-            )
+            llm_analysis = await self.llm_analyzer(text)
         except Exception as exception:
             logger.error(
-                "[Hybrid Text] Gemini analyzer failed. "
-                "error_type=%s",
+                "[Hybrid Text] LLM analyzer failed. error_type=%s",
                 type(exception).__name__,
             )
-            gemini_analysis = {
+            llm_analysis = {
+                "provider": None,
+                "model_id": None,
                 "result": {
                     "grade": "UNKNOWN",
                     "risk_score": None,
                     "tone_analysis": "",
                     "evidence": [],
-                    "reason": "Gemini 분석을 사용할 수 없습니다.",
-                    "error_message": "GEMINI_ANALYZER_FAILED",
+                    "reason": "The LLM analysis is unavailable.",
+                    "error_message": "LLM_ANALYZER_FAILED",
+                },
+            }
+
+        llm_result = llm_analysis.get("result") or {}
+        llm_available = _llm_is_available(llm_analysis)
+        common = {
+            "engine": "hybrid_stacking_llm",
+            "self_model": stacking_result,
+            "llm": llm_result,
+            "llm_called": True,
+            "llm_available": llm_available,
+            "llm_provider": llm_analysis.get("provider"),
+            "llm_model": llm_analysis.get("model_id"),
+            "routing_decision": routing.decision.value,
+            "routing_reason": routing.reason,
+        }
+
+        if llm_available:
+            return _with_legacy_aliases(
+                {
+                    **common,
+                    "result": llm_result,
+                    "decision_source": "LLM",
+                    "fallback_applied": False,
                 }
-            }
-        gemini_available = _gemini_is_available(
-            gemini_analysis
-        )
-
-        # Gemini가 성공했다면 Gemini 문맥 판정 사용
-        if gemini_available:
-            return {
-                "engine": "hybrid_stacking_gemini",
-                "result": gemini_analysis["result"],
-                "self_model": stacking_result,
-                "gemini": gemini_analysis["result"],
-                "gemini_called": True,
-                "gemini_available": True,
-                "decision_source": "GEMINI",
-                "routing_decision": (
-                    routing.decision.value
-                ),
-                "routing_reason": routing.reason,
-                "fallback_applied": False,
-            }
-
-        # Gemini는 실패했지만 stacking 결과가 있다면
-        # stacking 결과를 보수적으로 유지
-        if stacking_analysis.get(
-            "is_available",
-            False,
-        ):
-            logger.warning(
-                "[Hybrid Text] Gemini failed; "
-                "using stacking fallback. decision=%s",
-                routing.decision.value,
             )
 
-            return {
-                "engine": "hybrid_stacking_gemini",
-                "result": _stacking_to_public_result(
-                    stacking_analysis
-                ),
-                "self_model": stacking_result,
-                "gemini": (
-                    gemini_analysis.get("result")
-                ),
-                "gemini_called": True,
-                "gemini_available": False,
-                "decision_source": (
-                    "STACKING_FALLBACK"
-                ),
-                "routing_decision": (
-                    routing.decision.value
-                ),
-                "routing_reason": routing.reason,
+        if stacking_analysis.get("is_available", False):
+            logger.warning(
+                "[Hybrid Text] LLM failed; using stacking fallback. decision=%s",
+                routing.decision.value,
+            )
+            return _with_legacy_aliases(
+                {
+                    **common,
+                    "result": _stacking_to_public_result(stacking_analysis),
+                    "decision_source": "STACKING_FALLBACK",
+                    "fallback_applied": True,
+                }
+            )
+
+        logger.error("[Hybrid Text] All text engines unavailable.")
+        return _with_legacy_aliases(
+            {
+                **common,
+                "result": {
+                    "grade": "UNKNOWN",
+                    "risk_score": None,
+                    "tone_analysis": "",
+                    "evidence": [],
+                    "reason": "All text analysis engines are unavailable.",
+                    "error_message": "ALL_TEXT_ENGINES_UNAVAILABLE",
+                },
+                "decision_source": "UNAVAILABLE",
+                "routing_decision": HybridRoutingDecision.LLM_FALLBACK.value,
                 "fallback_applied": True,
             }
-
-        # 두 엔진이 모두 실패했다면 정상 점수 반환 X
-        logger.error(
-            "[Hybrid Text] All text engines unavailable."
         )
-
-        return {
-            "engine": "hybrid_stacking_gemini",
-            "result": {
-                "grade": "UNKNOWN",
-                "risk_score": None,
-                "tone_analysis": "",
-                "evidence": [],
-                "reason": (
-                    "모든 텍스트 분석 엔진을 "
-                    "사용할 수 없습니다."
-                ),
-                "error_message": (
-                    "ALL_TEXT_ENGINES_UNAVAILABLE"
-                ),
-            },
-            "self_model": stacking_result,
-            "gemini": (
-                gemini_analysis.get("result")
-            ),
-            "gemini_called": True,
-            "gemini_available": False,
-            "decision_source": "UNAVAILABLE",
-            "routing_decision": (
-                HybridRoutingDecision
-                .GEMINI_FALLBACK
-                .value
-            ),
-            "routing_reason": routing.reason,
-            "fallback_applied": True,
-        }

@@ -41,7 +41,7 @@ def _stacking_result(text: str) -> dict:
 @pytest.fixture(autouse=True)
 def _mock_external_paid_apis():
     with (
-        patch("app.analysis.text.gemini_analyzer.MOCK_ENABLED", True),
+        patch("app.analysis.text.llm_analyzer.MOCK_ENABLED", True),
         patch("app.analysis.url.analyzer.MOCK_ENABLED", True),
         patch(
             "app.analysis.service.analyze_text_with_stacking",
@@ -73,8 +73,8 @@ def test_casual_message_is_low_risk_and_skips_gemini():
     assert body["status"] == "SUCCESS"
     assert body["risk_grade"] == "LOW"
     assert body["url_analysis"] is None
-    assert body["text_analysis"]["engine"] == "hybrid_stacking_gemini"
-    assert body["text_analysis"]["gemini_called"] is False
+    assert body["text_analysis"]["engine"] == "hybrid_stacking_llm"
+    assert body["text_analysis"]["llm_called"] is False
     assert body["text_analysis"]["decision_source"] == "STACKING"
     assert body["text_analysis"]["self_model"]["risk_score"] == 10
 
@@ -91,9 +91,9 @@ def test_phishing_text_without_url_escalates_to_gemini_and_is_high_risk():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "SUCCESS"
-    assert body["text_analysis"]["gemini_called"] is True
-    assert body["text_analysis"]["gemini_available"] is True
-    assert body["text_analysis"]["decision_source"] == "GEMINI"
+    assert body["text_analysis"]["llm_called"] is True
+    assert body["text_analysis"]["llm_available"] is True
+    assert body["text_analysis"]["decision_source"] == "LLM"
     assert body["text_analysis"]["self_model"]["risk_score"] == 50
     assert body["risk_grade"] in ("MEDIUM", "HIGH")
     assert body["url_analysis"] is None
