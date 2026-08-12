@@ -5,9 +5,9 @@ import logging
 import time
 from pathlib import Path
 
-from app.analysis.text.gemini_analyzer import analyze_text_with_gemini
+from app.analysis.text.llm_analyzer import analyze_text_with_llm
 from app.core.config import settings
-from scripts.adversarial_test.rate_limit import GEMINI_RATE_LIMITER
+from scripts.adversarial_test.rate_limit import LLM_RATE_LIMITER
 from scripts.benchmark.corpus import DEFAULT_OUTPUT_PATH as DEFAULT_CORPUS_PATH
 
 logger = logging.getLogger(__name__)
@@ -24,10 +24,10 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
     failures = 0
 
     for sample in samples:
-        await GEMINI_RATE_LIMITER.wait()
+        await LLM_RATE_LIMITER.wait()
         start = time.perf_counter()
         try:
-            result = await analyze_text_with_gemini(sample["text"])
+            result = await analyze_text_with_llm(sample["text"])
         except Exception as exception:  # noqa: BLE001
             logger.error("[LlmTiming] 호출 실패 id=%s error=%s", sample["id"], type(exception).__name__)
             failures += 1
@@ -44,7 +44,7 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
 
     avg = sum(elapsed_list) / len(elapsed_list) if elapsed_list else 0.0
     return {
-        "model": settings.GEMINI_MODEL,
+        "model": settings.BEDROCK_MODEL_ID,
         "sample_size": sample_size,
         "success_count": len(elapsed_list),
         "failure_count": failures,
@@ -54,7 +54,7 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="LLM(Gemini) 트랙 평균 분석시간 소량 실측")
+    parser = argparse.ArgumentParser(description="LLM 트랙 평균 분석시간 소량 실측")
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS_PATH)
     parser.add_argument("--sample-size", type=int, default=18)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT_PATH)
