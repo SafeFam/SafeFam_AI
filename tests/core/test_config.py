@@ -10,7 +10,6 @@ from app.main import validate_model_files
 def _production_values() -> dict[str, object]:
     return {
         "ENV": "prod",
-        "GEMINI_API_KEY": "test-gemini-key",
         "VIRUSTOTAL_API_KEY": "test-virustotal-key",
         "GOOGLE_SAFE_BROWSING_API_KEY": "test-gsb-key",
         "RABBITMQ_URL": "amqp://user:password@rabbitmq:5672/",
@@ -40,6 +39,14 @@ def test_production_settings_accept_complete_configuration():
 
     assert configured.ENV == "prod"
     assert configured.MOCK_SECURITY_API is False
+
+
+def test_external_api_timeout_defaults():
+    configured = Settings(_env_file=None)
+
+    assert configured.GSB_TIMEOUT_SECONDS == 5.0
+    assert configured.VIRUSTOTAL_TIMEOUT_SECONDS == 5.0
+    assert configured.URL_TRACE_TIMEOUT_SECONDS == 3.0
 
 
 def test_settings_accept_valid_stacking_probability_bounds():

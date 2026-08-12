@@ -67,15 +67,18 @@ class AnalysisEventType(str, Enum):
 class TextAnalysisMethod(str, Enum):
     """텍스트 분석에 사용된 AI 및 알고리즘 방식을 정의"""
 
-    NAIVE_BAYES = "NAIVE_BAYES"
-    GEMINI = "GEMINI"
-    NAIVE_BAYES_GEMINI = "NAIVE_BAYES_GEMINI"
-
     STACKING = "STACKING"
-    STACKING_GEMINI = "STACKING_GEMINI"
+    LLM = "LLM"
+    STACKING_LLM = "STACKING_LLM"
     STACKING_FALLBACK = "STACKING_FALLBACK"
-
     UNAVAILABLE = "UNAVAILABLE"
+
+    NAIVE_BAYES = "NAIVE_BAYES"
+    NAIVE_BAYES_LLM = "NAIVE_BAYES_LLM"
+
+    # deprecated
+    GEMINI = "GEMINI"
+    STACKING_GEMINI = "STACKING_GEMINI"
 
 
 class RawScores(BaseModel):
@@ -128,6 +131,11 @@ class TextAnalysisDetail(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    llmCalled: bool = False
+    llmProvider: str | None = None
+    llmModel: str | None = None
+
+    # Deprecated: temporary SafeFam_BE compatibility.
     geminiCalled: bool = False
     decisionSource: str | None = None
     routingReason: str | None = None

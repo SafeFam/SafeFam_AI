@@ -5,9 +5,8 @@ import logging
 import time
 from pathlib import Path
 
-from app.analysis.text.gemini_analyzer import analyze_text_with_gemini
-from app.core.config import settings
-from scripts.adversarial_test.rate_limit import GEMINI_RATE_LIMITER
+from app.analysis.text.llm_analyzer import analyze_text_with_llm
+from scripts.adversarial_test.rate_limit import LLM_RATE_LIMITER
 from scripts.benchmark.corpus import DEFAULT_OUTPUT_PATH as DEFAULT_CORPUS_PATH
 
 logger = logging.getLogger(__name__)
@@ -22,29 +21,33 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
     samples = corpus[:sample_size]
     elapsed_list: list[float] = []
     failures = 0
+    model_id: str | None = None
 
     for sample in samples:
-        await GEMINI_RATE_LIMITER.wait()
+        await LLM_RATE_LIMITER.wait()
         start = time.perf_counter()
         try:
-            result = await analyze_text_with_gemini(sample["text"])
+            result = await analyze_text_with_llm(sample["text"])
         except Exception as exception:  # noqa: BLE001
             logger.error("[LlmTiming] 호출 실패 id=%s error=%s", sample["id"], type(exception).__name__)
             failures += 1
             continue
         elapsed = time.perf_counter() - start
 
-        if result.get("result", {}).get("error_message"):
+        if result.get("is_mock") or result.get("result", {}).get(
+            "error_message"
+        ):
             logger.warning("[LlmTiming] API 오류 응답이라 제외 id=%s", sample["id"])
             failures += 1
             continue
 
+        model_id = result.get("model_id")
         elapsed_list.append(elapsed)
         logger.info("[LlmTiming] id=%s elapsed=%.2fs", sample["id"], elapsed)
 
     avg = sum(elapsed_list) / len(elapsed_list) if elapsed_list else 0.0
     return {
-        "model": settings.GEMINI_MODEL,
+        "model": model_id,
         "sample_size": sample_size,
         "success_count": len(elapsed_list),
         "failure_count": failures,
@@ -54,7 +57,7 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="LLM(Gemini) 트랙 평균 분석시간 소량 실측")
+    parser = argparse.ArgumentParser(description="LLM 트랙 평균 분석시간 소량 실측")
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS_PATH)
     parser.add_argument("--sample-size", type=int, default=18)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT_PATH)

@@ -4,15 +4,12 @@ import re
 from typing import Callable
 
 from app.analysis.rules.analyzer import FINANCIAL_INSTITUTIONS
-from app.core.config import settings
-from app.infrastructure.gemini.client import GeminiClient
-from scripts.adversarial_test.rate_limit import GEMINI_RATE_LIMITER
+from app.infrastructure.llm.factory import get_llm_client
+from scripts.adversarial_test.rate_limit import LLM_RATE_LIMITER
 
 logger = logging.getLogger(__name__)
 
 MUTATION_SEED = 42
-
-API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent"
 
 _HANGUL_START = 0xAC00
 _HANGUL_END = 0xD7A3
@@ -135,6 +132,10 @@ def mutate_typo_injection(text: str) -> str:
 # Gemini가 안전 정책상 변형 생성을 거부하면 그 거부 문장 자체가 "변형된 사기문자"로 둔갑해
 # 평가 지표를 왜곡한다 (거부문은 당연히 규칙엔진/파이프라인 둘 다 못 잡는 무해한 텍스트이므로).
 _REFUSAL_MARKERS = (
+    "I can't help with that",
+    "I cannot help with that",
+    "I can't assist with that",
+    "I cannot assist with that",
     "지원하지 않습니다",
     "도와드릴 수 없습니다",
     "생성할 수 없습니다",
@@ -145,41 +146,33 @@ _REFUSAL_MARKERS = (
 )
 
 
-def _extract_text(response: dict) -> str:
-    candidates = response.get("candidates") or []
-    if not candidates:
-        raise RuntimeError("Gemini 응답에 candidates가 없습니다")
-    parts = candidates[0].get("content", {}).get("parts") or []
-    chunks = [p["text"] for p in parts if p.get("text") and not p.get("thought")]
-    if not chunks:
-        raise RuntimeError("Gemini 응답에 텍스트 파트가 없습니다")
-    text = "".join(chunks).strip().strip('"')
+def _extract_text(raw_text: str) -> str:
+    text = raw_text.strip().strip('"')
+    if not text:
+        raise RuntimeError("LLM 응답이 비어 있습니다")
     if any(marker in text for marker in _REFUSAL_MARKERS):
-        raise RuntimeError(f"Gemini가 변형 생성을 거부함: {text[:80]}")
+        raise RuntimeError("LLM이 변형 생성을 거부했습니다")
     return text
 
 
-# 의미보존 변형은 규칙으로 만들 수 없으므로 Gemini에 재작성을 위임
+# 의미보존 변형은 규칙으로 만들 수 없으므로 LLM에 재작성을 위임
 async def _paraphrase(text: str, instruction: str) -> str:
-    if not settings.GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY가 없어 Gemini 기반 변형을 생성할 수 없습니다")
-
-    payload = {
-        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-        "contents": [
-            {"parts": [{"text": f"변형 지시:\n{instruction}\n\n원문 문자:\n\"\"\"\n{text}\n\"\"\""}]}
+    await LLM_RATE_LIMITER.wait()
+    generation = await get_llm_client().generate(
+        system_prompt=SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"변형 지시:\n{instruction}\n\n"
+                    f"원문 문자:\n<message>\n{text}\n</message>"
+                ),
+            }
         ],
-        "generationConfig": {"temperature": 0.6},
-    }
-
-    await GEMINI_RATE_LIMITER.wait()
-    response = await GeminiClient().generate(
-        api_url=API_URL,
-        api_key=settings.GEMINI_API_KEY,
-        payload=payload,
+        temperature=0.6,
     )
-    mutated = _extract_text(response)
-    logger.info("[Mutation] Gemini 변형 생성 완료 (%d자 -> %d자)", len(text), len(mutated))
+    mutated = _extract_text(generation.text)
+    logger.info("[Mutation] LLM 변형 생성 완료 (%d자 -> %d자)", len(text), len(mutated))
     return mutated
 
 

@@ -68,9 +68,11 @@ def _result(
                     "risk_score": 70,
                     "confidence": 0.72,
                 },
-                "gemini_called": True,
-                "gemini_available": True,
-                "decision_source": "GEMINI",
+                "llm_called": True,
+                "llm_available": True,
+                "llm_provider": "AWS_BEDROCK",
+                "llm_model": "test-model",
+                "decision_source": "LLM",
                 "routing_reason": "UNCERTAIN_SELF_MODEL_PREDICTION",
                 "fallback_applied": False,
             }
@@ -143,11 +145,14 @@ def test_factory_maps_successful_execution(
     assert event.payload.rawScores.rules == 75
     assert event.payload.failedTracks == list(failed_tracks)
     assert event.payload.textAnalysis is not None
-    assert event.payload.textAnalysis.method == TextAnalysisMethod.STACKING_GEMINI
+    assert event.payload.textAnalysis.method == TextAnalysisMethod.STACKING_LLM
     assert event.payload.textAnalysis.selfModelScore == 70
     assert event.payload.textAnalysis.selfModelConfidence == pytest.approx(0.72)
     assert event.payload.textAnalysis.geminiCalled is True
-    assert event.payload.textAnalysis.decisionSource == "GEMINI"
+    assert event.payload.textAnalysis.llmCalled is True
+    assert event.payload.textAnalysis.llmProvider == "AWS_BEDROCK"
+    assert event.payload.textAnalysis.llmModel == "test-model"
+    assert event.payload.textAnalysis.decisionSource == "LLM"
     assert event.payload.textAnalysis.routingReason == (
         "UNCERTAIN_SELF_MODEL_PREDICTION"
     )
@@ -219,11 +224,11 @@ def test_factory_maps_machine_readable_url_error_codes() -> None:
     )
 
 
-def test_factory_identifies_gemini_only_text_analysis() -> None:
+def test_factory_identifies_llm_only_text_analysis() -> None:
     request = _request()
     result = _result()
     result.text_analysis = {
-        "engine": "gemini",
+        "engine": "llm",
         "result": {
             "risk_score": 55,
             "grade": "SUSPICIOUS",
@@ -241,7 +246,30 @@ def test_factory_identifies_gemini_only_text_analysis() -> None:
     )
 
     assert event.payload.textAnalysis is not None
-    assert event.payload.textAnalysis.method == (TextAnalysisMethod.GEMINI)
+    assert event.payload.textAnalysis.method == TextAnalysisMethod.LLM
+
+
+def test_factory_reads_legacy_gemini_called_alias() -> None:
+    request = _request()
+    result = _result()
+    assert result.text_analysis is not None
+    result.text_analysis.pop("llm_called")
+    result.text_analysis["gemini_called"] = True
+    result.text_analysis["llm_available"] = False
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    assert event.payload.textAnalysis is not None
+    assert event.payload.textAnalysis.llmCalled is True
+    assert event.payload.textAnalysis.geminiCalled is True
+    assert event.payload.textAnalysis.method == TextAnalysisMethod.STACKING_LLM
 
 
 def test_factory_maps_unit_url_score_to_one_hundred() -> None:

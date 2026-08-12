@@ -87,7 +87,7 @@ DEFAULT_SAFE_TEXT_MOCK = {
 
 def get_mock_text_analysis_data(text: str) -> dict:
     """
-    [기존 자산 보존] 추후 Gemini AI 모델 API 연동 고도화 단계에서 활용할 텍스트 샌드박스 데이터 함수
+    LLM 연동 없이 사용하는 텍스트 샌드박스 데이터 함수
     """
-    logger.info("[Mock Gemini] 실제 AI API 호출 우회 (Sandbox Mode)")
+    logger.info("[Mock LLM] 실제 LLM 호출 우회 (Sandbox Mode)")
     return MOCK_TEXT_DATABASE.get(text, DEFAULT_SAFE_TEXT_MOCK)

@@ -44,8 +44,10 @@
  ```env
  ENV=local
  VIRUSTOTAL_API_KEY=your_actual_api_key_here
- GEMINI_API_KEY=your_actual_gemini_api_key_here
- GEMINI_MODEL=gemini-flash-latest
+ LLM_PROVIDER=bedrock
+ AWS_REGION=us-east-1
+ AWS_PROFILE=safefam-dev
+ BEDROCK_MODEL_ID=anthropic.claude-haiku-4-5-20251001-v1:0
  ```
 
 ---
@@ -84,7 +86,6 @@ Parameter Store의 `SecureString`을 조회하여 배포 시점에 생성합니�
 
 ### 운영 필수 Secret
 
-- `GEMINI_API_KEY`
 - `VIRUSTOTAL_API_KEY`
 - `GOOGLE_SAFE_BROWSING_API_KEY`
 - `RABBITMQ_URL`
@@ -92,7 +93,6 @@ Parameter Store의 `SecureString`을 조회하여 배포 시점에 생성합니�
 권장 Parameter Store 경로는 다음과 같습니다.
 
 ```text
-/safefam/prod/ai/GEMINI_API_KEY
 /safefam/prod/ai/VIRUSTOTAL_API_KEY
 /safefam/prod/ai/GOOGLE_SAFE_BROWSING_API_KEY
 ```

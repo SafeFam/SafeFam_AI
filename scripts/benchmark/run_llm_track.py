@@ -6,7 +6,7 @@ import logging
 import time
 from pathlib import Path
 
-from app.analysis.text.gemini_analyzer import analyze_text_with_gemini
+from app.analysis.text.llm_analyzer import analyze_text_with_llm
 from app.core.config import settings
 from scripts.benchmark.corpus import DEFAULT_OUTPUT_PATH as DEFAULT_CORPUS_PATH
 from scripts.benchmark.rate_limit import RateLimiter
@@ -30,13 +30,15 @@ async def run(corpus: list[dict], rpm: int) -> list[dict]:
         await limiter.wait()
         start = time.perf_counter()
         try:
-            result = await analyze_text_with_gemini(sample["text"])
+            result = await analyze_text_with_llm(sample["text"])
         except Exception as exception:  # noqa: BLE001
             logger.error("[LlmTrack] 호출 실패 id=%s error=%s", sample["id"], type(exception).__name__)
             continue
         elapsed = time.perf_counter() - start
 
-        if result.get("result", {}).get("error_message"):
+        if result.get("is_mock") or result.get("result", {}).get(
+            "error_message"
+        ):
             logger.warning(
                 "[LlmTrack] API 오류 응답 제외 id=%s error=%s",
                 sample["id"],
@@ -49,7 +51,7 @@ async def run(corpus: list[dict], rpm: int) -> list[dict]:
             {
                 "id": sample["id"],
                 "label": sample["label"],
-                "model": settings.GEMINI_MODEL,
+                "model": result.get("model_id"),
                 "score": risk_score,
                 "detected": risk_score >= DETECTION_THRESHOLD,
                 "elapsed_seconds": elapsed,
@@ -76,7 +78,7 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    logger.info("[LlmTrack] 사용 모델: %s", settings.GEMINI_MODEL)
+    logger.info("[LlmTrack] 사용 모델: %s", settings.BEDROCK_MODEL_ID)
 
     corpus = json.loads(args.corpus.read_text(encoding="utf-8"))
     rows = asyncio.run(run(corpus, args.rpm))

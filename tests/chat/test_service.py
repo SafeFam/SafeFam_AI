@@ -1,122 +1,65 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-import httpx
 import pytest
 
-from app.chat.schemas import AnalysisContext, ChatMessage, ChatRequest, ChatRole
+from app.chat.schemas import ChatMessage, ChatRequest, ChatRole
 from app.chat.service import ChatService, ChatServiceError
+from app.infrastructure.llm.bedrock_client import LlmProviderError
+from app.infrastructure.llm.types import LlmGeneration
 
 
-def _request(messages=None) -> ChatRequest:
+def build_request() -> ChatRequest:
     return ChatRequest(
-        analysisContext=AnalysisContext(
-            riskScore=90,
-            riskLevel="HIGH",
-            category="FINANCIAL_INSTITUTION",
-            explanation="국민건강보험을 사칭한 스미싱 문자",
-            indicators=[{"type": "URGENCY_KEYWORD", "description": "즉시 확인 유도"}],
-        ),
-        messages=messages
-        or [ChatMessage(role=ChatRole.USER, content="이거 진짜인가요?")],
+        messages=[ChatMessage(role=ChatRole.USER, content="Is this message safe?")]
     )
+
+
+class StubClient:
+    def __init__(self, text: str = "Use an official contact channel.") -> None:
+        self.text = text
+        self.kwargs = None
+
+    async def generate(self, **kwargs) -> LlmGeneration:
+        self.kwargs = kwargs
+        return LlmGeneration(
+            text=self.text,
+            provider="AWS_BEDROCK",
+            model_id="test-model",
+        )
 
 
 @pytest.mark.asyncio
 @patch("app.chat.service.MOCK_ENABLED", True)
-async def test_get_response_mock_mode_bypasses_gemini():
-    service = ChatService()
-
-    response = await service.get_response(_request())
-
-    assert "금융감독원" in response.message
+async def test_chat_mock_mode():
+    response = await ChatService().get_response(build_request())
+    assert response.message
 
 
 @pytest.mark.asyncio
 @patch("app.chat.service.MOCK_ENABLED", False)
-@patch("app.chat.service.GEMINI_API_KEY", None)
-async def test_get_response_raises_when_api_key_missing():
-    service = ChatService()
+async def test_chat_uses_provider_neutral_client():
+    client = StubClient()
+    response = await ChatService(client=client).get_response(build_request())
 
-    with pytest.raises(ChatServiceError, match="Missing API Key"):
-        await service.get_response(_request())
-
-
-@pytest.mark.asyncio
-@patch("app.chat.service.MOCK_ENABLED", False)
-@patch("app.chat.service.GEMINI_API_KEY", "fake-key")
-async def test_get_response_returns_gemini_text_and_maps_assistant_role():
-    history = [
-        ChatMessage(role=ChatRole.USER, content="이거 진짜인가요?"),
-        ChatMessage(role=ChatRole.ASSISTANT, content="네, 의심스러운 문자입니다."),
-        ChatMessage(role=ChatRole.USER, content="그럼 어떻게 해야 하나요?"),
+    assert response.message == "Use an official contact channel."
+    assert client.kwargs["messages"] == [
+        {"role": "user", "content": "Is this message safe?"}
     ]
 
-    fake_response = {
-        "candidates": [
-            {"content": {"parts": [{"text": "금융감독원(1332)에 신고해 주세요."}]}}
-        ]
-    }
 
-    with patch(
-        "app.chat.service.GeminiClient.generate",
-        new_callable=AsyncMock,
-        return_value=fake_response,
-    ) as mock_generate:
-        service = ChatService()
-        response = await service.get_response(_request(messages=history))
-
-    assert response.message == "금융감독원(1332)에 신고해 주세요."
-
-    sent_payload = mock_generate.call_args.kwargs["payload"]
-    sent_roles = [content["role"] for content in sent_payload["contents"]]
-    assert sent_roles == ["user", "model", "user"]
+@pytest.mark.asyncio
+@patch("app.chat.service.MOCK_ENABLED", False)
+async def test_chat_rejects_empty_response():
+    with pytest.raises(ChatServiceError, match="LLM_EMPTY_RESPONSE"):
+        await ChatService(client=StubClient("   ")).get_response(build_request())
 
 
 @pytest.mark.asyncio
 @patch("app.chat.service.MOCK_ENABLED", False)
-@patch("app.chat.service.GEMINI_API_KEY", "fake-key")
-async def test_get_response_raises_on_empty_candidates():
-    with patch(
-        "app.chat.service.GeminiClient.generate",
-        new_callable=AsyncMock,
-        return_value={"candidates": []},
-    ):
-        service = ChatService()
-        with pytest.raises(ChatServiceError, match="Empty Response"):
-            await service.get_response(_request())
+async def test_chat_normalizes_provider_error():
+    class FailingClient(StubClient):
+        async def generate(self, **_kwargs) -> LlmGeneration:
+            raise LlmProviderError("LLM_THROTTLED")
 
-
-@pytest.mark.asyncio
-@patch("app.chat.service.MOCK_ENABLED", False)
-@patch("app.chat.service.GEMINI_API_KEY", "fake-key")
-async def test_get_response_raises_on_rate_limit():
-    error = httpx.HTTPStatusError(
-        "rate limited",
-        request=httpx.Request("POST", "https://example.com"),
-        response=httpx.Response(
-            429, request=httpx.Request("POST", "https://example.com")
-        ),
-    )
-
-    with patch(
-        "app.chat.service.GeminiClient.generate",
-        new_callable=AsyncMock,
-        side_effect=error,
-    ):
-        service = ChatService()
-        with pytest.raises(ChatServiceError, match="Rate Limit"):
-            await service.get_response(_request())
-
-
-@pytest.mark.asyncio
-@patch("app.chat.service.MOCK_ENABLED", False)
-@patch("app.chat.service.GEMINI_API_KEY", "fake-key")
-async def test_get_response_raises_on_timeout():
-    with patch(
-        "app.chat.service.GeminiClient.generate",
-        new_callable=AsyncMock,
-        side_effect=httpx.TimeoutException("timed out"),
-    ):
-        service = ChatService()
-        with pytest.raises(ChatServiceError, match="Timeout"):
-            await service.get_response(_request())
+    with pytest.raises(ChatServiceError, match="LLM_THROTTLED"):
+        await ChatService(client=FailingClient()).get_response(build_request())

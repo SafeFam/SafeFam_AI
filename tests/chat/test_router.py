@@ -10,7 +10,7 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def _mock_gemini_chat():
+def _mock_llm_chat():
     with patch("app.chat.service.MOCK_ENABLED", True):
         yield
 
@@ -70,7 +70,10 @@ def test_chat_endpoint_accepts_missing_analysis_context():
 def test_chat_endpoint_returns_502_on_service_error():
     with (
         patch("app.chat.service.MOCK_ENABLED", False),
-        patch("app.chat.service.GEMINI_API_KEY", None),
+        patch(
+            "app.chat.service.get_llm_client",
+            side_effect=RuntimeError("provider unavailable"),
+        ),
     ):
         response = client.post("/api/chat", json=_payload())
 

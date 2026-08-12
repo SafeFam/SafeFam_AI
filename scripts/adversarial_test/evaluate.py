@@ -10,7 +10,7 @@ from pathlib import Path
 from app.analysis.rules.analyzer import analyze_text_with_rules
 from app.analysis.service import SmishingAnalysisService
 from scripts.adversarial_test.mutations import MUTATIONS
-from scripts.adversarial_test.rate_limit import GEMINI_RATE_LIMITER
+from scripts.adversarial_test.rate_limit import LLM_RATE_LIMITER
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +58,9 @@ async def _evaluate_one(
             else:
                 text = await _apply_mutation(mutation_type, sample["text"])
             rule_result = analyze_text_with_rules(text)
-            # 파이프라인 내부에서도 거의 항상 Gemini를 태우므로(NB가 SAFE로 스킵하는 경우만 예외)
+            # 파이프라인 내부에서도 대부분 LLM을 호출하므로(자체 모델 확신 구간은 예외)
             # 변형 생성용 호출과 같은 전역 리미터로 최소 간격을 강제한다
-            await GEMINI_RATE_LIMITER.wait()
+            await LLM_RATE_LIMITER.wait()
             pipeline = await service.analyze_pipeline(text)
         except Exception as exception:
             logger.error(

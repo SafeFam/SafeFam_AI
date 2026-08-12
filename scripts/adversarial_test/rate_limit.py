@@ -19,4 +19,4 @@ class RateLimiter:
             self._last_call = time.monotonic()
 
 
-GEMINI_RATE_LIMITER = RateLimiter(min_interval_seconds=6.0)
+LLM_RATE_LIMITER = RateLimiter(min_interval_seconds=6.0)

@@ -58,18 +58,18 @@ def _classify_text_failures(
         self_model.get("risk_score") is not None
     )
 
-    # Gemini가 실제로 호출됐는지 확인
-    gemini_called = bool(
+    # LLM이 실제로 호출됐는지 확인
+    llm_called = bool(
         text_analysis.get(
-            "gemini_called",
+            "llm_called",
             False,
         )
     )
 
-    # Gemini 호출 결과를 최종 판정에 사용할 수 있었는지 확인
-    gemini_available = bool(
+    # LLM 호출 결과를 최종 판정에 사용할 수 있었는지 확인
+    llm_available = bool(
         text_analysis.get(
-            "gemini_available",
+            "llm_available",
             False,
         )
     )
@@ -88,16 +88,16 @@ def _classify_text_failures(
 
     failed_tracks: list[str] = []
 
-    # Stacking은 실패했지만 Gemini가 성공하여 최종 텍스트 결과는 생성된 경우
+    # Stacking은 실패했지만 LLM이 성공하여 최종 텍스트 결과는 생성된 경우
     if not self_model_available:
         failed_tracks.append(
             "TEXT:STACKING"
         )
 
-    # Gemini를 호출했지만 실패하고 Stacking 결과로 fallback한 경우
-    if gemini_called and not gemini_available:
+    # LLM을 호출했지만 실패하고 Stacking 결과로 fallback한 경우
+    if llm_called and not llm_available:
         failed_tracks.append(
-            "TEXT:GEMINI"
+            "TEXT:LLM"
         )
 
     return failed_tracks

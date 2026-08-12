@@ -3,14 +3,14 @@ import json
 import logging
 from pathlib import Path
 
-from app.analysis.text.gemini_analyzer import SYSTEM_PROMPT
+from app.analysis.text.llm_analyzer import SYSTEM_PROMPT
 from scripts.benchmark.corpus import DEFAULT_OUTPUT_PATH as DEFAULT_CORPUS_PATH
 
 logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 
-# 프로덕션 gemini_analyzer.py의 SYSTEM_PROMPT를 그대로 재사용해 챗 앱 프록시 판정이
+# 프로덕션 llm_analyzer.py의 SYSTEM_PROMPT를 그대로 재사용해 챗 앱 프록시 판정이
 # 실제 API 호출과 최대한 같은 기준으로 이뤄지게 한다. 배치 처리를 위해 출력 스키마만
 # 단일 텍스트용 RESPONSE_SCHEMA 대신 {id: risk_score} 형태로 바꿔 요청한다.
 _INSTRUCTIONS = """{system_prompt}

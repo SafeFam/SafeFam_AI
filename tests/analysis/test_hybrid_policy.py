@@ -3,17 +3,17 @@
 import pytest
 
 from app.analysis.hybrid_policy import (
-    ConditionalGeminiPolicy,
+    ConditionalLlmPolicy,
     HybridRoutingDecision,
     HybridThresholds,
 )
 
 
 @pytest.fixture
-def policy() -> ConditionalGeminiPolicy:
+def policy() -> ConditionalLlmPolicy:
     """테스트에서만 사용하는 임시 경계값"""
 
-    return ConditionalGeminiPolicy(
+    return ConditionalLlmPolicy(
         HybridThresholds(
             normal_max=0.2,
             phishing_min=0.8,
@@ -37,8 +37,8 @@ def build_stacking_result(
     }
 
 
-def test_skips_gemini_for_confident_normal(
-    policy: ConditionalGeminiPolicy,
+def test_skips_llm_for_confident_normal(
+    policy: ConditionalLlmPolicy,
 ) -> None:
     result = policy.route(
         build_stacking_result(0.1)
@@ -48,11 +48,11 @@ def test_skips_gemini_for_confident_normal(
         result.decision
         == HybridRoutingDecision.SELF_MODEL_NORMAL
     )
-    assert result.should_call_gemini is False
+    assert result.should_call_llm is False
 
 
-def test_calls_gemini_for_uncertain_prediction(
-    policy: ConditionalGeminiPolicy,
+def test_calls_llm_for_uncertain_prediction(
+    policy: ConditionalLlmPolicy,
 ) -> None:
     result = policy.route(
         build_stacking_result(0.5)
@@ -60,13 +60,13 @@ def test_calls_gemini_for_uncertain_prediction(
 
     assert (
         result.decision
-        == HybridRoutingDecision.GEMINI_REVIEW
+        == HybridRoutingDecision.LLM_REVIEW
     )
-    assert result.should_call_gemini is True
+    assert result.should_call_llm is True
 
 
-def test_skips_gemini_for_confident_phishing(
-    policy: ConditionalGeminiPolicy,
+def test_skips_llm_for_confident_phishing(
+    policy: ConditionalLlmPolicy,
 ) -> None:
     result = policy.route(
         build_stacking_result(0.9)
@@ -76,11 +76,11 @@ def test_skips_gemini_for_confident_phishing(
         result.decision
         == HybridRoutingDecision.SELF_MODEL_PHISHING
     )
-    assert result.should_call_gemini is False
+    assert result.should_call_llm is False
 
 
-def test_calls_gemini_when_stacking_is_unavailable(
-    policy: ConditionalGeminiPolicy,
+def test_calls_llm_when_stacking_is_unavailable(
+    policy: ConditionalLlmPolicy,
 ) -> None:
     result = policy.route(
         {
@@ -94,9 +94,24 @@ def test_calls_gemini_when_stacking_is_unavailable(
 
     assert (
         result.decision
-        == HybridRoutingDecision.GEMINI_FALLBACK
+        == HybridRoutingDecision.LLM_FALLBACK
     )
-    assert result.should_call_gemini is True
+    assert result.should_call_llm is True
+
+
+@pytest.mark.parametrize("risk_score", [True, -1, 101, 10.5, None])
+def test_calls_llm_for_invalid_stacking_score(
+    policy: ConditionalLlmPolicy,
+    risk_score: object,
+) -> None:
+    stacking = build_stacking_result(0.1)
+    stacking["result"]["risk_score"] = risk_score
+
+    result = policy.route(stacking)
+
+    assert result.decision == HybridRoutingDecision.LLM_FALLBACK
+    assert result.should_call_llm is True
+    assert result.reason == "INVALID_STACKING_SCORE"
 
 
 @pytest.mark.parametrize(

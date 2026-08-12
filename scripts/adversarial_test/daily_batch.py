@@ -18,13 +18,18 @@ DEFAULT_RESULTS_PATH = OUTPUT_DIR / "results.csv"
 
 # LLM 기반 변형은 변형 생성(1콜) + 파이프라인 평가(1콜) = 2콜, 그 외는 파이프라인 평가만 1콜.
 # Gemini 무료 티어 일일 한도(모델당 20건)를 며칠에 걸쳐 나눠 쓰기 위한 하루치 예산 산정에 사용.
-_GEMINI_MUTATION_NAMES = {"urgency_softening", "tone_normalization", "shortening", "phone_call_redirect"}
+_LLM_MUTATION_NAMES = {
+    "urgency_softening",
+    "tone_normalization",
+    "shortening",
+    "phone_call_redirect",
+}
 
 
 def _estimate_cost(mutation_type: str) -> int:
     if mutation_type == ORIGINAL_LABEL:
         return 1
-    return 2 if mutation_type in _GEMINI_MUTATION_NAMES else 1
+    return 2 if mutation_type in _LLM_MUTATION_NAMES else 1
 
 
 def _load_done(results_path: Path) -> set[tuple[str, str]]:

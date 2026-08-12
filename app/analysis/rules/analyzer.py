@@ -123,7 +123,7 @@ def _check_urgency_keywords(text: str) -> list[str]:
 
 
 # 금감원 금융기관 명칭 DB 대조 + 금융 키워드 가중치 + 계좌/카드번호 패턴 탐지를 결합한 로컬 규칙 기반 트랙.
-# 나이브 베이즈/Gemini와 달리 결정론적 규칙만으로 판정하며, URL이 있으면 로컬 가드 도메인 룰도 함께 검사한다.
+# 자체 모델/LLM과 달리 결정론적 규칙만으로 판정하며, URL이 있으면 로컬 가드 도메인 룰도 함께 검사한다.
 def analyze_text_with_rules(text: str, traced_url: str | None = None) -> dict:
     matched_rules: list[str] = []
     score = 0
