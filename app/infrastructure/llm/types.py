@@ -4,6 +4,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+
+class LlmProviderError(RuntimeError):
+    """Normalized error returned by an LLM provider adapter."""
+
+
 @dataclass(frozen=True)
 class LlmGeneration:
     """공급자 응답을 애플리케이션 공통 형태로 정규화"""

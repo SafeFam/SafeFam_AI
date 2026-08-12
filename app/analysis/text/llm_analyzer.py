@@ -10,9 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from app.analysis.risk_policy import determine_text_risk_grade
 from app.core.config import settings
-from app.infrastructure.llm.bedrock_client import LlmProviderError
 from app.infrastructure.llm.factory import get_llm_client
-from app.infrastructure.llm.types import LlmClient
+from app.infrastructure.llm.types import LlmClient, LlmProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -93,13 +92,13 @@ def _extract_json(raw_text: str) -> dict[str, Any]:
 def _failure_result(
     error_code: str,
     *,
-    provider: str = "AWS_BEDROCK",
+    provider: str | None = None,
     model_id: str | None = None,
 ) -> dict[str, Any]:
     return {
         "is_mock": False,
         "provider": provider,
-        "model_id": model_id or settings.BEDROCK_MODEL_ID,
+        "model_id": model_id,
         "usage": {"input_tokens": None, "output_tokens": None},
         "latency_ms": None,
         "result": {
@@ -143,8 +142,8 @@ async def analyze_text_with_llm(
         }
 
     llm_client: LlmClient | None = client
-    provider = getattr(llm_client, "provider", "AWS_BEDROCK")
-    model_id = getattr(llm_client, "model_id", settings.BEDROCK_MODEL_ID)
+    provider = getattr(llm_client, "provider", None)
+    model_id = getattr(llm_client, "model_id", None)
 
     try:
         if llm_client is None:
@@ -213,7 +212,7 @@ async def analyze_text_with_llm(
             provider=provider,
             model_id=model_id,
         )
-    except Exception as exception:
+    except Exception as exception:  # noqa: BLE001 - analysis must fail safely
         logger.error(
             "[LLM] Unexpected analyzer failure. error_type=%s",
             type(exception).__name__,

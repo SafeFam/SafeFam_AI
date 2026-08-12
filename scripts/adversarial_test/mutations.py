@@ -132,6 +132,10 @@ def mutate_typo_injection(text: str) -> str:
 # Gemini가 안전 정책상 변형 생성을 거부하면 그 거부 문장 자체가 "변형된 사기문자"로 둔갑해
 # 평가 지표를 왜곡한다 (거부문은 당연히 규칙엔진/파이프라인 둘 다 못 잡는 무해한 텍스트이므로).
 _REFUSAL_MARKERS = (
+    "I can't help with that",
+    "I cannot help with that",
+    "I can't assist with that",
+    "I cannot assist with that",
     "지원하지 않습니다",
     "도와드릴 수 없습니다",
     "생성할 수 없습니다",

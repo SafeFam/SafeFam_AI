@@ -255,6 +255,7 @@ def test_factory_reads_legacy_gemini_called_alias() -> None:
     assert result.text_analysis is not None
     result.text_analysis.pop("llm_called")
     result.text_analysis["gemini_called"] = True
+    result.text_analysis["llm_available"] = False
 
     event = AnalysisResultEventFactory().create(
         request=request,

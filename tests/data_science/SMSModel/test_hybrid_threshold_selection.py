@@ -36,22 +36,22 @@ def _cache_payload() -> dict:
 
 
 @pytest.mark.parametrize(
-    ("field", "value", "message"),
+    ("field", "runtime_field", "message"),
     [
-        ("model_id", "different-model", "LLM cache model mismatch"),
-        ("region", "ap-northeast-2", "LLM cache region mismatch"),
+        ("model_id", "BEDROCK_MODEL_ID", "LLM cache model mismatch"),
+        ("region", "AWS_REGION", "LLM cache region mismatch"),
     ],
 )
 def test_rejects_cache_runtime_mismatch(
     tmp_path,
     monkeypatch,
     field: str,
-    value: str,
+    runtime_field: str,
     message: str,
 ) -> None:
     cache_path = tmp_path / "llm_validation_predictions.json"
     payload = _cache_payload()
-    payload[field] = value
+    payload[field] = f"{getattr(selection.settings, runtime_field)}-mismatch"
     cache_path.write_text(json.dumps(payload), encoding="utf-8")
     monkeypatch.setattr(selection, "LLM_VALIDATION_CACHE_PATH", cache_path)
 

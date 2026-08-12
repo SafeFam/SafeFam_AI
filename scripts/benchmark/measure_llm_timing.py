@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 
 from app.analysis.text.llm_analyzer import analyze_text_with_llm
-from app.core.config import settings
 from scripts.adversarial_test.rate_limit import LLM_RATE_LIMITER
 from scripts.benchmark.corpus import DEFAULT_OUTPUT_PATH as DEFAULT_CORPUS_PATH
 
@@ -22,6 +21,7 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
     samples = corpus[:sample_size]
     elapsed_list: list[float] = []
     failures = 0
+    model_id: str | None = None
 
     for sample in samples:
         await LLM_RATE_LIMITER.wait()
@@ -34,17 +34,20 @@ async def measure(corpus: list[dict], sample_size: int) -> dict:
             continue
         elapsed = time.perf_counter() - start
 
-        if result.get("result", {}).get("error_message"):
+        if result.get("is_mock") or result.get("result", {}).get(
+            "error_message"
+        ):
             logger.warning("[LlmTiming] API 오류 응답이라 제외 id=%s", sample["id"])
             failures += 1
             continue
 
+        model_id = result.get("model_id")
         elapsed_list.append(elapsed)
         logger.info("[LlmTiming] id=%s elapsed=%.2fs", sample["id"], elapsed)
 
     avg = sum(elapsed_list) / len(elapsed_list) if elapsed_list else 0.0
     return {
-        "model": settings.BEDROCK_MODEL_ID,
+        "model": model_id,
         "sample_size": sample_size,
         "success_count": len(elapsed_list),
         "failure_count": failures,

@@ -25,7 +25,11 @@ def _stacking_to_public_result(
     result = stacking_analysis.get("result") or {}
     risk_score = result.get("risk_score")
 
-    if isinstance(risk_score, bool) or not isinstance(risk_score, int):
+    if (
+        isinstance(risk_score, bool)
+        or not isinstance(risk_score, int)
+        or not 0 <= risk_score <= 100
+    ):
         return {
             "grade": "UNKNOWN",
             "risk_score": None,

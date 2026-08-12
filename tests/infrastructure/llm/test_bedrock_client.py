@@ -97,7 +97,7 @@ async def test_generate_normalizes_bedrock_client_errors(
     )
     client = BedrockLlmClient(client=StubBedrockRuntime(error=error))
 
-    with pytest.raises(LlmProviderError, match=f"^{public_code}$"):
+    with pytest.raises(LlmProviderError, match=rf"^{public_code}$"):
         await client.generate(
             system_prompt="system",
             messages=[{"role": "user", "content": "message"}],
@@ -116,7 +116,7 @@ async def test_generate_normalizes_bedrock_client_errors(
 async def test_generate_rejects_invalid_provider_response(response: dict):
     client = BedrockLlmClient(client=StubBedrockRuntime(response=response))
 
-    with pytest.raises(LlmProviderError, match="^LLM_INVALID_RESPONSE$"):
+    with pytest.raises(LlmProviderError, match=r"^LLM_INVALID_RESPONSE$"):
         await client.generate(
             system_prompt="system",
             messages=[{"role": "user", "content": "message"}],
@@ -134,12 +134,45 @@ async def test_generate_rejects_empty_messages_before_provider_call():
     assert runtime.calls == []
 
 
+@pytest.mark.asyncio
+async def test_generate_maps_total_deadline_to_timeout(monkeypatch):
+    client = BedrockLlmClient(client=StubBedrockRuntime())
+
+    async def exceed_deadline(awaitable, *, timeout):
+        assert timeout == client._total_timeout_seconds
+        awaitable.close()
+        raise TimeoutError
+
+    monkeypatch.setattr("asyncio.wait_for", exceed_deadline)
+
+    with pytest.raises(LlmProviderError, match=r"^LLM_TIMEOUT$"):
+        await client.generate(
+            system_prompt="system",
+            messages=[{"role": "user", "content": "message"}],
+        )
+
+
 @pytest.mark.parametrize("role", ["model", "system", "tool"])
 def test_convert_messages_rejects_unsupported_roles(role: str):
     with pytest.raises(ValueError, match="unsupported LLM role"):
         BedrockLlmClient._convert_messages(
             [{"role": role, "content": "message"}]
         )
+
+
+@pytest.mark.parametrize(
+    "messages",
+    [
+        [{"role": "assistant", "content": "message"}],
+        [
+            {"role": "user", "content": "first"},
+            {"role": "user", "content": "second"},
+        ],
+    ],
+)
+def test_convert_messages_rejects_invalid_role_sequence(messages: list[dict]):
+    with pytest.raises(ValueError, match="start with user and alternate"):
+        BedrockLlmClient._convert_messages(messages)
 
 
 def test_optional_int_rejects_boolean_negative_and_non_integer_values():

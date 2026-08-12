@@ -99,6 +99,21 @@ def test_calls_llm_when_stacking_is_unavailable(
     assert result.should_call_llm is True
 
 
+@pytest.mark.parametrize("risk_score", [True, -1, 101, 10.5, None])
+def test_calls_llm_for_invalid_stacking_score(
+    policy: ConditionalLlmPolicy,
+    risk_score: object,
+) -> None:
+    stacking = build_stacking_result(0.1)
+    stacking["result"]["risk_score"] = risk_score
+
+    result = policy.route(stacking)
+
+    assert result.decision == HybridRoutingDecision.LLM_FALLBACK
+    assert result.should_call_llm is True
+    assert result.reason == "INVALID_STACKING_SCORE"
+
+
 @pytest.mark.parametrize(
     ("normal_max", "phishing_min"),
     [

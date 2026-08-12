@@ -36,7 +36,9 @@ async def run(corpus: list[dict], rpm: int) -> list[dict]:
             continue
         elapsed = time.perf_counter() - start
 
-        if result.get("result", {}).get("error_message"):
+        if result.get("is_mock") or result.get("result", {}).get(
+            "error_message"
+        ):
             logger.warning(
                 "[LlmTrack] API 오류 응답 제외 id=%s error=%s",
                 sample["id"],
@@ -49,7 +51,7 @@ async def run(corpus: list[dict], rpm: int) -> list[dict]:
             {
                 "id": sample["id"],
                 "label": sample["label"],
-                "model": settings.BEDROCK_MODEL_ID,
+                "model": result.get("model_id"),
                 "score": risk_score,
                 "detected": risk_score >= DETECTION_THRESHOLD,
                 "elapsed_seconds": elapsed,

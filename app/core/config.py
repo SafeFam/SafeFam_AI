@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     AWS_PROFILE: str | None = None
 
     BEDROCK_MODEL_ID: str = (
-        "anthropic.claude-haiku-4-5-20251001-v1:0"
+        "us.anthropic.claude-haiku-4-5-20251001-v1:0"
     )
 
     LLM_TIMEOUT_SECONDS: float = Field(
@@ -96,13 +96,13 @@ class Settings(BaseSettings):
     RABBITMQ_ANALYSIS_EXCHANGE: str = "safefam.analysis"
     RABBITMQ_ANALYSIS_REQUEST_QUEUE: str = "safefam.analysis.requested.q"
     RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: str = "analysis.requested.v1"
-    RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: str = "analysis.requested.v1"
     RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY: str = "analysis.completed.v1"
     RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY: str = "analysis.partial.v1"
+    RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY: str = "analysis.failed.v1"
     RABBITMQ_ANALYSIS_DLQ: str = "safefam.analysis.requested.dlq"
     RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY: str = "analysis.requested.dead.v1"
 
-    # ReabbitMQ 실행 설정
+    # RabbitMQ 실행 설정
     RABBITMQ_CONSUMER_ENABLED: bool = True
     RABBITMQ_PREFETCH_COUNT: int = Field(default=1, ge=1)
 
@@ -133,16 +133,6 @@ class Settings(BaseSettings):
 
         if self.ENV != "prod":
             return self
-
-        if not self.AWS_REGION.strip():
-            raise ValueError(
-                "AWS_REGION must not be blank"
-            )
-
-        if not self.BEDROCK_MODEL_ID.strip():
-            raise ValueError(
-                "BEDROCK_MODEL_ID must not be blank"
-            )
 
         required_values = {
             "AWS_REGION": self.AWS_REGION,

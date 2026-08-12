@@ -6,7 +6,7 @@ import logging
 from app.chat.prompts import build_system_prompt
 from app.chat.schemas import ChatMessage, ChatRequest, ChatResponse
 from app.core.config import settings
-from app.infrastructure.llm.bedrock_client import LlmProviderError
+from app.infrastructure.llm.types import LlmProviderError
 from app.infrastructure.llm.factory import get_llm_client
 from app.infrastructure.llm.types import LlmClient
 

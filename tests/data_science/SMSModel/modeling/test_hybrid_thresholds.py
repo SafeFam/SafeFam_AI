@@ -97,7 +97,7 @@ def test_prefers_lower_llm_call_rate_when_f2_is_equal():
         target_recall=1.0,
     )
 
-    # Stacking만으로 완벽히 분류할 수 있으므로 Gemini 호출이 필요하지 않아야 함
+    # Stacking만으로 완벽히 분류할 수 있으므로 LLM 호출이 필요하지 않아야 함
     assert result.llm_call_count == 0
     assert result.llm_call_rate == pytest.approx(0.0)
 

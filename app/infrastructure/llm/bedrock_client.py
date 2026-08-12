@@ -15,13 +15,10 @@ from botocore.exceptions import (
 from app.core.config import settings
 from app.infrastructure.llm.types import (
     LlmGeneration,
+    LlmProviderError,
 )
 
 logger = logging.getLogger(__name__)
-
-
-class LlmProviderError(RuntimeError):
-    """민감한 공급자 오류를 숨기는 정규화된 예외"""
 
 
 class BedrockLlmClient:
@@ -35,6 +32,10 @@ class BedrockLlmClient:
         client: Any | None = None,
     ) -> None:
         self.model_id = settings.BEDROCK_MODEL_ID
+        self._total_timeout_seconds = (
+            settings.LLM_TIMEOUT_SECONDS
+            * (settings.LLM_MAX_RETRIES + 1)
+        )
 
         if client is not None:
             self._client = client
@@ -98,29 +99,31 @@ class BedrockLlmClient:
         )
 
         try:
-            response = await asyncio.to_thread(
-                self._client.converse,
-                modelId=self.model_id,
-                system=[
-                    {
-                        "text": system_prompt,
-                    }
-                ],
-                messages=bedrock_messages,
-                inferenceConfig={
-                    "maxTokens": (
-                        max_tokens
-                        if max_tokens is not None
-                        else settings
-                        .LLM_MAX_OUTPUT_TOKENS
-                    ),
-                    "temperature": (
-                        temperature
-                        if temperature is not None
-                        else settings.LLM_TEMPERATURE
-                    ),
-                },
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    self._client.converse,
+                    modelId=self.model_id,
+                    system=[{"text": system_prompt}],
+                    messages=bedrock_messages,
+                    inferenceConfig={
+                        "maxTokens": (
+                            max_tokens
+                            if max_tokens is not None
+                            else settings.LLM_MAX_OUTPUT_TOKENS
+                        ),
+                        "temperature": (
+                            temperature
+                            if temperature is not None
+                            else settings.LLM_TEMPERATURE
+                        ),
+                    },
+                ),
+                timeout=self._total_timeout_seconds,
             )
+
+        except TimeoutError as exception:
+            logger.error("[LLM] Bedrock request exceeded the total deadline.")
+            raise LlmProviderError("LLM_TIMEOUT") from exception
 
         except ClientError as exception:
             error = (
@@ -162,6 +165,7 @@ class BedrockLlmClient:
         messages: list[dict[str, str]],
     ) -> list[dict[str, Any]]:
         converted: list[dict[str, Any]] = []
+        expected_role = "user"
 
         for message in messages:
             role = message.get("role")
@@ -173,6 +177,11 @@ class BedrockLlmClient:
             }:
                 raise ValueError(
                     f"unsupported LLM role: {role}"
+                )
+
+            if role != expected_role:
+                raise ValueError(
+                    "LLM messages must start with user and alternate roles"
                 )
 
             if not isinstance(content, str):
@@ -190,6 +199,7 @@ class BedrockLlmClient:
                     ],
                 }
             )
+            expected_role = "assistant" if role == "user" else "user"
 
         return converted
 

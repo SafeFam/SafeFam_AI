@@ -50,6 +50,18 @@ class ConditionalLlmPolicy:
 
         result = stacking_analysis.get("result") or {}
         probability = result.get("risk_probability")
+        risk_score = result.get("risk_score")
+
+        if (
+            isinstance(risk_score, bool)
+            or not isinstance(risk_score, int)
+            or not 0 <= risk_score <= 100
+        ):
+            return HybridRoutingResult(
+                decision=HybridRoutingDecision.LLM_FALLBACK,
+                should_call_llm=True,
+                reason="INVALID_STACKING_SCORE",
+            )
 
         if isinstance(probability, bool) or not isinstance(
             probability, (int, float)

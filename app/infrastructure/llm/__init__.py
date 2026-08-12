@@ -1,1 +1,1 @@
-"""Provider-neutral LLM ingreastructure."""
+"""Provider-neutral LLM infrastructure."""
