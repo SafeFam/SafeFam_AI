@@ -258,6 +258,25 @@ async def test_llm_unknown_is_not_treated_as_normal() -> None:
     assert record.error_code == "LLM_INVALID_RESPONSE"
 
 
+@pytest.mark.asyncio
+async def test_offline_llm_uses_cached_provider_latency() -> None:
+    async def cached_llm_analyzer(_text: str) -> dict[str, Any]:
+        analysis = _llm_result()
+        analysis["is_cached"] = True
+        analysis["latency_ms"] = 250.0
+        return analysis
+
+    runner = HybridEvaluationRunner(
+        policy=_policy(),
+        stacking_analyzer=lambda _text: _stacking_result(0.9),
+        llm_analyzer=cached_llm_analyzer,
+    )
+
+    record = await runner.evaluate_one(_sample(), EvaluationMode.LLM_ONLY)
+
+    assert record.latency_ms >= 250.0
+
+
 @pytest.mark.parametrize(
     "sample",
     [

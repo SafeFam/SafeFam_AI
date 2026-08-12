@@ -18,6 +18,13 @@ from .models import (
     TokenUsage,
 )
 from .runner import EvaluationSample, HybridEvaluationRunner
+from .cache import (
+    CACHE_SCHEMA_VERSION,
+    EVALUATION_SCHEMA_VERSION,
+    ClaudeTestCache,
+    build_prompt_version,
+    calculate_dataset_fingerprint,
+)
 
 __all__ = [
     "ClassificationMetrics",
@@ -35,4 +42,9 @@ __all__ = [
     "calculate_cost_reduction_rate",
     "calculate_latency_metrics",
     "calculate_operational_metrics",
+    "CACHE_SCHEMA_VERSION",
+    "EVALUATION_SCHEMA_VERSION",
+    "ClaudeTestCache",
+    "build_prompt_version",
+    "calculate_dataset_fingerprint",
 ]

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from time import perf_counter
@@ -96,6 +97,10 @@ class HybridEvaluationRunner:
         else:
             outcome = await self._run_hybrid(sample.text)
         latency_ms = (perf_counter() - started_at) * 1_000
+        if outcome.get("llm_from_cache") is True:
+            cached_latency_ms = outcome.get("llm_latency_ms")
+            if cached_latency_ms is not None:
+                latency_ms += cached_latency_ms
 
         return EvaluationRecord(
             sample_id=sample.sample_id,
@@ -173,6 +178,8 @@ class HybridEvaluationRunner:
             "llm_model": analysis.get("model_id"),
             "input_tokens": _optional_token_count(usage.get("input_tokens")),
             "output_tokens": _optional_token_count(usage.get("output_tokens")),
+            "llm_latency_ms": _optional_latency(analysis.get("latency_ms")),
+            "llm_from_cache": analysis.get("is_cached") is True,
         }
 
     async def _run_hybrid(self, text: str) -> dict[str, Any]:
@@ -203,6 +210,10 @@ class HybridEvaluationRunner:
             "llm_model": analysis.get("llm_model"),
             "input_tokens": _optional_token_count(usage.get("input_tokens")),
             "output_tokens": _optional_token_count(usage.get("output_tokens")),
+            "llm_latency_ms": _optional_latency(
+                analysis.get("llm_latency_ms")
+            ),
+            "llm_from_cache": analysis.get("llm_from_cache") is True,
         }
 
 
@@ -217,4 +228,15 @@ def _label_from_llm_grade(grade: object) -> str | None:
 def _optional_token_count(value: object) -> int | None:
     if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
         return value
+    return None
+
+
+def _optional_latency(value: object) -> float | None:
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+        and value >= 0
+    ):
+        return float(value)
     return None

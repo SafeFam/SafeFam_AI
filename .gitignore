@@ -17,3 +17,7 @@ secrets/
 *.key
 scripts/adversarial_test/output/
 scripts/benchmark/output/
+
+# 재생성 가능한 LLM 평가 캐시와 중간 파일
+data_science/SMSModel/artifacts/stacking/llm_*_predictions.json
+data_science/SMSModel/artifacts/stacking/*.json.tmp
