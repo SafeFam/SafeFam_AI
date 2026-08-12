@@ -4,16 +4,16 @@
     "unknown_handling": "UNKNOWN results are excluded from binary classification metrics and reported as unavailable_count."
   },
   "comparisons": {
-    "average_latency_reduction_rate": 0.5343205978991173,
+    "average_latency_reduction_rate": 0.529673800718625,
     "cost_per_message_reduction_rate": 0.5120310522605467,
     "hybrid_f2_delta_vs_self_model": 0.053878320007352265,
     "hybrid_recall_delta_vs_self_model": 0.0,
     "llm_call_reduction_rate": 0.5691056910569106,
-    "p95_latency_reduction_rate": -0.007460847962356354
+    "p95_latency_reduction_rate": -0.020208929672264286
   },
   "dataset_fingerprint": "508a702f225be77d2c8725d8f7f90a360f18f73a5af63815fd5d1513abc593bb",
   "evaluation_schema_version": 1,
-  "generated_at": "2026-08-12T15:39:31.689945+00:00",
+  "generated_at": "2026-08-12T16:01:42.931379+00:00",
   "model": {
     "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     "prompt_version": "smishing-v1:92102fecd96463d0d061cdf868df78f33de19ef86e44d508aae1d6c91897dee1",
@@ -48,11 +48,11 @@
         "unmeasured_call_count": 0
       },
       "latency_ms": {
-        "average_ms": 1506.3872674822323,
-        "maximum_ms": 6334.439499827102,
-        "minimum_ms": 9.755900129675865,
-        "p50_ms": 16.95539988577366,
-        "p95_ms": 5309.646990035846,
+        "average_ms": 1521.424578055058,
+        "maximum_ms": 6412.81100008823,
+        "minimum_ms": 15.359899960458279,
+        "p50_ms": 39.226300083100796,
+        "p95_ms": 5376.849930106848,
         "sample_count": 123
       },
       "operations": {
@@ -92,11 +92,11 @@
         "unmeasured_call_count": 0
       },
       "latency_ms": {
-        "average_ms": 3234.816186170707,
-        "maximum_ms": 6288.015599885955,
-        "minimum_ms": 1255.016300007701,
-        "p50_ms": 3349.0193000305444,
-        "p95_ms": 5270.325889859534,
+        "average_ms": 3234.828466667786,
+        "maximum_ms": 6288.03660004586,
+        "minimum_ms": 1255.0378000549972,
+        "p50_ms": 3349.0211000442505,
+        "p95_ms": 5270.341960086673,
         "sample_count": 123
       },
       "operations": {
@@ -136,11 +136,11 @@
         "unmeasured_call_count": 0
       },
       "latency_ms": {
-        "average_ms": 62.75849023690008,
-        "maximum_ms": 5628.744499990717,
-        "minimum_ms": 8.76609981060028,
-        "p50_ms": 14.063000213354826,
-        "p95_ms": 38.00440002232789,
+        "average_ms": 68.18271300763013,
+        "maximum_ms": 4377.542199799791,
+        "minimum_ms": 15.590400202199817,
+        "p50_ms": 24.25389993004501,
+        "p95_ms": 91.83152990881351,
         "sample_count": 123
       },
       "operations": {
@@ -161,7 +161,7 @@
     "pricing_as_of": "2026-08-13",
     "unit": "per_1_million_tokens"
   },
-  "report_schema_version": 1,
+  "report_schema_version": 2,
   "routing_policy": {
     "normal_probability_max": 0.08716666259958943,
     "phishing_probability_min": 0.59,
@@ -171,5 +171,58 @@
     "validation_llm_call_rate": 0.4146341463414634
   },
   "sample_count": 123,
-  "source_split": "test"
+  "source_split": "test",
+  "stacking_artifact": {
+    "created_at": "2026-08-11T00:13:11.792602+00:00",
+    "model_name": "stacking_phishing_classifier",
+    "schema_version": 1,
+    "sha256": "fa99576f1d655625410ddb3b6b36ab55faca5a780f296dae9041e37593c063fe"
+  },
+  "target_assessment": {
+    "all_met": false,
+    "items": [
+      {
+        "actual": "1.0000",
+        "label": "Hybrid Recall",
+        "met": true,
+        "target": ">= 0.9500"
+      },
+      {
+        "actual": "0.0539",
+        "label": "Hybrid F2 vs Stacking-only",
+        "met": true,
+        "target": ">= 0 delta"
+      },
+      {
+        "actual": "0.5691",
+        "label": "Claude call reduction",
+        "met": true,
+        "target": "> 0%"
+      },
+      {
+        "actual": "0.5120",
+        "label": "Cost reduction",
+        "met": true,
+        "target": "> 0%"
+      },
+      {
+        "actual": "0.5297",
+        "label": "Average latency reduction",
+        "met": true,
+        "target": "> 0%"
+      },
+      {
+        "actual": "-0.0202",
+        "label": "P95 latency reduction",
+        "met": false,
+        "target": "> 0%"
+      }
+    ],
+    "met_count": 5,
+    "total_count": 6
+  },
+  "threshold_adoption": {
+    "reason": "Validation-selected thresholds preserve the target recall on the untouched test split, improve F2 over Stacking-only, and reduce Claude calls, cost, and average latency. The P95 latency target was not met and is recorded as a follow-up limitation.",
+    "status": "ADOPTED"
+  }
 }

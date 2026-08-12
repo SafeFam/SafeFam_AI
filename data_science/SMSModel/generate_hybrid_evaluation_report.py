@@ -8,6 +8,7 @@ from typing import Any
 
 from data_science.SMSModel.hybrid_evaluation.reporting import (
     build_comparison_report,
+    render_csv_report,
     render_markdown_report,
 )
 
@@ -18,11 +19,17 @@ DEFAULT_RECORDS_PATH = (
 DEFAULT_POLICY_PATH = (
     SMS_MODEL_DIRECTORY / "artifacts/stacking/hybrid_policy.json"
 )
+DEFAULT_STACKING_METADATA_PATH = (
+    SMS_MODEL_DIRECTORY / "artifacts/stacking/metadata.json"
+)
 DEFAULT_JSON_PATH = (
     SMS_MODEL_DIRECTORY / "reports/hybrid_evaluation/comparison_report.json"
 )
 DEFAULT_MARKDOWN_PATH = (
     SMS_MODEL_DIRECTORY / "reports/hybrid_evaluation/comparison_report.md"
+)
+DEFAULT_CSV_PATH = (
+    SMS_MODEL_DIRECTORY / "reports/hybrid_evaluation/comparison_report.csv"
 )
 
 
@@ -46,8 +53,10 @@ def generate_reports(
     *,
     records_path: Path,
     policy_path: Path,
+    stacking_metadata_path: Path,
     json_path: Path,
     markdown_path: Path,
+    csv_path: Path,
     input_price_per_million: float,
     output_price_per_million: float,
     currency: str,
@@ -55,6 +64,7 @@ def generate_reports(
 ) -> dict[str, Any]:
     source = _load_json(records_path)
     policy = _load_json(policy_path)
+    stacking_metadata = _load_json(stacking_metadata_path)
     records = source.get("records")
     if not isinstance(records, list):
         raise ValueError("evaluation records must be a list")
@@ -69,12 +79,14 @@ def generate_reports(
         output_price_per_million=output_price_per_million,
         currency=currency,
         pricing_as_of=pricing_as_of,
+        stacking_metadata=stacking_metadata,
     )
     _atomic_write(
         json_path,
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
     )
     _atomic_write(markdown_path, render_markdown_report(report))
+    _atomic_write(csv_path, render_csv_report(report))
     return report
 
 
@@ -84,10 +96,16 @@ def main() -> None:
     )
     parser.add_argument("--records-path", type=Path, default=DEFAULT_RECORDS_PATH)
     parser.add_argument("--policy-path", type=Path, default=DEFAULT_POLICY_PATH)
+    parser.add_argument(
+        "--stacking-metadata-path",
+        type=Path,
+        default=DEFAULT_STACKING_METADATA_PATH,
+    )
     parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON_PATH)
     parser.add_argument(
         "--markdown-output", type=Path, default=DEFAULT_MARKDOWN_PATH
     )
+    parser.add_argument("--csv-output", type=Path, default=DEFAULT_CSV_PATH)
     parser.add_argument("--input-price-per-million", type=float, required=True)
     parser.add_argument("--output-price-per-million", type=float, required=True)
     parser.add_argument("--currency", default="USD")
@@ -97,8 +115,10 @@ def main() -> None:
     report = generate_reports(
         records_path=arguments.records_path,
         policy_path=arguments.policy_path,
+        stacking_metadata_path=arguments.stacking_metadata_path,
         json_path=arguments.json_output,
         markdown_path=arguments.markdown_output,
+        csv_path=arguments.csv_output,
         input_price_per_million=arguments.input_price_per_million,
         output_price_per_million=arguments.output_price_per_million,
         currency=arguments.currency,
@@ -107,7 +127,7 @@ def main() -> None:
     print(
         "[Hybrid report] completed "
         f"samples={report['sample_count']} json={arguments.json_output} "
-        f"markdown={arguments.markdown_output}"
+        f"csv={arguments.csv_output} markdown={arguments.markdown_output}"
     )
 
 

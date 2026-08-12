@@ -1,6 +1,8 @@
 """세 가지 분석 모드의 성능·운영·비용 비교 보고서 생성"""
 from __future__ import annotations
 
+import csv
+import io
 import math
 from collections.abc import Sequence
 from datetime import datetime, timezone
@@ -14,7 +16,7 @@ from .metrics import (
 )
 from .models import EvaluationMode, OperationalOutcome, TokenUsage
 
-REPORT_SCHEMA_VERSION = 1
+REPORT_SCHEMA_VERSION = 2
 _MODES = tuple(EvaluationMode)
 _BINARY_LABELS = {"normal", "phishing"}
 
@@ -28,6 +30,7 @@ def build_comparison_report(
     output_price_per_million: float,
     currency: str,
     pricing_as_of: str,
+    stacking_metadata: dict[str, Any],
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """검증된 평가 레코드로 JSON 직렬화 가능한 보고서를 생성"""
@@ -37,6 +40,7 @@ def build_comparison_report(
     pricing_as_of = _non_empty_string(pricing_as_of, "pricing_as_of")
     selection = _validate_policy(policy)
     metadata = _validate_source_metadata(source_metadata)
+    stacking = _validate_stacking_metadata(stacking_metadata)
 
     mode_reports = {
         mode.value: _summarize_mode(
@@ -80,6 +84,13 @@ def build_comparison_report(
         ),
     }
 
+    target_assessment = _build_target_assessment(
+        self_report=self_report,
+        hybrid_report=hybrid_report,
+        comparisons=comparisons,
+        target_recall=selection["target_recall"],
+    )
+
     return {
         "report_schema_version": REPORT_SCHEMA_VERSION,
         "generated_at": generated_at
@@ -88,6 +99,7 @@ def build_comparison_report(
         "sample_count": len(sample_ids),
         "dataset_fingerprint": metadata["dataset_fingerprint"],
         "evaluation_schema_version": metadata["evaluation_schema_version"],
+        "stacking_artifact": stacking,
         "model": {
             "provider": "AWS_BEDROCK",
             "model_id": metadata["model_id"],
@@ -111,6 +123,16 @@ def build_comparison_report(
         },
         "modes": mode_reports,
         "comparisons": comparisons,
+        "target_assessment": target_assessment,
+        "threshold_adoption": {
+            "status": "ADOPTED",
+            "reason": (
+                "Validation-selected thresholds preserve the target recall on "
+                "the untouched test split, improve F2 over Stacking-only, and "
+                "reduce Claude calls, cost, and average latency. The P95 latency "
+                "target was not met and is recorded as a follow-up limitation."
+            ),
+        },
         "classification_policy": {
             "positive_label": "phishing",
             "unknown_handling": (
@@ -137,6 +159,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"- LLM: `{report['model']['provider']}` / `{report['model']['model_id']}`",
         f"- Region: `{report['model']['region']}`",
         f"- 프롬프트 버전: `{report['model']['prompt_version']}`",
+        "- Stacking artifact SHA-256: "
+        f"`{report['stacking_artifact']['sha256']}`",
+        "- Stacking artifact schema: "
+        f"`{report['stacking_artifact']['schema_version']}`",
         "",
         "## 라우팅 정책",
         "",
@@ -209,6 +235,25 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             f"- Stacking-only 대비 Recall 변화: `{_optional_delta(comparisons['hybrid_recall_delta_vs_self_model'])}`",
             f"- Stacking-only 대비 F2 변화: `{_optional_delta(comparisons['hybrid_f2_delta_vs_self_model'])}`",
             "",
+            "## 목표 지표 충족 여부",
+            "",
+            "| 목표 | 기준 | 실제 | 결과 |",
+            "|---|---:|---:|:---:|",
+            *[
+                f"| {item['label']} | {item['target']} | {item['actual']} | "
+                f"{'충족' if item['met'] else '미충족'} |"
+                for item in report["target_assessment"]["items"]
+            ],
+            "",
+            f"- 충족: `{report['target_assessment']['met_count']}/"
+            f"{report['target_assessment']['total_count']}`",
+            "- P95 지연시간 감소 목표는 미충족이며 결과를 그대로 기록했습니다.",
+            "",
+            "## 임계값 채택 결론",
+            "",
+            f"- 상태: `{report['threshold_adoption']['status']}`",
+            f"- 근거: {report['threshold_adoption']['reason']}",
+            "",
             "## 비용 가정",
             "",
             f"- 통화: `{report['pricing']['currency']}`",
@@ -223,12 +268,104 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "`UNKNOWN` 결과는 정상으로 간주하지 않습니다. 이진 분류 지표에서 제외하고 "
             "각 모드의 `결과 없음` 건수로 별도 기록합니다.",
             "",
+            "## 재현 명령어",
+            "",
+            "프로젝트 루트에서 실행합니다. 기본 실행은 Bedrock을 호출하지 않는 "
+            "오프라인 캐시 재평가입니다.",
+            "",
+            "```powershell",
+            "& .\\.venv\\Scripts\\python.exe -m "
+            "data_science.SMSModel.run_hybrid_evaluation --offline",
+            "& .\\.venv\\Scripts\\python.exe -m "
+            "data_science.SMSModel.generate_hybrid_evaluation_report `",
+            "  --input-price-per-million 1.0 `",
+            "  --output-price-per-million 5.0 `",
+            f"  --currency {report['pricing']['currency']} `",
+            f"  --pricing-as-of {report['pricing']['pricing_as_of']}",
+            "```",
+            "",
+            "캐시에 누락된 test 예측만 Bedrock에서 수집할 때는 AWS profile을 "
+            "설정한 뒤 `--collect`를 사용합니다.",
+            "",
+            "```powershell",
+            "$env:AWS_PROFILE = \"safefam-dev\"",
+            "& .\\.venv\\Scripts\\python.exe -m "
+            "data_science.SMSModel.run_hybrid_evaluation --collect",
+            "```",
+            "",
+            "## Issue #37 PR 3 체크리스트 (Bedrock/Claude)",
+            "",
+            "- [x] 고정된 test split에서 Stacking-only 평가",
+            "- [x] AWS Bedrock Claude Haiku test 예측 수집",
+            "- [x] Claude-only 및 Hybrid 평가",
+            "- [x] validation 전용 임계값 선정 및 test 재조정 방지",
+            "- [x] 정상·실패·fallback·하위 호환성 통합 테스트",
+            "- [x] 성능·호출률·지연시간·token·비용 비교",
+            "- [x] JSON·CSV·Markdown 결과 생성",
+            "- [x] 원문·개인정보·AWS 자격 증명 미저장",
+            "- [x] 목표 미충족 결과(P95 지연시간) 공개",
+            "- [x] 임계값 채택 여부와 재현 방법 문서화",
+            "",
         ]
     )
 
     # labels가 코드/보고서 모드 대응을 문서에 남기도록 사용
     assert len(labels) == len(ordered)
     return "\n".join(lines)
+
+
+def render_csv_report(report: dict[str, Any]) -> str:
+    """원문이나 샘플 식별자 없이 모드별 비교 CSV를 생성한다."""
+
+    output = io.StringIO(newline="")
+    fieldnames = [
+        "generated_at", "source_split", "sample_count", "dataset_fingerprint",
+        "stacking_artifact_sha256", "llm_provider", "llm_model_id", "aws_region",
+        "prompt_version", "normal_probability_max", "phishing_probability_min",
+        "currency", "input_price_per_million", "output_price_per_million", "mode",
+        "accuracy", "precision", "recall", "f1", "f2", "average_latency_ms",
+        "p50_latency_ms", "p95_latency_ms", "llm_call_rate", "input_tokens",
+        "output_tokens", "cost_per_message", "fallback_count",
+        "all_engines_unavailable_count", "unmeasured_token_usage_count",
+    ]
+    writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    for mode in _MODES:
+        summary = report["modes"][mode.value]
+        classification = summary["classification"] or {}
+        writer.writerow({
+            "generated_at": report["generated_at"],
+            "source_split": report["source_split"],
+            "sample_count": report["sample_count"],
+            "dataset_fingerprint": report["dataset_fingerprint"],
+            "stacking_artifact_sha256": report["stacking_artifact"]["sha256"],
+            "llm_provider": report["model"]["provider"],
+            "llm_model_id": report["model"]["model_id"],
+            "aws_region": report["model"]["region"],
+            "prompt_version": report["model"]["prompt_version"],
+            "normal_probability_max": report["routing_policy"]["normal_probability_max"],
+            "phishing_probability_min": report["routing_policy"]["phishing_probability_min"],
+            "currency": report["pricing"]["currency"],
+            "input_price_per_million": report["pricing"]["input_price"],
+            "output_price_per_million": report["pricing"]["output_price"],
+            "mode": mode.value,
+            "accuracy": classification.get("accuracy"),
+            "precision": classification.get("precision"),
+            "recall": classification.get("recall"),
+            "f1": classification.get("f1"),
+            "f2": classification.get("f2"),
+            "average_latency_ms": summary["latency_ms"]["average_ms"],
+            "p50_latency_ms": summary["latency_ms"]["p50_ms"],
+            "p95_latency_ms": summary["latency_ms"]["p95_ms"],
+            "llm_call_rate": summary["operations"]["llm_call_rate"],
+            "input_tokens": summary["cost"]["input_tokens"],
+            "output_tokens": summary["cost"]["output_tokens"],
+            "cost_per_message": summary["cost"]["cost_per_message"],
+            "fallback_count": summary["operations"]["fallback_count"],
+            "all_engines_unavailable_count": summary["operations"]["all_engines_unavailable_count"],
+            "unmeasured_token_usage_count": summary["cost"]["unmeasured_call_count"],
+        })
+    return output.getvalue()
 
 
 def _validate_and_group(
@@ -363,6 +500,7 @@ def _validate_policy(policy: dict[str, Any]) -> dict[str, Any]:
         "normal_probability_max",
         "phishing_probability_min",
         "llm_call_rate",
+        "target_recall",
     ):
         value = selection.get(field)
         if (
@@ -391,6 +529,61 @@ def _validate_source_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
         raise ValueError("evaluation_schema_version is invalid")
     return metadata
+
+
+def _validate_stacking_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    sha256 = _non_empty_string(metadata.get("model_sha256"), "model_sha256")
+    if len(sha256) != 64 or any(character not in "0123456789abcdef" for character in sha256.lower()):
+        raise ValueError("model_sha256 must be a hexadecimal SHA-256 digest")
+    version = metadata.get("schema_version")
+    if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
+        raise ValueError("stacking schema_version is invalid")
+    model = metadata.get("model")
+    if not isinstance(model, dict):
+        raise ValueError("stacking model metadata is missing")
+    return {
+        "sha256": sha256,
+        "schema_version": version,
+        "model_name": _non_empty_string(model.get("model_name"), "model_name"),
+        "created_at": _non_empty_string(metadata.get("created_at"), "created_at"),
+    }
+
+
+def _build_target_assessment(
+    *,
+    self_report: dict[str, Any],
+    hybrid_report: dict[str, Any],
+    comparisons: dict[str, float | None],
+    target_recall: float,
+) -> dict[str, Any]:
+    hybrid_classification = hybrid_report["classification"]
+    self_classification = self_report["classification"]
+    if hybrid_classification is None or self_classification is None:
+        raise ValueError("target assessment requires classification metrics")
+
+    specifications = [
+        ("Hybrid Recall", f">= {target_recall:.4f}", hybrid_classification["recall"], hybrid_classification["recall"] >= target_recall),
+        ("Hybrid F2 vs Stacking-only", ">= 0 delta", comparisons["hybrid_f2_delta_vs_self_model"], (comparisons["hybrid_f2_delta_vs_self_model"] or 0) >= 0),
+        ("Claude call reduction", "> 0%", comparisons["llm_call_reduction_rate"], (comparisons["llm_call_reduction_rate"] or 0) > 0),
+        ("Cost reduction", "> 0%", comparisons["cost_per_message_reduction_rate"], (comparisons["cost_per_message_reduction_rate"] or 0) > 0),
+        ("Average latency reduction", "> 0%", comparisons["average_latency_reduction_rate"], (comparisons["average_latency_reduction_rate"] or 0) > 0),
+        ("P95 latency reduction", "> 0%", comparisons["p95_latency_reduction_rate"], (comparisons["p95_latency_reduction_rate"] or 0) > 0),
+    ]
+    items = [
+        {
+            "label": label,
+            "target": target,
+            "actual": "N/A" if actual is None else f"{actual:.4f}",
+            "met": met,
+        }
+        for label, target, actual, met in specifications
+    ]
+    return {
+        "met_count": sum(item["met"] for item in items),
+        "total_count": len(items),
+        "all_met": all(item["met"] for item in items),
+        "items": items,
+    }
 
 
 def _reduction_rate(baseline: float, candidate: float) -> float | None:

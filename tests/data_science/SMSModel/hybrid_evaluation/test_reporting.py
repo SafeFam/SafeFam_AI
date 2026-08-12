@@ -7,6 +7,7 @@ import pytest
 
 from data_science.SMSModel.hybrid_evaluation import (
     build_comparison_report,
+    render_csv_report,
     render_markdown_report,
 )
 
@@ -78,7 +79,17 @@ def _policy() -> dict:
             "normal_probability_max": 0.1,
             "phishing_probability_min": 0.8,
             "llm_call_rate": 0.4,
+            "target_recall": 0.95,
         },
+    }
+
+
+def _stacking_metadata() -> dict:
+    return {
+        "created_at": "2026-08-11T00:00:00+00:00",
+        "model_sha256": "a" * 64,
+        "schema_version": 1,
+        "model": {"model_name": "stacking_phishing_classifier"},
     }
 
 
@@ -91,6 +102,7 @@ def _build(records: list[dict] | None = None) -> dict:
         output_price_per_million=5.0,
         currency="USD",
         pricing_as_of="2026-08-13",
+        stacking_metadata=_stacking_metadata(),
         generated_at="2026-08-13T00:00:00+00:00",
     )
 
@@ -165,6 +177,7 @@ def test_rejects_test_derived_policy() -> None:
             output_price_per_million=5.0,
             currency="USD",
             pricing_as_of="2026-08-13",
+            stacking_metadata=_stacking_metadata(),
         )
 
 
@@ -178,6 +191,7 @@ def test_rejects_invalid_price() -> None:
             output_price_per_million=5.0,
             currency="USD",
             pricing_as_of="2026-08-13",
+            stacking_metadata=_stacking_metadata(),
         )
 
 
@@ -189,3 +203,19 @@ def test_renders_markdown_without_sample_identifiers() -> None:
     assert "가격 기준일" in markdown
     assert "sample_id" not in markdown
     assert "| a |" not in markdown
+    assert "Stacking artifact SHA-256" in markdown
+    assert "목표 지표 충족 여부" in markdown
+    assert "임계값 채택 결론" in markdown
+    assert "Issue #37 PR 3 체크리스트" in markdown
+
+
+def test_renders_reproducible_summary_csv_without_message_data() -> None:
+    csv_report = render_csv_report(_build())
+
+    assert "stacking_artifact_sha256" in csv_report
+    assert "SELF_MODEL_ONLY" in csv_report
+    assert "LLM_ONLY" in csv_report
+    assert "HYBRID" in csv_report
+    assert "sample_id" not in csv_report
+    assert "message-0" not in csv_report
+    assert "분석 대상" not in csv_report

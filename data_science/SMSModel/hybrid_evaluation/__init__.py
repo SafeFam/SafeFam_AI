@@ -28,6 +28,7 @@ from .cache import (
 from .reporting import (
     REPORT_SCHEMA_VERSION,
     build_comparison_report,
+    render_csv_report,
     render_markdown_report,
 )
 
@@ -54,5 +55,6 @@ __all__ = [
     "calculate_dataset_fingerprint",
     "REPORT_SCHEMA_VERSION",
     "build_comparison_report",
+    "render_csv_report",
     "render_markdown_report",
 ]
