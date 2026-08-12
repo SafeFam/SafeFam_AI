@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-08-12T15:08:55.703054+00:00",
+  "llm_phishing_score": 40,
+  "schema_version": 1,
+  "selection": {
+    "f2": 0.9544159544159544,
+    "llm_call_count": 51,
+    "llm_call_rate": 0.4146341463414634,
+    "normal_probability_max": 0.08716666259958943,
+    "phishing_probability_min": 0.59,
+    "precision": 0.8072289156626506,
+    "recall": 1.0,
+    "target_recall": 0.95,
+    "target_recall_met": true,
+    "validation_count": 123
+  },
+  "source_split": "validation",
+  "split_manifest": "sms_split_v1.csv"
+}
