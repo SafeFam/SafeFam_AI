@@ -1,4 +1,4 @@
-"""저장된 평가 레코드에서 JSON·Markdown 비교 보고서를 생성합니다."""
+"""저장된 평가 레코드에서 JSON·Markdown 비교 보고서를 생성"""
 from __future__ import annotations
 
 import argparse

@@ -92,7 +92,12 @@ def test_phishing_text_without_url_escalates_to_gemini_and_is_high_risk():
     body = response.json()
     assert body["status"] == "SUCCESS"
     assert body["text_analysis"]["llm_called"] is True
+    assert body["text_analysis"]["gemini_called"] is True
     assert body["text_analysis"]["llm_available"] is True
+    assert body["text_analysis"]["gemini_available"] is True
+    assert body["text_analysis"]["llm_provider"] == "MOCK"
+    assert body["text_analysis"]["llm_model"] == "mock"
+    assert body["text_analysis"]["gemini"] == body["text_analysis"]["llm"]
     assert body["text_analysis"]["decision_source"] == "LLM"
     assert body["text_analysis"]["self_model"]["risk_score"] == 50
     assert body["risk_grade"] in ("MEDIUM", "HIGH")

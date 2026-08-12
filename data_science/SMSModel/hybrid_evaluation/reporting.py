@@ -1,4 +1,4 @@
-"""세 가지 분석 모드의 성능·운영·비용 비교 보고서 생성."""
+"""세 가지 분석 모드의 성능·운영·비용 비교 보고서 생성"""
 from __future__ import annotations
 
 import math
@@ -30,7 +30,8 @@ def build_comparison_report(
     pricing_as_of: str,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
-    """검증된 평가 레코드로 JSON 직렬화 가능한 보고서를 생성합니다."""
+    """검증된 평가 레코드로 JSON 직렬화 가능한 보고서를 생성"""
+
     grouped, sample_ids = _validate_and_group(records)
     currency = _non_empty_string(currency, "currency")
     pricing_as_of = _non_empty_string(pricing_as_of, "pricing_as_of")
@@ -121,7 +122,8 @@ def build_comparison_report(
 
 
 def render_markdown_report(report: dict[str, Any]) -> str:
-    """비교 보고서를 사람이 검토할 Markdown으로 변환합니다."""
+    """비교 보고서를 사람이 검토할 Markdown으로 변환"""
+
     modes = report["modes"]
     lines = [
         "# Stacking·Claude·Hybrid 평가 보고서",
@@ -224,7 +226,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ]
     )
 
-    # labels가 코드/보고서 모드 대응을 문서에 남기도록 사용합니다.
+    # labels가 코드/보고서 모드 대응을 문서에 남기도록 사용
     assert len(labels) == len(ordered)
     return "\n".join(lines)
 

@@ -123,6 +123,40 @@ async def test_llm_only_never_calls_stacking_and_collects_usage() -> None:
 
 
 @pytest.mark.asyncio
+async def test_mode_call_counts_hold_for_every_sample_in_a_batch() -> None:
+    llm_calls = 0
+
+    async def llm_analyzer(_text: str) -> dict[str, Any]:
+        nonlocal llm_calls
+        llm_calls += 1
+        return _llm_result("SAFE")
+
+    samples = [
+        EvaluationSample(f"sha256:{index}", f"message-{index}", "normal")
+        for index in range(3)
+    ]
+    runner = HybridEvaluationRunner(
+        policy=_policy(),
+        stacking_analyzer=lambda _text: _stacking_result(0.1),
+        llm_analyzer=llm_analyzer,
+    )
+
+    self_records = await runner.evaluate(
+        samples,
+        modes=(EvaluationMode.SELF_MODEL_ONLY,),
+    )
+    assert llm_calls == 0
+    assert all(record.llm_called is False for record in self_records)
+
+    llm_records = await runner.evaluate(
+        samples,
+        modes=(EvaluationMode.LLM_ONLY,),
+    )
+    assert llm_calls == len(samples)
+    assert all(record.llm_called is True for record in llm_records)
+
+
+@pytest.mark.asyncio
 async def test_hybrid_skips_llm_for_confident_stacking() -> None:
     llm_calls = 0
 
