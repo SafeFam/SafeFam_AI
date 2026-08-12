@@ -1,4 +1,4 @@
-"""Validation 데이터로 하이브리드 Gemini 호출 구간을 선정"""
+"""Validation 데이터로 하이브리드 LLM 호출 구간을 선정."""
 from __future__ import annotations
 
 import argparse
@@ -13,11 +13,7 @@ from typing import Any
 import joblib
 import numpy as np
 
-from app.analysis.text.gemini_analyzer import (
-    GEMINI_API_KEY,
-    MOCK_ENABLED,
-    analyze_text_with_gemini,
-)
+from app.core.config import settings
 from data_science.SMSModel.modeling.hybrid_thresholds import (
     HybridThresholdSelection,
     select_hybrid_thresholds,
@@ -51,11 +47,15 @@ STACKING_METADATA_PATH = (
     / "metadata.json"
 )
 
-# 원문 없이 fingerprint와 Gemini 점수만 저장
-GEMINI_VALIDATION_CACHE_PATH = (
+# 원문 없이 fingerprint와 LLM 점수만 저장
+LLM_VALIDATION_CACHE_PATH = (
     STACKING_ARTIFACT_DIRECTORY
-    / "gemini_validation_predictions.json"
+    / "llm_validation_predictions.json"
 )
+
+LLM_CACHE_SCHEMA_VERSION = 2
+LLM_PROVIDER = "AWS_BEDROCK"
+PROMPT_VERSION = "smishing-v1"
 
 # 사람이 확인할 수 있는 결과 보고서
 HYBRID_POLICY_REPORT_PATH = (
@@ -221,21 +221,33 @@ def _load_validation_data():
 
 def _load_cached_predictions(
 ) -> dict[str, dict[str, Any]]:
-    """기존 Gemini validation cache를 fingerprint 기준으로 로드"""
+    """LLM validation cache를 fingerprint 기준으로 로드."""
 
-    if not GEMINI_VALIDATION_CACHE_PATH.is_file():
+    if not LLM_VALIDATION_CACHE_PATH.is_file():
         return {}
 
     payload = json.loads(
-        GEMINI_VALIDATION_CACHE_PATH.read_text(
+        LLM_VALIDATION_CACHE_PATH.read_text(
             encoding="utf-8"
         )
     )
 
-    if payload.get("schema_version") != 1:
+    if payload.get("schema_version") != LLM_CACHE_SCHEMA_VERSION:
         raise ValueError(
-            "unsupported Gemini validation cache schema"
+            "unsupported LLM validation cache schema"
         )
+
+    if payload.get("provider") != LLM_PROVIDER:
+        raise ValueError("LLM cache provider mismatch")
+
+    if payload.get("model_id") != settings.BEDROCK_MODEL_ID:
+        raise ValueError("LLM cache model mismatch")
+
+    if payload.get("region") != settings.AWS_REGION:
+        raise ValueError("LLM cache region mismatch")
+
+    if payload.get("prompt_version") != PROMPT_VERSION:
+        raise ValueError("LLM cache prompt version mismatch")
 
     predictions = (
         payload.get("predictions") or []
@@ -255,7 +267,7 @@ def _load_cached_predictions(
 
         if fingerprint in cached:
             raise ValueError(
-                "duplicate fingerprint in Gemini cache"
+                "duplicate fingerprint in LLM cache"
             )
 
         cached[fingerprint] = prediction
@@ -265,12 +277,16 @@ def _load_cached_predictions(
 def _save_cached_predictions(
     cached: dict[str, dict[str, Any]],
 ) -> None:
-    """원문 없이 Gemini 예측 점수만 저장"""
+    """원문 없이 LLM 예측 점수만 저장."""
 
     _atomic_write_json(
-        GEMINI_VALIDATION_CACHE_PATH,
+        LLM_VALIDATION_CACHE_PATH,
         {
-            "schema_version": 1,
+            "schema_version": LLM_CACHE_SCHEMA_VERSION,
+            "provider": LLM_PROVIDER,
+            "model_id": settings.BEDROCK_MODEL_ID,
+            "region": settings.AWS_REGION,
+            "prompt_version": PROMPT_VERSION,
             "updated_at": (
                 datetime.now(
                     timezone.utc
@@ -284,13 +300,13 @@ def _save_cached_predictions(
     )
 
 
-def _is_available_gemini_result(
+def _is_available_llm_result(
     *,
     score: Any,
     grade: Any,
     error_message: Any,
 ) -> bool:
-    """Gemini validation 결과가 정책 선정에 사용 가능한지 검사."""
+    """LLM validation 결과가 정책 선정에 사용 가능한지 검사."""
 
     return (
         isinstance(score, int)
@@ -300,29 +316,25 @@ def _is_available_gemini_result(
         and not error_message
     )
 
-async def collect_gemini_predictions(
+async def collect_llm_predictions(
     validation,
     *,
     delay_seconds: float,
 ) -> None:
-    """Validation 메시지의 Gemini 점수를 수집"""
+    """Validation 메시지의 LLM 점수를 수집."""
 
-    if MOCK_ENABLED:
+    if settings.MOCK_SECURITY_API:
         raise RuntimeError(
             "MOCK_SECURITY_API must be false "
             "during threshold selection"
-        )
-
-    if not GEMINI_API_KEY:
-        raise RuntimeError(
-            "GEMINI_API_KEY is required "
-            "to collect validation predictions"
         )
 
     if delay_seconds < 0:
         raise ValueError(
             "delay_seconds must not be negative"
         )
+
+    from app.analysis.text.llm_analyzer import analyze_text_with_llm
 
     cached = _load_cached_predictions()
 
@@ -346,12 +358,12 @@ async def collect_gemini_predictions(
             and previous.get("available") is True
         ):
             print(
-                f"[Gemini] skip cached "
+                f"[LLM] skip cached "
                 f"{position}/{total}"
             )
             continue
 
-        analysis = await analyze_text_with_gemini(
+        analysis = await analyze_text_with_llm(
             str(row.text)
         )
 
@@ -365,7 +377,7 @@ async def collect_gemini_predictions(
         )
         grade = result.get("grade")
 
-        available = _is_available_gemini_result(
+        available = _is_available_llm_result(
             score=score,
             grade=grade,
             error_message=error_message,
@@ -381,7 +393,7 @@ async def collect_gemini_predictions(
             "error_code": (
                 None
                 if available
-                else "GEMINI_VALIDATION_FAILED"
+                else "LLM_VALIDATION_FAILED"
             ),
         }
 
@@ -391,7 +403,7 @@ async def collect_gemini_predictions(
         )
 
         print(
-            f"[Gemini] collected "
+            f"[LLM] collected "
             f"{position}/{total} "
             f"available={available}"
         )
@@ -401,10 +413,10 @@ async def collect_gemini_predictions(
                 delay_seconds
             )
 
-def _ordered_gemini_scores(
+def _ordered_llm_scores(
     validation,
 ) -> np.ndarray:
-    """Validation 순서와 일치하는 Gemini 점수 배열 생성"""
+    """Validation 순서와 일치하는 LLM 점수 배열 생성."""
 
     cached = _load_cached_predictions()
 
@@ -421,7 +433,7 @@ def _ordered_gemini_scores(
 
     if missing:
         raise RuntimeError(
-            f"Gemini predictions are missing: "
+            f"LLM predictions are missing: "
             f"{len(missing)} rows"
         )
 
@@ -435,7 +447,7 @@ def _ordered_gemini_scores(
 
     if failed:
         raise RuntimeError(
-            f"Gemini predictions failed: "
+            f"LLM predictions failed: "
             f"{len(failed)} rows; "
             "run collection again"
         )
@@ -470,7 +482,7 @@ def _write_policy_report(
         "split_manifest": (
             SPLIT_MANIFEST_PATH.name
         ),
-        "gemini_phishing_score": 40,
+        "llm_phishing_score": 40,
         "selection": selection.to_dict(),
     }
 
@@ -504,7 +516,7 @@ def select_and_save_thresholds(
     *,
     target_recall: float,
 ) -> HybridThresholdSelection:
-    """Stacking/Gemini validation 결과로 임계값을 선정하고 저장"""
+    """Stacking/LLM validation 결과로 임계값을 선정하고 저장."""
 
     classifier = (
         _load_stacking_classifier()
@@ -524,8 +536,8 @@ def select_and_save_thresholds(
             f"{unavailable_models}"
         )
 
-    gemini_scores = (
-        _ordered_gemini_scores(
+    llm_scores = (
+        _ordered_llm_scores(
             validation
         )
     )
@@ -534,13 +546,13 @@ def select_and_save_thresholds(
         stacking_probabilities=(
             stacking_probabilities
         ),
-        gemini_scores=gemini_scores,
+        llm_scores=llm_scores,
         labels=validation[
             "label"
         ].astype(str).to_numpy(),
         target_recall=target_recall,
 
-        gemini_phishing_score=40,
+        llm_phishing_score=40,
     )
 
     _write_policy_report(
@@ -555,14 +567,14 @@ def select_and_save_thresholds(
 
 async def async_main(
     *,
-    collect_gemini: bool,
+    collect_llm: bool,
     delay_seconds: float,
     target_recall: float,
 ) -> None:
     validation = _load_validation_data()
 
-    if collect_gemini:
-        await collect_gemini_predictions(
+    if collect_llm:
+        await collect_llm_predictions(
             validation,
             delay_seconds=delay_seconds,
         )
@@ -599,13 +611,13 @@ async def async_main(
     )
 
     print(
-        "  gemini_call_rate="
-        f"{selection.gemini_call_rate:.4f}"
+        "  llm_call_rate="
+        f"{selection.llm_call_rate:.4f}"
     )
 
     print(
-        "  gemini_calls="
-        f"{selection.gemini_call_count}/"
+        "  llm_calls="
+        f"{selection.llm_call_count}/"
         f"{selection.validation_count}"
     )
 
@@ -628,16 +640,16 @@ async def async_main(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Select conditional Gemini thresholds "
+            "Select conditional LLM thresholds "
             "using validation predictions."
         )
     )
 
     parser.add_argument(
-        "--collect-gemini",
+        "--collect-llm",
         action="store_true",
         help=(
-            "Call Gemini for validation rows "
+            "Call LLM for validation rows "
             "before selecting thresholds."
         ),
     )
@@ -647,7 +659,7 @@ def main() -> None:
         type=float,
         default=0.5,
         help=(
-            "Delay between Gemini validation calls."
+            "Delay between LLM validation calls."
         ),
     )
 
@@ -661,8 +673,8 @@ def main() -> None:
 
     asyncio.run(
         async_main(
-            collect_gemini=(
-                arguments.collect_gemini
+            collect_llm=(
+                arguments.collect_llm
             ),
             delay_seconds=(
                 arguments.delay_seconds

@@ -1,24 +1,59 @@
-"""Gemini validation 캐시 입력 검증 테스트."""
+"""LLM validation 캐시 입력 및 메타데이터 검증 테스트."""
+
+import json
 
 import pytest
 
-from data_science.SMSModel.run_hybrid_threshold_selection import (
-    _is_available_gemini_result,
-)
+from data_science.SMSModel import run_hybrid_threshold_selection as selection
 
 
 @pytest.mark.parametrize("score", [True, False])
-def test_rejects_boolean_gemini_scores(score: bool) -> None:
-    assert _is_available_gemini_result(
+def test_rejects_boolean_llm_scores(score: bool) -> None:
+    assert selection._is_available_llm_result(
         score=score,
         grade="DANGEROUS",
         error_message=None,
     ) is False
 
 
-def test_accepts_integer_gemini_score() -> None:
-    assert _is_available_gemini_result(
+def test_accepts_integer_llm_score() -> None:
+    assert selection._is_available_llm_result(
         score=85,
         grade="DANGEROUS",
         error_message=None,
     ) is True
+
+
+def _cache_payload() -> dict:
+    return {
+        "schema_version": 2,
+        "provider": "AWS_BEDROCK",
+        "model_id": selection.settings.BEDROCK_MODEL_ID,
+        "region": selection.settings.AWS_REGION,
+        "prompt_version": "smishing-v1",
+        "predictions": [],
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("model_id", "different-model", "LLM cache model mismatch"),
+        ("region", "ap-northeast-2", "LLM cache region mismatch"),
+    ],
+)
+def test_rejects_cache_runtime_mismatch(
+    tmp_path,
+    monkeypatch,
+    field: str,
+    value: str,
+    message: str,
+) -> None:
+    cache_path = tmp_path / "llm_validation_predictions.json"
+    payload = _cache_payload()
+    payload[field] = value
+    cache_path.write_text(json.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(selection, "LLM_VALIDATION_CACHE_PATH", cache_path)
+
+    with pytest.raises(ValueError, match=message):
+        selection._load_cached_predictions()

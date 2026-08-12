@@ -1,4 +1,4 @@
-"""Validation 결과를 이용한 Gemini 조건부 호출 임계값 선정"""
+"""Validation 결과를 이용한 LLM 조건부 호출 임계값 선정."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -21,8 +21,8 @@ class HybridThresholdSelection:
     recall: float
     f2: float
 
-    gemini_call_rate: float
-    gemini_call_count: int
+    llm_call_rate: float
+    llm_call_count: int
     validation_count: int
 
     target_recall: float
@@ -36,10 +36,10 @@ class HybridThresholdSelection:
 def _validate_inputs(
     *,
     stacking_probabilities: np.ndarray,
-    gemini_scores: np.ndarray,
+    llm_scores: np.ndarray,
     labels: np.ndarray,
     target_recall: float,
-    gemini_phishing_score: int,
+    llm_phishing_score: int,
 ) -> tuple[
     np.ndarray,
     np.ndarray,
@@ -53,7 +53,7 @@ def _validate_inputs(
     )
 
     scores = np.asarray(
-        gemini_scores,
+        llm_scores,
         dtype=np.float64,
     )
 
@@ -69,7 +69,7 @@ def _validate_inputs(
 
     if scores.ndim != 1:
         raise ValueError(
-            "gemini_scores must be one-dimensional"
+            "llm_scores must be one-dimensional"
         )
 
     if normalized_labels.ndim != 1:
@@ -88,7 +88,7 @@ def _validate_inputs(
         == len(normalized_labels)
     ):
         raise ValueError(
-            "probabilities, Gemini scores and labels "
+            "probabilities, LLM scores and labels "
             "must have the same length"
         )
 
@@ -99,7 +99,7 @@ def _validate_inputs(
 
     if not np.isfinite(scores).all():
         raise ValueError(
-            "Gemini scores must be finite"
+            "LLM scores must be finite"
         )
 
     if (
@@ -115,7 +115,7 @@ def _validate_inputs(
         | (scores > 100.0)
     ).any():
         raise ValueError(
-            "Gemini scores must be between 0 and 100"
+            "LLM scores must be between 0 and 100"
         )
 
     observed_labels = set(normalized_labels)
@@ -134,9 +134,9 @@ def _validate_inputs(
             "target_recall must be between 0 and 1"
         )
 
-    if not 0 <= gemini_phishing_score <= 100:
+    if not 0 <= llm_phishing_score <= 100:
         raise ValueError(
-            "gemini_phishing_score must be "
+            "llm_phishing_score must be "
             "between 0 and 100"
         )
 
@@ -149,10 +149,10 @@ def _validate_inputs(
 def select_hybrid_thresholds(
     *,
     stacking_probabilities: np.ndarray,
-    gemini_scores: np.ndarray,
+    llm_scores: np.ndarray,
     labels: np.ndarray,
     target_recall: float = 0.95,
-    gemini_phishing_score: int = 40,
+    llm_phishing_score: int = 40,
 ) -> HybridThresholdSelection:
 
     """Recall 목표를 만족하면서 F2가 높은 하이브리드 구간 선택"""
@@ -164,11 +164,11 @@ def select_hybrid_thresholds(
         stacking_probabilities=(
             stacking_probabilities
         ),
-        gemini_scores=gemini_scores,
+        llm_scores=llm_scores,
         labels=labels,
         target_recall=target_recall,
-        gemini_phishing_score=(
-            gemini_phishing_score
+        llm_phishing_score=(
+            llm_phishing_score
         ),
     )
 
@@ -176,9 +176,9 @@ def select_hybrid_thresholds(
         normalized_labels == "phishing"
     ).astype(np.int64)
 
-    # Gemini의 SAFE/SUSPICIOUS 경계인 40점을 이진 피싱 판정 기준으로 사용
-    gemini_predictions = (
-        scores >= gemini_phishing_score
+    # LLM의 SAFE/SUSPICIOUS 경계인 40점을 이진 피싱 판정 기준으로 사용
+    llm_predictions = (
+        scores >= llm_phishing_score
     ).astype(np.int64)
 
     # 고정 간격 후보와 실제 확률값을 함께 사용
@@ -201,7 +201,7 @@ def select_hybrid_thresholds(
 
     # 비교 우선순위: 
     # F2가 높을수록 좋음
-    # Gemini 호출률은 낮을수록 좋음
+    # LLM 호출률은 낮을수록 좋음
     # Recall은 높을수록 좋음
     best_rank: (
         tuple[float, float, float] | None
@@ -212,7 +212,7 @@ def select_hybrid_thresholds(
             if normal_max >= phishing_min:
                 continue
 
-            # 두 경계값 사이만 Gemini 호출 대상
+            # 두 경계값 사이만 LLM 호출 대상
             uncertain_mask = (
                 (probabilities > normal_max)
                 & (
@@ -228,10 +228,10 @@ def select_hybrid_thresholds(
                 0,
             ).astype(np.int64)
 
-            # 불확실한 구간만 Gemini 결과로 교체
+            # 불확실한 구간만 LLM 결과로 교체
             hybrid_predictions[
                 uncertain_mask
-            ] = gemini_predictions[
+            ] = llm_predictions[
                 uncertain_mask
             ]
 
@@ -263,11 +263,11 @@ def select_hybrid_thresholds(
                 )
             )
 
-            gemini_call_count = int(
+            llm_call_count = int(
                 uncertain_mask.sum()
             )
 
-            gemini_call_rate = float(
+            llm_call_rate = float(
                 uncertain_mask.mean()
             )
 
@@ -281,11 +281,11 @@ def select_hybrid_thresholds(
                 precision=precision,
                 recall=recall,
                 f2=f2,
-                gemini_call_rate=(
-                    gemini_call_rate
+                llm_call_rate=(
+                    llm_call_rate
                 ),
-                gemini_call_count=(
-                    gemini_call_count
+                llm_call_count=(
+                    llm_call_count
                 ),
                 validation_count=len(
                     probabilities
@@ -296,7 +296,7 @@ def select_hybrid_thresholds(
 
             rank = (
                 f2,
-                -gemini_call_rate,
+                -llm_call_rate,
                 recall,
             )
 

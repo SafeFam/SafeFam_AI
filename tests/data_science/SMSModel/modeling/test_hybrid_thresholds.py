@@ -31,7 +31,7 @@ def test_selects_thresholds_using_recall_f2_and_call_rate():
         ]
     )
 
-    gemini_scores = np.asarray(
+    llm_scores = np.asarray(
         [
             5,
             10,
@@ -46,7 +46,7 @@ def test_selects_thresholds_using_recall_f2_and_call_rate():
         stacking_probabilities=(
             stacking_probabilities
         ),
-        gemini_scores=gemini_scores,
+        llm_scores=llm_scores,
         labels=labels,
         target_recall=1.0,
     )
@@ -57,10 +57,10 @@ def test_selects_thresholds_using_recall_f2_and_call_rate():
     )
     assert result.recall == pytest.approx(1.0)
     assert result.f2 == pytest.approx(1.0)
-    assert 0.0 <= result.gemini_call_rate <= 1.0
+    assert 0.0 <= result.llm_call_rate <= 1.0
 
 
-def test_prefers_lower_gemini_call_rate_when_f2_is_equal():
+def test_prefers_lower_llm_call_rate_when_f2_is_equal():
     labels = np.asarray(
         [
             "normal",
@@ -79,7 +79,7 @@ def test_prefers_lower_gemini_call_rate_when_f2_is_equal():
         ]
     )
 
-    gemini_scores = np.asarray(
+    llm_scores = np.asarray(
         [
             5,
             10,
@@ -92,20 +92,20 @@ def test_prefers_lower_gemini_call_rate_when_f2_is_equal():
         stacking_probabilities=(
             stacking_probabilities
         ),
-        gemini_scores=gemini_scores,
+        llm_scores=llm_scores,
         labels=labels,
         target_recall=1.0,
     )
 
     # Stacking만으로 완벽히 분류할 수 있으므로 Gemini 호출이 필요하지 않아야 함
-    assert result.gemini_call_count == 0
-    assert result.gemini_call_rate == pytest.approx(0.0)
+    assert result.llm_call_count == 0
+    assert result.llm_call_rate == pytest.approx(0.0)
 
 
 @pytest.mark.parametrize(
     (
         "stacking_probabilities",
-        "gemini_scores",
+        "llm_scores",
         "labels",
     ),
     [
@@ -139,7 +139,7 @@ def test_prefers_lower_gemini_call_rate_when_f2_is_equal():
 )
 def test_rejects_invalid_inputs(
     stacking_probabilities,
-    gemini_scores,
+    llm_scores,
     labels,
 ):
     with pytest.raises(ValueError):
@@ -147,6 +147,6 @@ def test_rejects_invalid_inputs(
             stacking_probabilities=(
                 stacking_probabilities
             ),
-            gemini_scores=gemini_scores,
+            llm_scores=llm_scores,
             labels=labels,
         )
