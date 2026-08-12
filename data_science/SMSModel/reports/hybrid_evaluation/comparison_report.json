@@ -1,0 +1,175 @@
+{
+  "classification_policy": {
+    "positive_label": "phishing",
+    "unknown_handling": "UNKNOWN results are excluded from binary classification metrics and reported as unavailable_count."
+  },
+  "comparisons": {
+    "average_latency_reduction_rate": 0.5343205978991173,
+    "cost_per_message_reduction_rate": 0.5120310522605467,
+    "hybrid_f2_delta_vs_self_model": 0.053878320007352265,
+    "hybrid_recall_delta_vs_self_model": 0.0,
+    "llm_call_reduction_rate": 0.5691056910569106,
+    "p95_latency_reduction_rate": -0.007460847962356354
+  },
+  "dataset_fingerprint": "508a702f225be77d2c8725d8f7f90a360f18f73a5af63815fd5d1513abc593bb",
+  "evaluation_schema_version": 1,
+  "generated_at": "2026-08-12T15:39:31.689945+00:00",
+  "model": {
+    "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "prompt_version": "smishing-v1:92102fecd96463d0d061cdf868df78f33de19ef86e44d508aae1d6c91897dee1",
+    "provider": "AWS_BEDROCK",
+    "region": "us-east-1"
+  },
+  "modes": {
+    "HYBRID": {
+      "availability": {
+        "availability_rate": 1.0,
+        "available_count": 123,
+        "unavailable_count": 0
+      },
+      "classification": {
+        "accuracy": 0.8699186991869918,
+        "f1": 0.8933333333333333,
+        "f2": 0.9544159544159544,
+        "false_negative": 0,
+        "false_positive": 16,
+        "precision": 0.8072289156626506,
+        "recall": 1.0,
+        "sample_count": 123,
+        "true_negative": 40,
+        "true_positive": 67
+      },
+      "cost": {
+        "cost_per_message": 0.0009341788617886179,
+        "input_tokens": 36094,
+        "measured_call_count": 53,
+        "output_tokens": 15762,
+        "total_cost": 0.114904,
+        "unmeasured_call_count": 0
+      },
+      "latency_ms": {
+        "average_ms": 1506.3872674822323,
+        "maximum_ms": 6334.439499827102,
+        "minimum_ms": 9.755900129675865,
+        "p50_ms": 16.95539988577366,
+        "p95_ms": 5309.646990035846,
+        "sample_count": 123
+      },
+      "operations": {
+        "all_engines_unavailable_count": 0,
+        "fallback_count": 0,
+        "llm_call_count": 53,
+        "llm_call_rate": 0.43089430894308944,
+        "llm_failure_count": 0,
+        "llm_success_count": 53,
+        "total_message_count": 123
+      }
+    },
+    "LLM_ONLY": {
+      "availability": {
+        "availability_rate": 1.0,
+        "available_count": 123,
+        "unavailable_count": 0
+      },
+      "classification": {
+        "accuracy": 0.8536585365853658,
+        "f1": 0.881578947368421,
+        "f2": 0.9490084985835694,
+        "false_negative": 0,
+        "false_positive": 18,
+        "precision": 0.788235294117647,
+        "recall": 1.0,
+        "sample_count": 123,
+        "true_negative": 38,
+        "true_positive": 67
+      },
+      "cost": {
+        "cost_per_message": 0.0019144227642276421,
+        "input_tokens": 63444,
+        "measured_call_count": 123,
+        "output_tokens": 34406,
+        "total_cost": 0.235474,
+        "unmeasured_call_count": 0
+      },
+      "latency_ms": {
+        "average_ms": 3234.816186170707,
+        "maximum_ms": 6288.015599885955,
+        "minimum_ms": 1255.016300007701,
+        "p50_ms": 3349.0193000305444,
+        "p95_ms": 5270.325889859534,
+        "sample_count": 123
+      },
+      "operations": {
+        "all_engines_unavailable_count": 0,
+        "fallback_count": 0,
+        "llm_call_count": 123,
+        "llm_call_rate": 1.0,
+        "llm_failure_count": 0,
+        "llm_success_count": 123,
+        "total_message_count": 123
+      }
+    },
+    "SELF_MODEL_ONLY": {
+      "availability": {
+        "availability_rate": 1.0,
+        "available_count": 123,
+        "unavailable_count": 0
+      },
+      "classification": {
+        "accuracy": 0.6991869918699187,
+        "f1": 0.783625730994152,
+        "f2": 0.9005376344086021,
+        "false_negative": 0,
+        "false_positive": 37,
+        "precision": 0.6442307692307693,
+        "recall": 1.0,
+        "sample_count": 123,
+        "true_negative": 19,
+        "true_positive": 67
+      },
+      "cost": {
+        "cost_per_message": 0.0,
+        "input_tokens": 0,
+        "measured_call_count": 0,
+        "output_tokens": 0,
+        "total_cost": 0.0,
+        "unmeasured_call_count": 0
+      },
+      "latency_ms": {
+        "average_ms": 62.75849023690008,
+        "maximum_ms": 5628.744499990717,
+        "minimum_ms": 8.76609981060028,
+        "p50_ms": 14.063000213354826,
+        "p95_ms": 38.00440002232789,
+        "sample_count": 123
+      },
+      "operations": {
+        "all_engines_unavailable_count": 0,
+        "fallback_count": 0,
+        "llm_call_count": 0,
+        "llm_call_rate": 0.0,
+        "llm_failure_count": 0,
+        "llm_success_count": 0,
+        "total_message_count": 123
+      }
+    }
+  },
+  "pricing": {
+    "currency": "USD",
+    "input_price": 1.0,
+    "output_price": 5.0,
+    "pricing_as_of": "2026-08-13",
+    "unit": "per_1_million_tokens"
+  },
+  "report_schema_version": 1,
+  "routing_policy": {
+    "normal_probability_max": 0.08716666259958943,
+    "phishing_probability_min": 0.59,
+    "source_split": "validation",
+    "test_uncertain_count": 53,
+    "test_uncertain_rate": 0.43089430894308944,
+    "validation_llm_call_rate": 0.4146341463414634
+  },
+  "sample_count": 123,
+  "source_split": "test"
+}

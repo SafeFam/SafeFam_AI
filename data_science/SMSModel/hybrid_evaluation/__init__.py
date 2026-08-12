@@ -25,6 +25,11 @@ from .cache import (
     build_prompt_version,
     calculate_dataset_fingerprint,
 )
+from .reporting import (
+    REPORT_SCHEMA_VERSION,
+    build_comparison_report,
+    render_markdown_report,
+)
 
 __all__ = [
     "ClassificationMetrics",
@@ -47,4 +52,7 @@ __all__ = [
     "ClaudeTestCache",
     "build_prompt_version",
     "calculate_dataset_fingerprint",
+    "REPORT_SCHEMA_VERSION",
+    "build_comparison_report",
+    "render_markdown_report",
 ]
