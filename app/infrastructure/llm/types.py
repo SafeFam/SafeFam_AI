@@ -15,7 +15,7 @@ class LlmGeneration:
     output_tokens: int | None = None
     latency_ms: int | None = None
 
-class LlmClient(Protocal):
+class LlmClient(Protocol):
     """분석 및 채팅 서비스가 의존할 LLM 인터페이스"""
     async def generate(
         self,
