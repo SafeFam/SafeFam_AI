@@ -249,6 +249,28 @@ def test_factory_identifies_llm_only_text_analysis() -> None:
     assert event.payload.textAnalysis.method == TextAnalysisMethod.LLM
 
 
+def test_factory_reads_legacy_gemini_called_alias() -> None:
+    request = _request()
+    result = _result()
+    assert result.text_analysis is not None
+    result.text_analysis.pop("llm_called")
+    result.text_analysis["gemini_called"] = True
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    assert event.payload.textAnalysis is not None
+    assert event.payload.textAnalysis.llmCalled is True
+    assert event.payload.textAnalysis.geminiCalled is True
+    assert event.payload.textAnalysis.method == TextAnalysisMethod.STACKING_LLM
+
+
 def test_factory_maps_unit_url_score_to_one_hundred() -> None:
     request = _request()
     result = _result()

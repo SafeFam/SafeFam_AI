@@ -123,7 +123,13 @@ def _text_detail(
         "decision_source"
     )
     llm_called = bool(
-        text.get("llm_called")
+        text.get(
+            "llm_called",
+            text.get(
+                "gemini_called",
+                False,
+            ),
+        )
     )
 
     if result.get("grade") == "UNKNOWN":
@@ -169,6 +175,8 @@ def _text_detail(
         llmCalled=llm_called,
         llmProvider=text.get("llm_provider"),
         llmModel=text.get("llm_model"),
+
+        # Deprecated: temporary SafeFam_BE compatibility.
         geminiCalled=llm_called,
         decisionSource=decision_source,
         routingReason=text.get(
