@@ -6,73 +6,93 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+
+    # 기본 애플리케이션 설정
     ENV: Literal["local", "test", "prod"] = "local"
     PROJECT_NAME: str = "SafeFam-AI"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
-
-    GEMINI_API_KEY: str | None = None
-    GEMINI_MODEL: str = "gemini-flash-latest"
+    
+    # 외부 보안 API
     VIRUSTOTAL_API_KEY: str | None = None
     GOOGLE_SAFE_BROWSING_API_KEY: str | None = None
     MOCK_SECURITY_API: bool = False
-
-    # Stacking 자체 모델이 확실한 정상이라고 판단하는 최대 확률
-    STACKING_NORMAL_PROBABILITY_MAX: float = Field(
-        default=0.1,
-        ge=0.0,
-        le=1.0,
-    )
-
-    # Stacking 자체 모델이 확실한 피싱이라고 판단하는 최소 확률
-    STACKING_PHISHING_PROBABILITY_MIN: float = Field(
-        default=0.9,
-        ge=0.0,
-        le=1.0,
-    )
-
-    NAIVE_BAYES_MODEL_PATH: Path = Path(
-        "data_science/SMSModel/artifacts/phishing_model_artifact.pkl"
-    )
-    NAIVE_BAYES_VECTORIZER_PATH: Path = Path(
-        "data_science/SMSModel/artifacts/phishing_vectorizer.pkl"
-    )
-
-    GEMINI_TIMEOUT_SECONDS: float = Field(
-        default=10.0,
-        gt=0,
-    )
-    GSB_TIMEOUT_SECONDS: float = Field(
-        default=5.0,
-        gt=0,
-    )
-    VIRUSTOTAL_TIMEOUT_SECONDS: float = Field(
-        default=5.0,
-        gt=0,
-    )
-    URL_TRACE_TIMEOUT_SECONDS: float = Field(
-        default=3.0,
-        gt=0,
-    )
+    
     EXTERNAL_API_MAX_RETRIES: int = Field(
         default=1,
         ge=0,
         le=3,
     )
 
+    # LLM / Amazon Bedrock
+    LLM_PROVIDER: Literal["bedrock"] = "bedrock"
+    AWS_REGION: str = "us-east-1"
+    AWS_PROFILE: str | None = None
+
+    BEDROCK_MODEL_ID: str = (
+        "anthropic.claude-haiku-4-5-20251001-v1:0"
+    )
+
+    LLM_TIMEOUT_SECONDS: float = Field(
+        default=15.0,
+        gt=0,
+        le=120,
+    )
+
+    LLM_MAX_RETRIES: int = Field(
+        default=2,
+        ge=0,
+        le=5,
+    )
+
+    LLM_MAX_OUTPUT_TOKENS: int = Field(
+        default=1_024,
+        ge=128,
+        le=8_192,
+    )
+
+    LLM_TEMPERATURE: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=1.0,
+    )
+
+    # Stacking 모델 임계값
+    STACKING_NORMAL_PROBABILITY_MAX: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=1.0,
+    )
+
+    STACKING_PHISHING_PROBABILITY_MIN: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+    )
+
+    # 모델 파일 경로
+    NAIVE_BAYES_MODEL_PATH: Path = Path(
+        "data_science/SMSModel/artifacts/phishing_model_artifact.pkl"
+    )
+
+    NAIVE_BAYES_VECTORIZER_PATH: Path = Path(
+        "data_science/SMSModel/artifacts/phishing_vectorizer.pkl"
+    )
+
+    # RabbitMQ 토폴로지
     RABBITMQ_URL: str = "amqp://safefam:safefam-local@localhost:5672/"
     RABBITMQ_ANALYSIS_EXCHANGE: str = "safefam.analysis"
     RABBITMQ_ANALYSIS_REQUEST_QUEUE: str = "safefam.analysis.requested.q"
     RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: str = "analysis.requested.v1"
-    RABBITMQ_PREFETCH_COUNT: int = Field(default=1, ge=1)
-    RABBITMQ_CONSUMER_ENABLED: bool = True
-
+    RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY: str = "analysis.requested.v1"
     RABBITMQ_ANALYSIS_COMPLETED_ROUTING_KEY: str = "analysis.completed.v1"
     RABBITMQ_ANALYSIS_PARTIAL_ROUTING_KEY: str = "analysis.partial.v1"
-    RABBITMQ_ANALYSIS_FAILED_ROUTING_KEY: str = "analysis.failed.v1"
-
     RABBITMQ_ANALYSIS_DLQ: str = "safefam.analysis.requested.dlq"
     RABBITMQ_ANALYSIS_DLQ_ROUTING_KEY: str = "analysis.requested.dead.v1"
+
+    # ReabbitMQ 실행 설정
+    RABBITMQ_CONSUMER_ENABLED: bool = True
+    RABBITMQ_PREFETCH_COUNT: int = Field(default=1, ge=1)
 
     RABBITMQ_PUBLISH_TIMEOUT_SECONDS: float = Field(
         default=5.0,
@@ -87,6 +107,7 @@ class Settings(BaseSettings):
         ge=0,
     )
 
+    # Validator
     @model_validator(mode="after")
     def validate_production_settings(self):
         if (
@@ -101,10 +122,23 @@ class Settings(BaseSettings):
         if self.ENV != "prod":
             return self
 
+        if not self.AWS_REGION.strip():
+            raise ValueError(
+                "AWS_REGION must not be blank"
+            )
+
+        if not self.BEDROCK_MODEL_ID.strip():
+            raise ValueError(
+                "BEDROCK_MODEL_ID must not be blank"
+            )
+
         required_values = {
-            "GEMINI_API_KEY": self.GEMINI_API_KEY,
+            "AWS_REGION": self.AWS_REGION,
+            "BEDROCK_MODEL_ID": self.BEDROCK_MODEL_ID,
             "VIRUSTOTAL_API_KEY": self.VIRUSTOTAL_API_KEY,
-            "GOOGLE_SAFE_BROWSING_API_KEY": (self.GOOGLE_SAFE_BROWSING_API_KEY),
+            "GOOGLE_SAFE_BROWSING_API_KEY": (
+                self.GOOGLE_SAFE_BROWSING_API_KEY
+            ),
             "RABBITMQ_URL": self.RABBITMQ_URL,
         }
         missing = [
