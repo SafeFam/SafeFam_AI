@@ -23,6 +23,18 @@ class Settings(BaseSettings):
         ge=0,
         le=3,
     )
+    GSB_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        gt=0,
+    )
+    VIRUSTOTAL_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        gt=0,
+    )
+    URL_TRACE_TIMEOUT_SECONDS: float = Field(
+        default=3.0,
+        gt=0,
+    )
 
     # LLM / Amazon Bedrock
     LLM_PROVIDER: Literal["bedrock"] = "bedrock"
