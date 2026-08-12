@@ -17,12 +17,15 @@ from .models import (
     OperationalOutcome,
     TokenUsage,
 )
+from .runner import EvaluationSample, HybridEvaluationRunner
 
 __all__ = [
     "ClassificationMetrics",
     "CostMetrics",
     "EvaluationMode",
     "EvaluationRecord",
+    "EvaluationSample",
+    "HybridEvaluationRunner",
     "LatencyMetrics",
     "OperationalMetrics",
     "OperationalOutcome",
