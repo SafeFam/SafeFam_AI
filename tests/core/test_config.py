@@ -10,7 +10,6 @@ from app.main import validate_model_files
 def _production_values() -> dict[str, object]:
     return {
         "ENV": "prod",
-        "GEMINI_API_KEY": "test-gemini-key",
         "VIRUSTOTAL_API_KEY": "test-virustotal-key",
         "GOOGLE_SAFE_BROWSING_API_KEY": "test-gsb-key",
         "RABBITMQ_URL": "amqp://user:password@rabbitmq:5672/",
