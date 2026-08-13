@@ -114,6 +114,189 @@ async def test_raw_score_is_zero_when_no_engines_reported():
 
 
 @pytest.mark.asyncio
+async def test_missing_api_key_returns_unavailable_without_calling_api():
+    engine = VirusTotalClient()
+    engine.api_key = None
+
+    with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as get:
+        result = await engine.scan_url("https://example.com")
+
+    get.assert_not_called()
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "MISSING_API_KEY"
+
+
+@pytest.mark.asyncio
+async def test_rate_limited_429_on_report_returns_unavailable_rate_limited():
+    """VT는 raise_for_status() 전에 429를 직접 검사하는 별도 분기가 있어
+    HTTPStatusError 경로와는 별개로 검증이 필요하다."""
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=httpx.Response(
+            429,
+            request=httpx.Request(
+                "GET", "https://www.virustotal.com/api/v3/urls/dummy"
+            ),
+        ),
+    ):
+        result = await engine.scan_url("https://example.com")
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "RATE_LIMITED"
+    assert result["is_malicious"] is False
+
+
+@pytest.mark.asyncio
+async def test_server_error_returns_unavailable_with_http_status_code():
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        return_value=httpx.Response(
+            503,
+            request=httpx.Request(
+                "GET", "https://www.virustotal.com/api/v3/urls/dummy"
+            ),
+        ),
+    ):
+        result = await engine.scan_url("https://example.com")
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "HTTP_503"
+
+
+@pytest.mark.asyncio
+async def test_timeout_returns_unavailable_timeout():
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        side_effect=httpx.TimeoutException("timed out"),
+    ):
+        result = await engine.scan_url("https://example.com")
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "TIMEOUT"
+
+
+@pytest.mark.asyncio
+async def test_network_error_returns_unavailable_network_error():
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        side_effect=httpx.ConnectError("connection refused"),
+    ):
+        result = await engine.scan_url("https://example.com")
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "NETWORK_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_unexpected_exception_does_not_propagate():
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    with patch.object(
+        httpx.AsyncClient,
+        "get",
+        new_callable=AsyncMock,
+        side_effect=RuntimeError("boom"),
+    ):
+        result = await engine.scan_url("https://example.com")
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "UNEXPECTED_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_no_existing_report_requests_new_scan_and_returns_scanning_status():
+    """기존 보고서가 없으면(404) 신규 스캔을 요청하고 'scanning' 상태를 반환해야 한다."""
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    get_response = httpx.Response(
+        404,
+        request=httpx.Request("GET", "https://www.virustotal.com/api/v3/urls/dummy"),
+    )
+    post_response = httpx.Response(
+        200,
+        json={"data": {"id": "scan-id"}},
+        request=httpx.Request("POST", "https://www.virustotal.com/api/v3/urls"),
+    )
+
+    with (
+        patch.object(
+            httpx.AsyncClient,
+            "get",
+            new_callable=AsyncMock,
+            return_value=get_response,
+        ),
+        patch.object(
+            httpx.AsyncClient,
+            "post",
+            new_callable=AsyncMock,
+            return_value=post_response,
+        ) as post,
+    ):
+        result = await engine.scan_url("https://never-scanned-before.example")
+
+    post.assert_called_once()
+    assert result["status"] == "scanning"
+    assert result["is_malicious"] is False
+    assert result["error_code"] is None
+
+
+@pytest.mark.asyncio
+async def test_new_scan_request_rate_limited_returns_unavailable():
+    engine = VirusTotalClient()
+    engine.api_key = "dummy-key"
+
+    get_response = httpx.Response(
+        404,
+        request=httpx.Request("GET", "https://www.virustotal.com/api/v3/urls/dummy"),
+    )
+    post_response = httpx.Response(
+        429,
+        request=httpx.Request("POST", "https://www.virustotal.com/api/v3/urls"),
+    )
+
+    with (
+        patch.object(
+            httpx.AsyncClient,
+            "get",
+            new_callable=AsyncMock,
+            return_value=get_response,
+        ),
+        patch.object(
+            httpx.AsyncClient,
+            "post",
+            new_callable=AsyncMock,
+            return_value=post_response,
+        ),
+    ):
+        result = await engine.scan_url("https://never-scanned-before.example")
+
+    assert result["status"] == "unavailable"
+    assert result["error_code"] == "RATE_LIMITED"
+
+
+@pytest.mark.asyncio
 async def test_is_malicious_threshold_is_unaffected_by_ratio_change():
     """is_malicious 판정(엔진 3개 이상 등)은 비율과 무관하게 기존 절대 개수 기준을 그대로 유지해야 한다."""
     engine = VirusTotalClient()
