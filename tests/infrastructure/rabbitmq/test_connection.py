@@ -204,6 +204,7 @@ def test_on_reconnected_logs_warning(caplog: pytest.LogCaptureFixture):
         rabbitmq._on_reconnected(MagicMock())
 
     assert "reconnect" in caplog.text.lower()
+    assert any(record.levelno == logging.WARNING for record in caplog.records)
 
 
 def test_on_connection_closed_logs_warning_when_exception_present(
@@ -217,6 +218,7 @@ def test_on_connection_closed_logs_warning_when_exception_present(
 
     assert "unexpectedly" in caplog.text
     assert "ConnectionResetError" in caplog.text
+    assert any(record.levelno == logging.WARNING for record in caplog.records)
 
 
 def test_on_connection_closed_logs_info_when_no_exception(
