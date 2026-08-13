@@ -216,7 +216,7 @@ def test_run_report_uses_portable_paths_and_records_environment() -> None:
     )
 
     assert report["dataset"]["source_path"] == (
-        "Data/SMSData/phishing_total_dataset_2705.csv"
+        "Data/SMSData/phishing_total_dataset_reclassified.csv"
     )
     assert report["split_manifest"]["path"] == (
         "splits/sms_split_v1.csv"
