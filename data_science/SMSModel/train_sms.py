@@ -42,7 +42,7 @@ warnings.filterwarnings("ignore")
 
 SMS_MODEL_DIR = Path(__file__).resolve().parent
 DATA_PATH = (
-    SMS_MODEL_DIR.parent / "Data" / "SMSData" / "phishing_total_dataset_2705.csv"
+    SMS_MODEL_DIR.parent / "Data" / "SMSData" / "phishing_total_dataset_reclassified.csv"
 )
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
