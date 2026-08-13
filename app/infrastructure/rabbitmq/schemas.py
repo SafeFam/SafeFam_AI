@@ -159,6 +159,18 @@ class UrlAnalysisDetail(BaseModel):
     errorCode: str | None = None
 
 
+class InstitutionMatchDetail(BaseModel):
+    """기관명-공식 도메인 대조 결과 스키마 (issue #57)"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    checked: bool
+    mismatch: bool
+    institution: str | None = None
+    officialDomains: list[str] = Field(default_factory=list)
+    textDomain: str | None = None
+
+
 class RuleAnalysisDetail(BaseModel):
     """기반 룰 기반 탐지 트랙의 세부 진단 결과 스키마"""
 
@@ -167,6 +179,7 @@ class RuleAnalysisDetail(BaseModel):
     score: int = Field(ge=0, le=100)
     matchedRules: list[str] = Field(default_factory=list)
     maliciousDomainPattern: bool = False
+    institutionMatch: InstitutionMatchDetail | None = None
 
 
 class AnalysisResultPayload(BaseModel):
