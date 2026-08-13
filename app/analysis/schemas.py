@@ -42,6 +42,25 @@ class RiskGrade(str, Enum):
     LOW = "LOW"
 
 
+class EvidenceCategory(str, Enum):
+    """증거 카드(issue #64) 분류. 사용자에게는 title/description만 노출되며,
+    내부 모델/엔진 이름은 절대 이 값이나 설명 문구에 담기지 않는다."""
+
+    INSTITUTION_IMPERSONATION = "INSTITUTION_IMPERSONATION"
+    PERSONAL_INFO_REQUEST = "PERSONAL_INFO_REQUEST"
+    DANGEROUS_URL = "DANGEROUS_URL"
+    URGENCY_PRESSURE = "URGENCY_PRESSURE"
+    AI_JUDGMENT = "AI_JUDGMENT"
+
+
+class EvidenceItem(BaseModel):
+    """탐지된 위험 신호 하나를 사용자 언어로 요약한 증거 카드 한 장"""
+
+    category: EvidenceCategory
+    title: str = Field(..., description="카드 제목 (예: '기관 사칭')")
+    description: str = Field(..., description="사용자가 이해할 수 있는 근거 설명")
+
+
 class ContributionBreakdown(BaseModel):
     # URL이 있으면 LLM 50% / 규칙 20%, URL이 없으면 하이브리드 URL 트랙(30%)이 LLM/규칙으로
     # 재배분되어 LLM 65% / 규칙 35%가 되므로 상한이 두 시나리오 중 더 큰 쪽 기준으로 설정됨
@@ -63,6 +82,11 @@ class SmishingAnalysisResponse(BaseModel):
     )
     contribution_breakdown: ContributionBreakdown = Field(
         ..., description="3개 레이어별 점수 기여도 명세"
+    )
+
+    evidence: list[EvidenceItem] = Field(
+        default_factory=list,
+        description="탐지된 위험 신호를 사용자 언어로 요약한 증거 카드 목록",
     )
 
     # 세부 분석 트랙 데이터

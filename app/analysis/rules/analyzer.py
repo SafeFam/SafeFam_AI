@@ -133,11 +133,13 @@ def analyze_text_with_rules(text: str, traced_url: str | None = None) -> dict:
         matched_rules.append(f"로컬 가드 도메인 룰 매치 ({traced_url})")
         score += MALICIOUS_DOMAIN_RULE_SCORE
 
-    if _RE_ACCOUNT_NUMBER.search(text) or "[ACCOUNT]" in text:
+    has_account_number = bool(_RE_ACCOUNT_NUMBER.search(text) or "[ACCOUNT]" in text)
+    if has_account_number:
         matched_rules.append("계좌번호로 추정되는 숫자 패턴 발견")
         score += ACCOUNT_NUMBER_SCORE
 
-    if _RE_CARD_NUMBER.search(text) or "[CARD]" in text:
+    has_card_number = bool(_RE_CARD_NUMBER.search(text) or "[CARD]" in text)
+    if has_card_number:
         matched_rules.append("카드번호로 추정되는 숫자 패턴 발견")
         score += CARD_NUMBER_SCORE
 
@@ -180,4 +182,7 @@ def analyze_text_with_rules(text: str, traced_url: str | None = None) -> dict:
         "has_malicious_domain_pattern": has_malicious_domain,
         # 기관명-공식 도메인 대조 결과 (Spring 등 소비자가 판정 근거를 그대로 노출할 수 있도록 구조화)
         "institution_match": institution_match,
+        # 증거 카드(issue #64) 등 소비자가 문자열 파싱 없이 바로 쓸 수 있도록 구조화한 신호
+        "has_account_or_card_pattern": has_account_number or has_card_number,
+        "urgency_categories": urgency_categories,
     }
