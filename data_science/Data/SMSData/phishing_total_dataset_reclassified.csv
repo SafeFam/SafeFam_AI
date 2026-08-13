@@ -2960,3 +2960,18 @@ OO증권입니다. 우수 고객 무료 추천 종목 서비스 당첨되셨습�
 "[CGV] 무비콜렉트 포인트 1,800점이 이달 말 만료됩니다. CGV 앱에서 예매 시 사용해 주세요.",normal,정상포인트소멸알림,False,synthetic_fp_stress
 "[Web발신][삼성카드] 적립 포인트 27,000점 중 일부가 이번 달 말 소멸 예정입니다. 삼성카드 앱에서 확인해 주세요.",normal,정상포인트소멸알림,False,synthetic_fp_stress
 "[에버랜드] 멤버십 포인트 2,400점이 이달 말 소멸 예정입니다. 에버랜드 앱에서 확인 후 사용해 주세요.",normal,정상포인트소멸알림,False,synthetic_fp_stress
+오늘 저녁에 치킨 콜?,normal,일상대화,False,original
+야 오늘 술 한잔 콜?,normal,일상대화,False,original
+주말에 영화 보러 갈래?,normal,일상대화,False,original
+너 오늘 뭐해? 시간 되면 밥이나 먹자,normal,일상대화,False,original
+이따 카페에서 볼까?,normal,일상대화,False,original
+오랜만이다ㅋㅋ 잘 지내?,normal,일상대화,False,original
+오늘 저녁 뭐 먹을까 고민중,normal,일상대화,False,original
+우리 이번 주말에 등산 갈까?,normal,일상대화,False,original
+야 오늘 게임 한판 하자,normal,일상대화,False,original
+요즘 바빠서 연락 못했다 미안,normal,일상대화,False,original
+다음 주에 시간 되면 얼굴 한번 보자,normal,일상대화,False,original
+오늘 회식인데 너도 올래?,normal,일상대화,False,original
+축하해! 오늘 저녁 한턱 쏴라ㅋㅋ,normal,일상대화,False,original
+심심한데 통화 가능?,normal,일상대화,False,original
+오늘 날씨 진짜 좋다 산책이나 할까,normal,일상대화,False,original

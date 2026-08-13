@@ -64,6 +64,10 @@ RANDOM_STATE = 42
 VAL_SIZE = 0.15  # 튜닝(alpha/threshold) 전용
 TEST_SIZE = 0.15  # 최종 평가 전용 — 튜닝에 절대 사용하지 않음
 TARGET_PHISHING_RECALL = 0.96
+# validation phishing 표본이 수십 건 수준이라 recall(phishing) 1건 차이가 약 1.5%p를
+# 움직인다. target 미달로 fallback(§train_and_tune)이 작동할 때, 이 정도 차이는
+# noise로 보고 recall(normal)이 뚜렷이 나은 후보를 대신 선택할 수 있도록 허용폭을 둔다.
+FALLBACK_RECALL_TOLERANCE = 0.02
 
 # risk_level 구간 — 종합 점수(베이즈 + VirusTotal)에도 동일하게 적용
 RISK_HIGH_THRESHOLD = 70  # HIGH   : 70점 이상
@@ -71,7 +75,12 @@ RISK_MEDIUM_THRESHOLD = 40  # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
 # LOW    : 40점 미만
 
 # 격자 탐색 범위
-ALPHA_GRID = [0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0]
+# alpha 하한을 1.5로 둔다: 현재 학습 풀 규모(800~900건대)에서는 alpha<1.5 구간이
+# validation 점수만 보면 더 높게 나오지만, 실제로는 희귀 n-gram에 과적합돼 일상 대화체
+# 문장을 피싱으로 오탐하는 등 검증 세트 밖에서 불안정하다는 것을 회귀 테스트로 반복
+# 확인했다(#65). alpha=1.5는 이 불안정 구간을 벗어나는 가장 작은(=가장 덜 과도하게
+# 스무딩된) 값이라 그 안에서는 여전히 recall(normal)을 최대화한다.
+ALPHA_GRID = [1.5, 2.0, 3.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -402,16 +411,32 @@ def train_and_tune(
                 best["model"] is not None
                 and best["recall_phishing"] >= TARGET_PHISHING_RECALL
             )
+            # rec_n이 동률(">="）인 경우에도 교체를 허용해, alpha를 오름차순으로 도는 루프
+            # 특성상 더 큰(=더 강하게 스무딩된) alpha가 최종 선택되도록 한다. 작은 데이터셋에서
+            # alpha가 극단적으로 작으면(예: 0.01) validation 점수는 동일해도 실제로는 희귀
+            # n-gram에 과적합돼 일반 대화를 피싱으로 오탐하는 등 검증 세트 밖에서 불안정한
+            # 결과를 낸다는 것을 회귀 테스트(test_naive_bayes_analyzer.py)로 확인했다.
             should_replace = (
                 best["model"] is None
                 or (
                     candidate_meets_target
-                    and (not best_meets_target or rec_n > best["recall_normal"])
+                    and (not best_meets_target or rec_n >= best["recall_normal"])
                 )
                 or (
                     not candidate_meets_target
                     and not best_meets_target
-                    and rec_p > best["recall_phishing"]
+                    and (
+                        rec_p > best["recall_phishing"] + FALLBACK_RECALL_TOLERANCE
+                        # recall(phishing)이 (근사)동률이면 threshold를 낮춰 무작정 더
+                        # 많이 잡으려 하기보다 recall(normal)이 더 나은(=오탐이 적은)
+                        # 쪽을 선택한다 - target 미달 시 fallback이 낮은 threshold만
+                        # 고수해 일상 대화까지 의심 문자로 분류하던 문제를 방지한다.
+                        or (
+                            abs(rec_p - best["recall_phishing"])
+                            <= FALLBACK_RECALL_TOLERANCE
+                            and rec_n > best["recall_normal"]
+                        )
+                    )
                 )
             )
 
