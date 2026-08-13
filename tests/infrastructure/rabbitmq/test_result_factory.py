@@ -97,6 +97,13 @@ def _result(
                 "rule_score": 75,
                 "matched_rules": ["financial impersonation"],
                 "has_malicious_domain_pattern": True,
+                "institution_match": {
+                    "checked": True,
+                    "mismatch": True,
+                    "institution": "국민은행",
+                    "official_domains": ["kbstar.com"],
+                    "text_domain": "kb-bank-security.xyz",
+                },
             }
             if status == "SUCCESS"
             else None
@@ -157,6 +164,45 @@ def test_factory_maps_successful_execution(
         "UNCERTAIN_SELF_MODEL_PREDICTION"
     )
     assert event.payload.textAnalysis.fallbackApplied is False
+    assert event.payload.ruleAnalysis is not None
+    assert event.payload.ruleAnalysis.institutionMatch is not None
+    assert event.payload.ruleAnalysis.institutionMatch.checked is True
+    assert event.payload.ruleAnalysis.institutionMatch.mismatch is True
+    assert event.payload.ruleAnalysis.institutionMatch.institution == "국민은행"
+    assert event.payload.ruleAnalysis.institutionMatch.officialDomains == [
+        "kbstar.com"
+    ]
+    assert (
+        event.payload.ruleAnalysis.institutionMatch.textDomain
+        == "kb-bank-security.xyz"
+    )
+
+
+def test_factory_maps_institution_match_not_checked() -> None:
+    """기관명이 언급되지 않아 대조 자체를 안 한 경우(checked=False)도 그대로 반영한다."""
+    request = _request()
+    result = _result()
+    result.rule_analysis["institution_match"] = {
+        "checked": False,
+        "mismatch": False,
+        "institution": None,
+        "official_domains": [],
+        "text_domain": None,
+    }
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    assert event.payload.ruleAnalysis is not None
+    assert event.payload.ruleAnalysis.institutionMatch is not None
+    assert event.payload.ruleAnalysis.institutionMatch.checked is False
+    assert event.payload.ruleAnalysis.institutionMatch.institution is None
 
 
 def test_factory_maps_failed_execution_without_message_content() -> None:
