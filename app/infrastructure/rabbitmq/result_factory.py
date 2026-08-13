@@ -11,6 +11,7 @@ from app.infrastructure.rabbitmq.schemas import (
     AnalysisRequestedEvent,
     AnalysisResultEvent,
     AnalysisResultPayload,
+    InstitutionMatchDetail,
     RawScores,
     RuleAnalysisDetail,
     TextAnalysisDetail,
@@ -213,6 +214,26 @@ def _rule_detail(rules: dict) -> RuleAnalysisDetail:
                 False,
             )
         ),
+        institutionMatch=_institution_match_detail(
+            rules.get("institution_match")
+        ),
+    )
+
+
+def _institution_match_detail(
+    institution_match: dict | None,
+) -> InstitutionMatchDetail | None:
+    if not institution_match:
+        return None
+
+    return InstitutionMatchDetail(
+        checked=bool(institution_match.get("checked", False)),
+        mismatch=bool(institution_match.get("mismatch", False)),
+        institution=institution_match.get("institution"),
+        officialDomains=list(
+            institution_match.get("official_domains") or []
+        ),
+        textDomain=institution_match.get("text_domain"),
     )
 
 
