@@ -42,6 +42,8 @@ class RabbitMQConnection:
         logger.info("Connecting to RabbitMQ.")
 
         self.connection = await aio_pika.connect_robust(self.settings.RABBITMQ_URL)
+        self.connection.reconnect_callbacks.add(self._on_reconnected)
+        self.connection.close_callbacks.add(self._on_connection_closed)
 
         self.channel = await self.connection.channel(
             publisher_confirms=True,
@@ -85,6 +87,30 @@ class RabbitMQConnection:
             self.settings.RABBITMQ_ANALYSIS_REQUEST_QUEUE,
             self.settings.RABBITMQ_ANALYSIS_REQUEST_ROUTING_KEY,
             self.settings.RABBITMQ_PREFETCH_COUNT,
+        )
+
+    def _on_reconnected(self, connection: AbstractRobustConnection) -> None:
+        """aio_pika가 끊긴 연결을 자동으로 복구했을 때 호출된다.
+
+        토폴로지(Exchange/Queue)는 aio_pika가 알아서 재선언하므로 별도 조치는
+        필요 없지만, 운영 중 재연결이 실제로 발생했는지 추적할 수 있도록 로그를
+        남긴다 (이전엔 재연결 자체가 조용히 일어나 장애 진단이 어려웠음).
+        """
+        logger.warning("RabbitMQ connection was lost and has been reconnected.")
+
+    def _on_connection_closed(
+        self,
+        connection: AbstractRobustConnection | None,
+        exc: BaseException | None,
+    ) -> None:
+        """연결이 닫힐 때마다 호출된다 (정상 종료와 예기치 못한 단절을 구분해 기록)."""
+        if exc is None:
+            logger.info("RabbitMQ connection closed.")
+            return
+
+        logger.warning(
+            "RabbitMQ connection closed unexpectedly. error_type=%s",
+            type(exc).__name__,
         )
 
     def get_request_queue(self) -> AbstractRobustQueue:

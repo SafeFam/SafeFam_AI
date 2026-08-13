@@ -1,9 +1,11 @@
+import logging
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aio_pika import ExchangeType
 
+from app.infrastructure.rabbitmq import connection as connection_module
 from app.infrastructure.rabbitmq.connection import (
     RabbitMQConnection,
     RabbitMQNotConnectedError,
@@ -33,6 +35,8 @@ async def test_connect_initializes_request_topology(
     """연결과 토폴로지 선언 테스트."""
     fake_connection = AsyncMock()
     fake_connection.is_closed = False
+    fake_connection.reconnect_callbacks = MagicMock()
+    fake_connection.close_callbacks = MagicMock()
 
     fake_channel = AsyncMock()
     fake_exchange = AsyncMock()
@@ -91,6 +95,13 @@ async def test_connect_initializes_request_topology(
     assert rabbitmq.dead_letter_queue is fake_dead_letter_queue
     assert rabbitmq.get_exchange() is fake_exchange
 
+    fake_connection.reconnect_callbacks.add.assert_called_once_with(
+        rabbitmq._on_reconnected
+    )
+    fake_connection.close_callbacks.add.assert_called_once_with(
+        rabbitmq._on_connection_closed
+    )
+
 
 @pytest.mark.asyncio
 @patch(
@@ -103,6 +114,8 @@ async def test_connect_does_not_open_duplicate_connection(
     """중복 연결 방지 테스트"""
     fake_connection = AsyncMock()
     fake_connection.is_closed = False
+    fake_connection.reconnect_callbacks = MagicMock()
+    fake_connection.close_callbacks = MagicMock()
 
     fake_channel = AsyncMock()
     fake_exchange = AsyncMock()
@@ -181,3 +194,39 @@ async def test_close_does_not_close_already_closed_connection():
 
     fake_connection.close.assert_not_awaited()
     assert rabbitmq.connection is None
+
+
+def test_on_reconnected_logs_warning(caplog: pytest.LogCaptureFixture):
+    """재연결이 실제로 발생하면 운영 중 감지할 수 있도록 경고 로그를 남겨야 한다."""
+    rabbitmq = RabbitMQConnection(create_fake_settings())
+
+    with caplog.at_level(logging.WARNING, logger=connection_module.__name__):
+        rabbitmq._on_reconnected(MagicMock())
+
+    assert "reconnect" in caplog.text.lower()
+
+
+def test_on_connection_closed_logs_warning_when_exception_present(
+    caplog: pytest.LogCaptureFixture,
+):
+    """예기치 못한 단절(예외 동반)은 경고 수준으로 기록해야 한다."""
+    rabbitmq = RabbitMQConnection(create_fake_settings())
+
+    with caplog.at_level(logging.WARNING, logger=connection_module.__name__):
+        rabbitmq._on_connection_closed(MagicMock(), ConnectionResetError("boom"))
+
+    assert "unexpectedly" in caplog.text
+    assert "ConnectionResetError" in caplog.text
+
+
+def test_on_connection_closed_logs_info_when_no_exception(
+    caplog: pytest.LogCaptureFixture,
+):
+    """의도된 정상 종료(close())는 경고가 아니라 정보 수준으로만 기록해야 한다."""
+    rabbitmq = RabbitMQConnection(create_fake_settings())
+
+    with caplog.at_level(logging.INFO, logger=connection_module.__name__):
+        rabbitmq._on_connection_closed(MagicMock(), None)
+
+    assert not any(record.levelno >= logging.WARNING for record in caplog.records)
+    assert "closed" in caplog.text.lower()
