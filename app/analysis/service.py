@@ -3,6 +3,7 @@ import asyncio
 import logging
 from collections.abc import Callable
 
+from app.analysis.evidence import build_evidence
 from app.analysis.hybrid_policy import (
     ConditionalLlmPolicy,
     HybridThresholds,
@@ -448,6 +449,11 @@ class SmishingAnalysisService:
                 final_score=final_score,
                 risk_grade=risk_grade,
                 contribution_breakdown=breakdown,
+                evidence=build_evidence(
+                    rule_analysis=rule_result,
+                    url_analysis=real_url_analysis,
+                    text_analysis=text_analysis,
+                ),
                 text_analysis=text_analysis,
                 url_analysis=real_url_analysis,
                 rule_analysis=rule_result,
