@@ -140,6 +140,12 @@ class HybridTextAnalyzer:
                     "llm_available": False,
                     "llm_provider": None,
                     "llm_model": None,
+                    "llm_usage": {
+                        "input_tokens": None,
+                        "output_tokens": None,
+                    },
+                    "llm_latency_ms": None,
+                    "llm_from_cache": False,
                     "decision_source": "STACKING",
                     "routing_decision": routing.decision.value,
                     "routing_reason": routing.reason,
@@ -181,6 +187,12 @@ class HybridTextAnalyzer:
             "llm_available": llm_available,
             "llm_provider": llm_analysis.get("provider"),
             "llm_model": llm_analysis.get("model_id"),
+            "llm_usage": llm_analysis.get("usage") or {
+                "input_tokens": None,
+                "output_tokens": None,
+            },
+            "llm_latency_ms": llm_analysis.get("latency_ms"),
+            "llm_from_cache": llm_analysis.get("is_cached") is True,
             "routing_decision": routing.decision.value,
             "routing_reason": routing.reason,
         }

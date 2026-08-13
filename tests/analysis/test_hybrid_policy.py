@@ -79,6 +79,29 @@ def test_skips_llm_for_confident_phishing(
     assert result.should_call_llm is False
 
 
+@pytest.mark.parametrize(
+    ("probability", "expected_decision", "should_call_llm"),
+    [
+        (0.2 - 1e-9, HybridRoutingDecision.SELF_MODEL_NORMAL, False),
+        (0.2, HybridRoutingDecision.SELF_MODEL_NORMAL, False),
+        (0.2 + 1e-9, HybridRoutingDecision.LLM_REVIEW, True),
+        (0.8 - 1e-9, HybridRoutingDecision.LLM_REVIEW, True),
+        (0.8, HybridRoutingDecision.SELF_MODEL_PHISHING, False),
+        (0.8 + 1e-9, HybridRoutingDecision.SELF_MODEL_PHISHING, False),
+    ],
+)
+def test_routes_values_immediately_below_at_and_above_boundaries(
+    policy: ConditionalLlmPolicy,
+    probability: float,
+    expected_decision: HybridRoutingDecision,
+    should_call_llm: bool,
+) -> None:
+    result = policy.route(build_stacking_result(probability))
+
+    assert result.decision == expected_decision
+    assert result.should_call_llm is should_call_llm
+
+
 def test_calls_llm_when_stacking_is_unavailable(
     policy: ConditionalLlmPolicy,
 ) -> None:

@@ -351,6 +351,35 @@ def test_inference_error_returns_fail_safe_result(
     }
 
 
+def test_feature_extraction_failure_makes_stacking_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    classifier = build_classifier()
+
+    def raise_feature_extraction_error(_text):
+        raise ValueError("feature extraction failed")
+
+    monkeypatch.setattr(
+        classifier,
+        "predict_one",
+        raise_feature_extraction_error,
+    )
+    monkeypatch.setattr(
+        analyzer.joblib,
+        "load",
+        lambda _model_path: {
+            "schema_version": 1,
+            "classifier": classifier,
+        },
+    )
+
+    result = analyzer.analyze_text_with_stacking("특징 추출 실패 입력")
+
+    assert result["is_available"] is False
+    assert result["result"]["risk_score"] is None
+    assert result["result"]["error_message"] == "Stacking Inference Error"
+
+
 def test_rejects_non_string_input() -> None:
 
     with pytest.raises(TypeError, match="text must be a string"):

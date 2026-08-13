@@ -29,3 +29,53 @@ python -m data_science.SMSModel.train_sms
 커밋된 split manifest는 최종 test set을 고정합니다. 일반적인 재학습에서는
 덮어쓰지 말고, 데이터셋·전처리·그룹화·분할 정책이 의도적으로 변경될 때만
 새 manifest 버전을 생성하세요.
+
+## Issue #37 PR 3: Bedrock Claude 하이브리드 평가 재현
+
+평가 임계값은 validation split에서만 선정하며, 최종 비교에는 고정된 test
+split만 사용합니다. 기본 실행은 저장된 Claude test 캐시만 읽으므로 AWS 호출과
+추가 비용이 발생하지 않습니다.
+
+```powershell
+& .\.venv\Scripts\python.exe -m `
+  data_science.SMSModel.run_hybrid_evaluation --offline
+
+& .\.venv\Scripts\python.exe -m `
+  data_science.SMSModel.generate_hybrid_evaluation_report `
+  --input-price-per-million 1.0 `
+  --output-price-per-million 5.0 `
+  --currency USD `
+  --pricing-as-of 2026-08-12
+```
+
+macOS/Linux에서는 다음과 같이 실행합니다.
+
+```bash
+./.venv/bin/python -m data_science.SMSModel.run_hybrid_evaluation --offline
+./.venv/bin/python -m data_science.SMSModel.generate_hybrid_evaluation_report \
+  --input-price-per-million 1.0 \
+  --output-price-per-million 5.0 \
+  --currency USD \
+  --pricing-as-of 2026-08-12
+```
+
+캐시에 누락되거나 실패한 test 예측만 AWS Bedrock Claude Haiku에서 다시
+수집하려면 profile을 지정하고 `--collect`를 사용합니다. 성공한 기존 예측은
+재호출하지 않습니다.
+
+```powershell
+$env:AWS_PROFILE = "safefam-dev"
+& .\.venv\Scripts\python.exe -m `
+  data_science.SMSModel.run_hybrid_evaluation --collect
+```
+
+```bash
+AWS_PROFILE=safefam-dev \
+  ./.venv/bin/python -m data_science.SMSModel.run_hybrid_evaluation --collect
+```
+
+최종 산출물은 `reports/hybrid_evaluation/`의 `evaluation_records.json`,
+`comparison_report.json`, `comparison_report.csv`, `comparison_report.md`입니다.
+평가 레코드와 보고서에는 문자 원문, 개인정보, API key 또는 AWS 자격 증명을
+저장하지 않습니다. 가격은 코드에 하드코딩하지 않으며 보고서 생성 인자로
+전달한 가정값입니다.

@@ -1,6 +1,18 @@
 {
   "created_at": "2026-08-11T00:13:11.792602+00:00",
   "dataset_path": "Data/SMSData/phishing_total_dataset_2705.csv",
+  "hybrid_policy": {
+    "f2": 0.9544159544159544,
+    "llm_call_count": 51,
+    "llm_call_rate": 0.4146341463414634,
+    "normal_probability_max": 0.08716666259958943,
+    "phishing_probability_min": 0.59,
+    "precision": 0.8072289156626506,
+    "recall": 1.0,
+    "target_recall": 0.95,
+    "target_recall_met": true,
+    "validation_count": 123
+  },
   "model": {
     "base_models": [
       "naive_bayes",
