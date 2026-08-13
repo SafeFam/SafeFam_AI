@@ -203,6 +203,9 @@ def test_factory_maps_institution_match_not_checked() -> None:
     assert event.payload.ruleAnalysis.institutionMatch is not None
     assert event.payload.ruleAnalysis.institutionMatch.checked is False
     assert event.payload.ruleAnalysis.institutionMatch.institution is None
+    assert event.payload.ruleAnalysis.institutionMatch.mismatch is False
+    assert event.payload.ruleAnalysis.institutionMatch.officialDomains == []
+    assert event.payload.ruleAnalysis.institutionMatch.textDomain is None
 
 
 def test_factory_maps_failed_execution_without_message_content() -> None:
