@@ -152,6 +152,128 @@ async def test_clean_url_is_not_gsb_confirmed():
 
 
 @pytest.mark.asyncio
+async def test_gsb_unavailable_falls_back_to_vt_result():
+    """GSB 장애 시 VT 결과만으로도 트랙이 계속 동작해야 한다(전체 중단 X)."""
+    engine = HybridUrlAnalyzer()
+    engine.gsb_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "unavailable",
+            "error_code": "TIMEOUT",
+        }
+    )
+    engine.vt_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": True,
+            "detected_count": 7,
+            "raw_score": 0.9,
+            "status": "completed",
+        }
+    )
+
+    result = await engine.scan_url("https://example.com")
+
+    assert result["available"] is True
+    assert result["is_malicious"] is True
+    assert result["failed_providers"] == ["GSB"]
+    assert result["provider_error_codes"] == {"GSB": "TIMEOUT"}
+    engine.vt_client.scan_url.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_vt_unavailable_after_clean_gsb_still_marks_track_available():
+    """GSB가 정상 응답(안전)했다면 VT가 죽어도 트랙 자체는 available로 유지돼야 한다."""
+    engine = HybridUrlAnalyzer()
+    engine.gsb_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "safe",
+        }
+    )
+    engine.vt_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "unavailable",
+            "error_code": "RATE_LIMITED",
+        }
+    )
+
+    result = await engine.scan_url("https://example.com")
+
+    assert result["available"] is True
+    assert result["is_malicious"] is False
+    assert result["failed_providers"] == ["VIRUSTOTAL"]
+    assert result["provider_error_codes"] == {"VIRUSTOTAL": "RATE_LIMITED"}
+
+
+@pytest.mark.asyncio
+async def test_both_providers_unavailable_marks_track_unavailable_not_malicious():
+    """
+    GSB, VT 둘 다 죽었을 때 URL 트랙 전체가 unavailable로 표시돼야 하며,
+    이때 is_malicious를 True로 fail-open 시키지 않는다(점수 재분배는 scoring 레이어 책임).
+    """
+    engine = HybridUrlAnalyzer()
+    engine.gsb_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "unavailable",
+            "error_code": "TIMEOUT",
+        }
+    )
+    engine.vt_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "unavailable",
+            "error_code": "NETWORK_ERROR",
+        }
+    )
+
+    result = await engine.scan_url("https://example.com")
+
+    assert result["available"] is False
+    assert result["is_malicious"] is False
+    assert set(result["failed_providers"]) == {"GSB", "VIRUSTOTAL"}
+    assert result["error_message"] is not None
+
+
+@pytest.mark.asyncio
+async def test_gsb_client_raising_exception_is_absorbed_as_unavailable():
+    """클라이언트가 unavailable dict가 아니라 예외 자체를 던져도 파이프라인이 죽지 않아야 한다."""
+    engine = HybridUrlAnalyzer()
+    engine.gsb_client.scan_url = AsyncMock(side_effect=RuntimeError("boom"))
+    engine.vt_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "safe",
+        }
+    )
+
+    result = await engine.scan_url("https://example.com")
+
+    assert result["failed_providers"] == ["GSB"]
+    assert result["provider_error_codes"]["GSB"] == "UNEXPECTED_ERROR"
+    assert result["available"] is True
+
+
+@pytest.mark.asyncio
+async def test_vt_client_raising_exception_is_absorbed_as_unavailable():
+    engine = HybridUrlAnalyzer()
+    engine.gsb_client.scan_url = AsyncMock(
+        return_value={
+            "is_malicious": False,
+            "status": "safe",
+        }
+    )
+    engine.vt_client.scan_url = AsyncMock(side_effect=RuntimeError("boom"))
+
+    result = await engine.scan_url("https://example.com")
+
+    assert result["failed_providers"] == ["VIRUSTOTAL"]
+    assert result["provider_error_codes"]["VIRUSTOTAL"] == "UNEXPECTED_ERROR"
+    assert result["available"] is True
+
+
+@pytest.mark.asyncio
 async def test_single_vt_detection_is_not_malicious():
     engine = HybridUrlAnalyzer()
     engine.gsb_client.scan_url = AsyncMock(
