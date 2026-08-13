@@ -183,6 +183,18 @@ def load_frozen_validation_policy() -> ConditionalLlmPolicy:
     if report.get("split_manifest") != SPLIT_MANIFEST_PATH.name:
         raise ValueError("hybrid policy split manifest mismatch")
 
+    model_metadata = metadata.get("model") or {}
+    provenance = {
+        "model_name": model_metadata.get("model_name"),
+        "model_sha256": metadata.get("model_sha256"),
+        "model_threshold": model_metadata.get("threshold"),
+    }
+    for field_name, expected_value in provenance.items():
+        if report.get(field_name) != expected_value:
+            raise ValueError(
+                f"hybrid policy {field_name} does not match stacking artifact"
+            )
+
     policy = metadata.get("hybrid_policy")
 
     if not isinstance(policy, dict):
@@ -283,9 +295,10 @@ async def collect_missing_predictions(
 
         cache.save()
 
-        available = cache.entries[
-            fingerprint
-        ]["available"]
+        cached_entry = cache.get_entry(fingerprint)
+        if cached_entry is None:
+            raise RuntimeError("collected prediction was not cached")
+        available = cached_entry["available"]
 
         print(
             f"[Claude test] collected {position}/{total} "
@@ -433,14 +446,14 @@ async def async_main(
 
     cache.load()
 
-    if collect:
+    if collect and not offline:
         await collect_missing_predictions(
             test,
             cache=cache,
             delay_seconds=delay_seconds,
         )
 
-    # --offline 또는 수집 완료 후 모두 캐시만 사용
+    # Offline mode and completed collection both evaluate cached predictions.
     records = await run_offline_evaluation(
         test,
         cache=cache,
@@ -501,7 +514,7 @@ def main() -> None:
 
     arguments = parser.parse_args()
 
-    # 아무 옵션도 없으면 안전한 offline 동작으로 처리
+    # No option defaults to the safe offline mode.
     offline = arguments.offline or not arguments.collect
 
     asyncio.run(

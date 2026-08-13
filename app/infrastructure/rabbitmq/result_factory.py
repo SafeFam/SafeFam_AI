@@ -175,6 +175,9 @@ def _text_detail(
         llmCalled=llm_called,
         llmProvider=text.get("llm_provider"),
         llmModel=text.get("llm_model"),
+        llmUsage=text.get("llm_usage") or {},
+        llmLatencyMs=text.get("llm_latency_ms"),
+        llmFromCache=text.get("llm_from_cache") is True,
 
         # Deprecated: temporary SafeFam_BE compatibility.
         geminiCalled=llm_called,

@@ -111,9 +111,13 @@ async def test_failure_logs_do_not_expose_message_or_credentials(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setattr("app.analysis.text.llm_analyzer.MOCK_ENABLED", False)
-    sensitive_message = "주민번호 900101-1234567 AWS_SECRET_ACCESS_KEY=secret"
+    secret_token = "review-secret-token-8c31f5"
+    sensitive_message = (
+        "주민번호 900101-1234567 "
+        f"AWS_SECRET_ACCESS_KEY={secret_token}"
+    )
 
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.DEBUG):
         await _analyzer(StubLlmClient(text="not-json")).analyze(
             sensitive_message
         )
@@ -121,4 +125,4 @@ async def test_failure_logs_do_not_expose_message_or_credentials(
     assert sensitive_message not in caplog.text
     assert "900101-1234567" not in caplog.text
     assert "AWS_SECRET_ACCESS_KEY" not in caplog.text
-    assert "secret" not in caplog.text
+    assert secret_token not in caplog.text

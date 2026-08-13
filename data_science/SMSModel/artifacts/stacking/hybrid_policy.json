@@ -1,6 +1,9 @@
 {
   "created_at": "2026-08-12T15:08:55.703054+00:00",
   "llm_phishing_score": 40,
+  "model_name": "stacking_phishing_classifier",
+  "model_sha256": "fa99576f1d655625410ddb3b6b36ab55faca5a780f296dae9041e37593c063fe",
+  "model_threshold": 0.08844759684377157,
   "schema_version": 1,
   "selection": {
     "f2": 0.9544159544159544,

@@ -186,7 +186,15 @@ class HybridEvaluationRunner:
         analysis = await self._hybrid_analyzer.analyze(text)
         result = analysis.get("result") or {}
         llm_result = analysis.get("llm") or {}
-        predicted_label = _label_from_llm_grade(result.get("grade"))
+        decision_source = analysis.get("decision_source")
+        if decision_source in {"STACKING", "STACKING_FALLBACK"}:
+            stacking_result = analysis.get("self_model") or {}
+            stacking_prediction = stacking_result.get("is_suspected_phishing")
+            predicted_label = (
+                "phishing" if stacking_prediction else "normal"
+            ) if isinstance(stacking_prediction, bool) else None
+        else:
+            predicted_label = _label_from_llm_grade(result.get("grade"))
         available = predicted_label is not None and not result.get("error_message")
         usage = analysis.get("llm_usage") or {}
         all_unavailable = (
@@ -200,7 +208,7 @@ class HybridEvaluationRunner:
             "llm_available": analysis.get("llm_available") is True,
             "fallback_applied": analysis.get("fallback_applied") is True,
             "all_engines_unavailable": all_unavailable,
-            "decision_source": analysis.get("decision_source", "UNAVAILABLE"),
+            "decision_source": decision_source or "UNAVAILABLE",
             "routing_decision": analysis.get("routing_decision"),
             "routing_reason": analysis.get("routing_reason"),
             "error_code": (

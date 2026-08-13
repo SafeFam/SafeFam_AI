@@ -19,5 +19,6 @@ scripts/adversarial_test/output/
 scripts/benchmark/output/
 
 # 재생성 가능한 LLM 평가 캐시와 중간 파일
+# A fresh clone must run --collect with AWS access before --offline can succeed.
 data_science/SMSModel/artifacts/stacking/llm_*_predictions.json
 data_science/SMSModel/artifacts/stacking/*.json.tmp

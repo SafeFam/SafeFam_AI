@@ -45,7 +45,18 @@ split만 사용합니다. 기본 실행은 저장된 Claude test 캐시만 읽�
   --input-price-per-million 1.0 `
   --output-price-per-million 5.0 `
   --currency USD `
-  --pricing-as-of 2026-08-13
+  --pricing-as-of 2026-08-12
+```
+
+macOS/Linux에서는 다음과 같이 실행합니다.
+
+```bash
+./.venv/bin/python -m data_science.SMSModel.run_hybrid_evaluation --offline
+./.venv/bin/python -m data_science.SMSModel.generate_hybrid_evaluation_report \
+  --input-price-per-million 1.0 \
+  --output-price-per-million 5.0 \
+  --currency USD \
+  --pricing-as-of 2026-08-12
 ```
 
 캐시에 누락되거나 실패한 test 예측만 AWS Bedrock Claude Haiku에서 다시
@@ -56,6 +67,11 @@ split만 사용합니다. 기본 실행은 저장된 Claude test 캐시만 읽�
 $env:AWS_PROFILE = "safefam-dev"
 & .\.venv\Scripts\python.exe -m `
   data_science.SMSModel.run_hybrid_evaluation --collect
+```
+
+```bash
+AWS_PROFILE=safefam-dev \
+  ./.venv/bin/python -m data_science.SMSModel.run_hybrid_evaluation --collect
 ```
 
 최종 산출물은 `reports/hybrid_evaluation/`의 `evaluation_records.json`,

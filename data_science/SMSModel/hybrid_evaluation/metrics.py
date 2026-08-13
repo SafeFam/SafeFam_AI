@@ -194,6 +194,9 @@ def calculate_operational_metrics(
             "from empty outcomes"
         )
 
+    if any(not isinstance(outcome, OperationalOutcome) for outcome in outcomes):
+        raise TypeError("outcomes must contain OperationalOutcome values")
+
     # LLM이 실제 호출된 메시지 수
     llm_call_count = sum(
         outcome.llm_called

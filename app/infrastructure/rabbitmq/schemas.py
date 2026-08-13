@@ -134,6 +134,9 @@ class TextAnalysisDetail(BaseModel):
     llmCalled: bool = False
     llmProvider: str | None = None
     llmModel: str | None = None
+    llmUsage: dict[str, int | None] = Field(default_factory=dict)
+    llmLatencyMs: float | None = Field(default=None, ge=0.0)
+    llmFromCache: bool = False
 
     # Deprecated: temporary SafeFam_BE compatibility.
     geminiCalled: bool = False

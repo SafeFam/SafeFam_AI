@@ -139,6 +139,10 @@ class ClaudeTestCache:
 
         return deepcopy(self._entries)
 
+    def get_entry(self, text_fingerprint: str) -> dict[str, Any] | None:
+        """Return one internal cache entry for read-only evaluation use."""
+        return self._entries.get(_validate_text_fingerprint(text_fingerprint))
+
     def load(self) -> None:
         """기존 캐시를 읽고 모든 재현성 조건을 검증"""
 
@@ -313,6 +317,7 @@ class ClaudeTestCache:
         if (
             isinstance(latency_ms, bool)
             or not isinstance(latency_ms, (int, float))
+            or not math.isfinite(float(latency_ms))
             or latency_ms < 0
         ):
             latency_ms = None

@@ -38,6 +38,18 @@ def build_comparison_report(
     grouped, sample_ids = _validate_and_group(records)
     currency = _non_empty_string(currency, "currency")
     pricing_as_of = _non_empty_string(pricing_as_of, "pricing_as_of")
+    generated_at = generated_at or datetime.now(timezone.utc).isoformat()
+    try:
+        pricing_date = datetime.fromisoformat(pricing_as_of).date()
+        generated_date = datetime.fromisoformat(
+            generated_at.replace("Z", "+00:00")
+        ).date()
+    except ValueError as exception:
+        raise ValueError(
+            "pricing_as_of and generated_at must be ISO dates"
+        ) from exception
+    if pricing_date > generated_date:
+        raise ValueError("pricing_as_of must not be later than generated_at")
     selection = _validate_policy(policy)
     metadata = _validate_source_metadata(source_metadata)
     stacking = _validate_stacking_metadata(stacking_metadata)
@@ -93,8 +105,7 @@ def build_comparison_report(
 
     return {
         "report_schema_version": REPORT_SCHEMA_VERSION,
-        "generated_at": generated_at
-        or datetime.now(timezone.utc).isoformat(),
+        "generated_at": generated_at,
         "source_split": "test",
         "sample_count": len(sample_ids),
         "dataset_fingerprint": metadata["dataset_fingerprint"],

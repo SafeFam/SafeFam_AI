@@ -72,7 +72,7 @@
 ## 비용 가정
 
 - 통화: `USD`
-- 가격 기준일: `2026-08-13`
+- 가격 기준일: `2026-08-12`
 - 입력 token 100만 개당 가격: `1.0`
 - 출력 token 100만 개당 가격: `5.0`
 
@@ -90,7 +90,7 @@
   --input-price-per-million 1.0 `
   --output-price-per-million 5.0 `
   --currency USD `
-  --pricing-as-of 2026-08-13
+  --pricing-as-of 2026-08-12
 ```
 
 캐시에 누락된 test 예측만 Bedrock에서 수집할 때는 AWS profile을 설정한 뒤 `--collect`를 사용합니다.
