@@ -11,6 +11,7 @@ from app.infrastructure.rabbitmq.schemas import (
     AnalysisRequestedEvent,
     AnalysisResultEvent,
     AnalysisResultPayload,
+    EvidenceCardDetail,
     InstitutionMatchDetail,
     RawScores,
     RuleAnalysisDetail,
@@ -108,9 +109,21 @@ def build_payload(
         ),
         urlAnalysis=(None if is_failed or not url else _url_detail(url)),
         ruleAnalysis=(None if is_failed or not rules else _rule_detail(rules)),
+        evidenceCards=_evidence_cards(result.evidence),
         failedTracks=list(failed_tracks),
         failureCode=("PIPELINE_FAILED" if is_failed else None),
     )
+
+
+def _evidence_cards(evidence) -> list[EvidenceCardDetail]:
+    return [
+        EvidenceCardDetail(
+            category=item.category.value,
+            title=item.title,
+            description=item.description,
+        )
+        for item in (evidence or [])
+    ]
 
 
 def _text_detail(
