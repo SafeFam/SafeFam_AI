@@ -10,6 +10,8 @@ from app.analysis.execution import (
 )
 from app.analysis.schemas import (
     ContributionBreakdown,
+    EvidenceCategory,
+    EvidenceItem,
     RiskGrade,
     SmishingAnalysisResponse,
 )
@@ -108,6 +110,17 @@ def _result(
             if status == "SUCCESS"
             else None
         ),
+        evidence=(
+            [
+                EvidenceItem(
+                    category=EvidenceCategory.INSTITUTION_IMPERSONATION,
+                    title="기관 사칭",
+                    description="국민은행을 언급했지만 공식 도메인이 아닙니다.",
+                )
+            ]
+            if status == "SUCCESS"
+            else []
+        ),
     )
 
 
@@ -176,6 +189,26 @@ def test_factory_maps_successful_execution(
         event.payload.ruleAnalysis.institutionMatch.textDomain
         == "kb-bank-security.xyz"
     )
+    assert len(event.payload.evidenceCards) == 1
+    assert event.payload.evidenceCards[0].category == "INSTITUTION_IMPERSONATION"
+    assert event.payload.evidenceCards[0].title == "기관 사칭"
+    assert event.payload.evidenceCards[0].description == (
+        "국민은행을 언급했지만 공식 도메인이 아닙니다."
+    )
+
+
+def test_factory_maps_empty_evidence_cards_on_failure() -> None:
+    request = _request()
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.FAILED,
+            result=_result(status="ERROR"),
+            failed_tracks=("PIPELINE",),
+        ),
+    )
+
+    assert event.payload.evidenceCards == []
 
 
 def test_factory_maps_institution_match_not_checked() -> None:

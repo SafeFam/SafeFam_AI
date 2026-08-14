@@ -182,6 +182,16 @@ class RuleAnalysisDetail(BaseModel):
     institutionMatch: InstitutionMatchDetail | None = None
 
 
+class EvidenceCardDetail(BaseModel):
+    """사용자 언어로 정리한 위험 근거 카드 (issue #64)"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str
+    title: str
+    description: str
+
+
 class AnalysisResultPayload(BaseModel):
     """분석 결과 이벤트에 포함되는 통합 분석 페이로드 스키마"""
 
@@ -197,6 +207,10 @@ class AnalysisResultPayload(BaseModel):
     textAnalysis: TextAnalysisDetail | None = None
     urlAnalysis: UrlAnalysisDetail | None = None
     ruleAnalysis: RuleAnalysisDetail | None = None
+
+    # 규칙/URL/텍스트(AI) 트랙을 모두 아우르는 결과라 특정 트랙 상세가 아닌 최상위에 둔다
+    # (institutionMatch와 달리 ruleAnalysis 하위가 아님 - Spring PR #102와 합의된 위치).
+    evidenceCards: list[EvidenceCardDetail] = Field(default_factory=list)
 
     failedTracks: list[str] = Field(default_factory=list)
     failureCode: str | None = None
