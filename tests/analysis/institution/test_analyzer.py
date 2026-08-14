@@ -23,6 +23,8 @@ def test_malformed_url_does_not_raise():
     assert result["checked"] is False
     assert result["mismatch"] is False
     assert result["institution"] == "국민은행"
+    assert result["official_domains"] == ["kbstar.com"]
+    assert result["text_domain"] is None
 
 
 def test_no_institution_mentioned_skips_check():
