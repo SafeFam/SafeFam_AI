@@ -1,20 +1,28 @@
 from app.analysis.institution.analyzer import analyze_institution_match
 
 
-def test_no_url_skips_check():
+def test_no_url_still_reports_detected_institution_but_not_checked():
+    """URL이 없어 도메인 대조는 못 해도(checked=False), 감지된 기관명은 채워서 반환해야
+    한다 - 발신번호-기관 연계(issue #67) 등 URL 유무와 무관하게 기관명이 필요한 소비자를
+    위함이다."""
     result = analyze_institution_match("[국민은행] 계좌 확인 안내입니다.", traced_url=None)
 
     assert result["checked"] is False
     assert result["mismatch"] is False
+    assert result["institution"] == "국민은행"
+    assert result["official_domains"] == ["kbstar.com"]
+    assert result["text_domain"] is None
 
 
 def test_malformed_url_does_not_raise():
     """urlparse가 ValueError를 던질 수 있는 잘못된 형식의 URL(닫히지 않은 IPv6 authority
-    등)도 예외 없이 안전하게 checked=False로 처리해야 한다."""
+    등)도 예외 없이 안전하게 checked=False로 처리해야 한다. 감지된 기관명 자체는 URL이
+    없을 때와 동일하게 채워서 반환한다."""
     result = analyze_institution_match("[국민은행] 계좌 확인 안내입니다.", traced_url="https://[::1")
 
     assert result["checked"] is False
     assert result["mismatch"] is False
+    assert result["institution"] == "국민은행"
 
 
 def test_no_institution_mentioned_skips_check():
