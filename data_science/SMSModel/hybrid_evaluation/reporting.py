@@ -11,12 +11,13 @@ from typing import Any
 from .metrics import (
     calculate_classification_metrics,
     calculate_cost_metrics,
+    calculate_full_dataset_metrics,
     calculate_latency_metrics,
     calculate_operational_metrics,
 )
 from .models import EvaluationMode, OperationalOutcome, TokenUsage
 
-REPORT_SCHEMA_VERSION = 2
+REPORT_SCHEMA_VERSION = 3
 _MODES = tuple(EvaluationMode)
 _BINARY_LABELS = {"normal", "phishing"}
 
@@ -67,6 +68,13 @@ def build_comparison_report(
     llm_report = mode_reports[EvaluationMode.LLM_ONLY.value]
     hybrid_report = mode_reports[EvaluationMode.HYBRID.value]
 
+    reference_records = grouped[EvaluationMode.SELF_MODEL_ONLY]
+    normal_count = sum(
+        record["expected_label"] == "normal"
+        for record in reference_records
+    )
+    phishing_count = len(reference_records) - normal_count
+
     comparisons = {
         "llm_call_reduction_rate": _reduction_rate(
             llm_report["operations"]["llm_call_rate"],
@@ -85,14 +93,24 @@ def build_comparison_report(
             hybrid_report["latency_ms"]["p95_ms"],
         ),
         "hybrid_recall_delta_vs_self_model": _metric_delta(
-            hybrid_report["classification"],
-            self_report["classification"],
+            hybrid_report["classification"]["available_only"],
+            self_report["classification"]["available_only"],
             "recall",
         ),
         "hybrid_f2_delta_vs_self_model": _metric_delta(
-            hybrid_report["classification"],
-            self_report["classification"],
+            hybrid_report["classification"]["available_only"],
+            self_report["classification"]["available_only"],
             "f2",
+        ),
+        "hybrid_full_accuracy_delta_vs_self_model": _metric_delta(
+            hybrid_report["classification"]["full_dataset"],
+            self_report["classification"]["full_dataset"],
+            "accuracy",
+        ),
+        "hybrid_detection_rate_delta_vs_self_model": _metric_delta(
+            hybrid_report["classification"]["full_dataset"],
+            self_report["classification"]["full_dataset"],
+            "phishing_detection_rate",
         ),
     }
 
@@ -110,6 +128,12 @@ def build_comparison_report(
         "sample_count": len(sample_ids),
         "dataset_fingerprint": metadata["dataset_fingerprint"],
         "evaluation_schema_version": metadata["evaluation_schema_version"],
+        "dataset": {
+            "total_count": len(sample_ids),
+            "normal_count": normal_count,
+            "phishing_count": phishing_count,
+            "positive_label": "phishing",
+        },
         "stacking_artifact": stacking,
         "model": {
             "provider": "AWS_BEDROCK",
@@ -146,9 +170,19 @@ def build_comparison_report(
         },
         "classification_policy": {
             "positive_label": "phishing",
+            "available_only_metrics": (
+                "Binary classification metrics use only records with an "
+                "available normal or phishing prediction."
+            ),
+            "full_dataset_metrics": (
+                "Full-dataset accuracy uses every test sample; unavailable "
+                "results count as unsuccessful outcomes. Phishing detection "
+                "rate counts unavailable phishing samples as missed."
+            ),
             "unknown_handling": (
-                "UNKNOWN results are excluded from binary classification "
-                "metrics and reported as unavailable_count."
+                "UNKNOWN results are excluded from available-only binary "
+                "metrics, retained in full-dataset denominators, and reported "
+                "as unavailable_count."
             ),
         },
     }
@@ -202,8 +236,13 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     }
     ordered = [modes[mode.value] for mode in _MODES]
 
-    def add_row(label: str, path: tuple[str, str], formatter) -> None:
-        values = [mode[path[0]][path[1]] for mode in ordered]
+    def add_row(label: str, path: tuple[str, ...], formatter) -> None:
+        values = []
+        for mode in ordered:
+            value: Any = mode
+            for key in path:
+                value = value.get(key) if value is not None else None
+            values.append(value)
         lines.append(
             f"| {label} | " + " | ".join(formatter(value) for value in values) + " |"
         )
@@ -215,7 +254,11 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ("f1", "F1"),
         ("f2", "F2"),
     ):
-        add_row(label, ("classification", metric_name), _format_ratio)
+        add_row(
+            label,
+            ("classification", "available_only", metric_name),
+            _format_ratio,
+        )
 
     add_row("평균 지연시간 (ms)", ("latency_ms", "average_ms"), _format_number)
     add_row("P50 지연시간 (ms)", ("latency_ms", "p50_ms"), _format_number)
@@ -343,7 +386,7 @@ def render_csv_report(report: dict[str, Any]) -> str:
     writer.writeheader()
     for mode in _MODES:
         summary = report["modes"][mode.value]
-        classification = summary["classification"] or {}
+        classification = summary["classification"]["available_only"] or {}
         writer.writerow({
             "generated_at": report["generated_at"],
             "source_split": report["source_split"],
@@ -453,7 +496,7 @@ def _summarize_mode(
         if record["result_available"] is True
         and record["predicted_label"] in _BINARY_LABELS
     ]
-    classification = (
+    available_only = (
         calculate_classification_metrics(
             [str(record["expected_label"]) for record in available],
             [str(record["predicted_label"]) for record in available],
@@ -461,6 +504,17 @@ def _summarize_mode(
         if available
         else None
     )
+    full_predictions = [
+        str(record["predicted_label"])
+        if record["result_available"] is True
+        and record["predicted_label"] in _BINARY_LABELS
+        else "unknown"
+        for record in records
+    ]
+    full_dataset = calculate_full_dataset_metrics(
+        [str(record["expected_label"]) for record in records],
+        full_predictions,
+    ).to_dict()
     operations = calculate_operational_metrics(
         [
             OperationalOutcome(
@@ -487,7 +541,10 @@ def _summarize_mode(
         output_price_per_million=output_price_per_million,
     ).to_dict()
     return {
-        "classification": classification,
+        "classification": {
+            "available_only": available_only,
+            "full_dataset": full_dataset,
+        },
         "availability": {
             "available_count": len(available),
             "unavailable_count": len(records) - len(available),
@@ -567,13 +624,19 @@ def _build_target_assessment(
     comparisons: dict[str, float | None],
     target_recall: float,
 ) -> dict[str, Any]:
-    hybrid_classification = hybrid_report["classification"]
-    self_classification = self_report["classification"]
-    if hybrid_classification is None or self_classification is None:
+    hybrid_available = hybrid_report["classification"]["available_only"]
+    self_available = self_report["classification"]["available_only"]
+    hybrid_full = hybrid_report["classification"]["full_dataset"]
+    if hybrid_available is None or self_available is None:
         raise ValueError("target assessment requires classification metrics")
 
     specifications = [
-        ("Hybrid Recall", f">= {target_recall:.4f}", hybrid_classification["recall"], hybrid_classification["recall"] >= target_recall),
+        (
+            "Hybrid full-dataset phishing detection rate",
+            f">= {target_recall:.4f}",
+            hybrid_full["phishing_detection_rate"],
+            hybrid_full["phishing_detection_rate"] >= target_recall,
+        ),
         ("Hybrid F2 vs Stacking-only", ">= 0 delta", comparisons["hybrid_f2_delta_vs_self_model"], (comparisons["hybrid_f2_delta_vs_self_model"] or 0) >= 0),
         ("Claude call reduction", "> 0%", comparisons["llm_call_reduction_rate"], (comparisons["llm_call_reduction_rate"] or 0) > 0),
         ("Cost reduction", "> 0%", comparisons["cost_per_message_reduction_rate"], (comparisons["cost_per_message_reduction_rate"] or 0) > 0),

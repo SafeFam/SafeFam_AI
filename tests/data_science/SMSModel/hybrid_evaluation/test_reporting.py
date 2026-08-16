@@ -112,9 +112,32 @@ def test_builds_three_mode_comparison_and_reductions() -> None:
     modes = report["modes"]
 
     assert report["sample_count"] == 2
-    assert modes["SELF_MODEL_ONLY"]["classification"]["recall"] == 0.0
-    assert modes["LLM_ONLY"]["classification"]["recall"] == 1.0
-    assert modes["HYBRID"]["classification"]["f2"] == 1.0
+    assert report["report_schema_version"] == 3
+    assert report["dataset"] == {
+        "total_count": 2,
+        "normal_count": 1,
+        "phishing_count": 1,
+        "positive_label": "phishing",
+    }
+    assert "every test sample" in report["classification_policy"][
+        "full_dataset_metrics"
+    ]
+    assert (
+        modes["SELF_MODEL_ONLY"]["classification"]["available_only"]["recall"]
+        == 0.0
+    )
+    assert (
+        modes["LLM_ONLY"]["classification"]["available_only"]["recall"]
+        == 1.0
+    )
+    assert (
+        modes["HYBRID"]["classification"]["available_only"]["f2"]
+        == 1.0
+    )
+    assert (
+        modes["HYBRID"]["classification"]["full_dataset"]["accuracy"]
+        == 1.0
+    )
     assert modes["SELF_MODEL_ONLY"]["operations"]["llm_call_rate"] == 0.0
     assert modes["LLM_ONLY"]["operations"]["llm_call_rate"] == 1.0
     assert modes["HYBRID"]["operations"]["llm_call_rate"] == 0.5
@@ -145,7 +168,34 @@ def test_unknown_is_excluded_and_reported_as_unavailable() -> None:
     hybrid = report["modes"]["HYBRID"]
 
     assert hybrid["availability"]["unavailable_count"] == 1
-    assert hybrid["classification"]["sample_count"] == 1
+    assert hybrid["classification"]["available_only"]["sample_count"] == 1
+    assert hybrid["classification"]["full_dataset"]["total_sample_count"] == 2
+    assert hybrid["classification"]["full_dataset"]["unavailable_count"] == 1
+    assert hybrid["classification"]["full_dataset"]["accuracy"] == 0.5
+    assert (
+        hybrid["classification"]["full_dataset"]["phishing_detection_rate"]
+        == 0.0
+    )
+
+
+def test_full_dataset_metrics_use_all_records_in_each_mode() -> None:
+    records = _records()
+    for record in records:
+        if record["mode"] == "LLM_ONLY" and record["sample_id"] == "a":
+            record.update(
+                predicted_label="unknown",
+                result_available=False,
+                llm_available=False,
+                all_engines_unavailable=True,
+            )
+
+    report = _build(records)
+    llm = report["modes"]["LLM_ONLY"]
+
+    assert llm["classification"]["available_only"]["accuracy"] == 1.0
+    assert llm["classification"]["full_dataset"]["accuracy"] == 0.5
+    assert llm["classification"]["full_dataset"]["correct_count"] == 1
+    assert llm["classification"]["full_dataset"]["unavailable_count"] == 1
 
 
 def test_rejects_mismatched_sample_sets() -> None:
