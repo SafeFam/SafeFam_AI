@@ -1,19 +1,35 @@
 {
   "classification_policy": {
+    "available_only_metrics": "Binary classification metrics use only records with an available normal or phishing prediction.",
+    "full_dataset_metrics": "Full-dataset accuracy uses every test sample; unavailable results count as unsuccessful outcomes. Phishing detection rate counts unavailable phishing samples as missed.",
     "positive_label": "phishing",
-    "unknown_handling": "UNKNOWN results are excluded from binary classification metrics and reported as unavailable_count."
+    "unknown_handling": "UNKNOWN results are excluded from available-only binary metrics, retained in full-dataset denominators, and reported as unavailable_count."
   },
   "comparisons": {
-    "average_latency_reduction_rate": 0.8066022855462615,
+    "average_latency_reduction_rate": 0.8080045586841379,
     "cost_per_message_reduction_rate": 0.8263450916775642,
+    "hybrid_detection_rate_delta_vs_self_model": 0.0,
     "hybrid_f2_delta_vs_self_model": 0.026243462991945576,
+    "hybrid_full_accuracy_delta_vs_self_model": 0.08730158730158732,
     "hybrid_recall_delta_vs_self_model": 0.0,
     "llm_call_reduction_rate": 0.7698412698412699,
-    "p95_latency_reduction_rate": 0.14641743080606262
+    "p95_latency_reduction_rate": 0.1476775519410466
+  },
+  "dataset": {
+    "normal_count": 51,
+    "phishing_count": 75,
+    "positive_label": "phishing",
+    "total_count": 126
   },
   "dataset_fingerprint": "d10c1de722b2caa9f50e3d3873c9afaab7d9472fca304f1c5cd91390b0764d6f",
+  "evaluation_provenance": {
+    "positive_label": "phishing",
+    "random_state": 42,
+    "split_manifest": "sms_split_v1.csv",
+    "split_manifest_sha256": "4c33fcc749ca5c8ac4e6b35d19831e3ad8bffb02e72ac4d50d423d7ca19aa5f9"
+  },
   "evaluation_schema_version": 1,
-  "generated_at": "2026-08-13T13:15:48.374485+00:00",
+  "generated_at": "2026-08-16T07:41:09.640776+00:00",
   "model": {
     "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     "prompt_version": "smishing-v1:92102fecd96463d0d061cdf868df78f33de19ef86e44d508aae1d6c91897dee1",
@@ -28,16 +44,31 @@
         "unavailable_count": 0
       },
       "classification": {
-        "accuracy": 0.873015873015873,
-        "f1": 0.9036144578313253,
-        "f2": 0.959079283887468,
-        "false_negative": 0,
-        "false_positive": 16,
-        "precision": 0.8241758241758241,
-        "recall": 1.0,
-        "sample_count": 126,
-        "true_negative": 35,
-        "true_positive": 75
+        "available_only": {
+          "accuracy": 0.873015873015873,
+          "f1": 0.9036144578313253,
+          "f2": 0.959079283887468,
+          "false_negative": 0,
+          "false_positive": 16,
+          "precision": 0.8241758241758241,
+          "recall": 1.0,
+          "sample_count": 126,
+          "true_negative": 35,
+          "true_positive": 75
+        },
+        "full_dataset": {
+          "accuracy": 0.873015873015873,
+          "actual_normal_count": 51,
+          "actual_phishing_count": 75,
+          "available_count": 126,
+          "correct_count": 110,
+          "detected_phishing_count": 75,
+          "incorrect_count": 16,
+          "missed_phishing_count": 0,
+          "phishing_detection_rate": 1.0,
+          "total_sample_count": 126,
+          "unavailable_count": 0
+        }
       },
       "cost": {
         "cost_per_message": 0.0002497777777777778,
@@ -48,11 +79,11 @@
         "unmeasured_call_count": 8
       },
       "latency_ms": {
-        "average_ms": 466.0485682517793,
-        "maximum_ms": 4036.308800043538,
-        "minimum_ms": 21.24790009111166,
-        "p50_ms": 32.63625002000481,
-        "p95_ms": 3218.902824927587,
+        "average_ms": 462.66939683509844,
+        "maximum_ms": 4035.335499966517,
+        "minimum_ms": 18.363599898293614,
+        "p50_ms": 28.347349958494306,
+        "p95_ms": 3214.1587500381283,
         "sample_count": 126
       },
       "operations": {
@@ -72,16 +103,31 @@
         "unavailable_count": 22
       },
       "classification": {
-        "accuracy": 0.8942307692307693,
-        "f1": 0.9230769230769231,
-        "f2": 0.967741935483871,
-        "false_negative": 0,
-        "false_positive": 11,
-        "precision": 0.8571428571428571,
-        "recall": 1.0,
-        "sample_count": 104,
-        "true_negative": 27,
-        "true_positive": 66
+        "available_only": {
+          "accuracy": 0.8942307692307693,
+          "f1": 0.9230769230769231,
+          "f2": 0.967741935483871,
+          "false_negative": 0,
+          "false_positive": 11,
+          "precision": 0.8571428571428571,
+          "recall": 1.0,
+          "sample_count": 104,
+          "true_negative": 27,
+          "true_positive": 66
+        },
+        "full_dataset": {
+          "accuracy": 0.7380952380952381,
+          "actual_normal_count": 51,
+          "actual_phishing_count": 75,
+          "available_count": 104,
+          "correct_count": 93,
+          "detected_phishing_count": 66,
+          "incorrect_count": 11,
+          "missed_phishing_count": 9,
+          "phishing_detection_rate": 0.88,
+          "total_sample_count": 126,
+          "unavailable_count": 22
+        }
       },
       "cost": {
         "cost_per_message": 0.0014383571428571427,
@@ -92,11 +138,11 @@
         "unmeasured_call_count": 22
       },
       "latency_ms": {
-        "average_ms": 2409.793567458419,
-        "maximum_ms": 4065.016199890524,
-        "minimum_ms": 0.014800112694501877,
-        "p50_ms": 3075.032049953006,
-        "p95_ms": 3771.050324946642,
+        "average_ms": 2409.7936579334505,
+        "maximum_ms": 4065.0177999027073,
+        "minimum_ms": 0.011299969628453255,
+        "p50_ms": 3075.0416500261053,
+        "p95_ms": 3771.0595999881625,
         "sample_count": 126
       },
       "operations": {
@@ -116,16 +162,31 @@
         "unavailable_count": 0
       },
       "classification": {
-        "accuracy": 0.7857142857142857,
-        "f1": 0.847457627118644,
-        "f2": 0.9328358208955224,
-        "false_negative": 0,
-        "false_positive": 27,
-        "precision": 0.7352941176470589,
-        "recall": 1.0,
-        "sample_count": 126,
-        "true_negative": 24,
-        "true_positive": 75
+        "available_only": {
+          "accuracy": 0.7857142857142857,
+          "f1": 0.847457627118644,
+          "f2": 0.9328358208955224,
+          "false_negative": 0,
+          "false_positive": 27,
+          "precision": 0.7352941176470589,
+          "recall": 1.0,
+          "sample_count": 126,
+          "true_negative": 24,
+          "true_positive": 75
+        },
+        "full_dataset": {
+          "accuracy": 0.7857142857142857,
+          "actual_normal_count": 51,
+          "actual_phishing_count": 75,
+          "available_count": 126,
+          "correct_count": 99,
+          "detected_phishing_count": 75,
+          "incorrect_count": 27,
+          "missed_phishing_count": 0,
+          "phishing_detection_rate": 1.0,
+          "total_sample_count": 126,
+          "unavailable_count": 0
+        }
       },
       "cost": {
         "cost_per_message": 0.0,
@@ -136,11 +197,11 @@
         "unmeasured_call_count": 0
       },
       "latency_ms": {
-        "average_ms": 122.72838413316224,
-        "maximum_ms": 11324.469800107181,
-        "minimum_ms": 17.560599837452173,
-        "p50_ms": 31.06780000962317,
-        "p95_ms": 45.36935011856258,
+        "average_ms": 52.95694682244507,
+        "maximum_ms": 3116.569299949333,
+        "minimum_ms": 10.648499941453338,
+        "p50_ms": 26.397299952805042,
+        "p95_ms": 43.74754993477836,
         "sample_count": 126
       },
       "operations": {
@@ -161,7 +222,7 @@
     "pricing_as_of": "2026-08-13",
     "unit": "per_1_million_tokens"
   },
-  "report_schema_version": 2,
+  "report_schema_version": 3,
   "routing_policy": {
     "normal_probability_max": 0.08716666259958943,
     "phishing_probability_min": 0.59,
@@ -173,17 +234,22 @@
   "sample_count": 126,
   "source_split": "test",
   "stacking_artifact": {
+    "classification_threshold": 0.08844759684377157,
     "created_at": "2026-08-11T00:13:11.792602+00:00",
     "model_name": "stacking_phishing_classifier",
+    "random_state": 42,
     "schema_version": 1,
-    "sha256": "fa99576f1d655625410ddb3b6b36ab55faca5a780f296dae9041e37593c063fe"
+    "sha256": "fa99576f1d655625410ddb3b6b36ab55faca5a780f296dae9041e37593c063fe",
+    "target_recall": 0.95,
+    "threshold_selection_metric": "maximize_f2_subject_to_target_recall",
+    "threshold_source_split": "validation"
   },
   "target_assessment": {
     "all_met": true,
     "items": [
       {
         "actual": "1.0000",
-        "label": "Hybrid Recall",
+        "label": "Hybrid full-dataset phishing detection rate",
         "met": true,
         "target": ">= 0.9500"
       },
@@ -206,13 +272,13 @@
         "target": "> 0%"
       },
       {
-        "actual": "0.8066",
+        "actual": "0.8080",
         "label": "Average latency reduction",
         "met": true,
         "target": "> 0%"
       },
       {
-        "actual": "0.1464",
+        "actual": "0.1477",
         "label": "P95 latency reduction",
         "met": true,
         "target": "> 0%"
