@@ -128,6 +128,12 @@ def build_comparison_report(
         "sample_count": len(sample_ids),
         "dataset_fingerprint": metadata["dataset_fingerprint"],
         "evaluation_schema_version": metadata["evaluation_schema_version"],
+        "evaluation_provenance": {
+            "split_manifest": metadata["split_manifest"],
+            "split_manifest_sha256": metadata["split_manifest_sha256"],
+            "random_state": metadata["random_state"],
+            "positive_label": metadata["positive_label"],
+        },
         "dataset": {
             "total_count": len(sample_ids),
             "normal_count": normal_count,
@@ -588,6 +594,7 @@ def _validate_source_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("evaluation records must come from test split")
     for field in (
         "dataset_fingerprint",
+        "split_manifest",
         "model_id",
         "region",
         "prompt_version",
@@ -596,12 +603,33 @@ def _validate_source_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     version = metadata.get("evaluation_schema_version")
     if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
         raise ValueError("evaluation_schema_version is invalid")
+
+    manifest_sha256 = _non_empty_string(
+        metadata.get("split_manifest_sha256"),
+        "split_manifest_sha256",
+    )
+    if not _is_sha256(manifest_sha256):
+        raise ValueError(
+            "split_manifest_sha256 must be a hexadecimal SHA-256 digest"
+        )
+
+    random_state = metadata.get("random_state")
+    if (
+        not isinstance(random_state, int)
+        or isinstance(random_state, bool)
+        or random_state < 0
+    ):
+        raise ValueError("random_state must be a non-negative integer")
+
+    if metadata.get("positive_label") != "phishing":
+        raise ValueError("positive_label must be phishing")
+
     return metadata
 
 
 def _validate_stacking_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     sha256 = _non_empty_string(metadata.get("model_sha256"), "model_sha256")
-    if len(sha256) != 64 or any(character not in "0123456789abcdef" for character in sha256.lower()):
+    if not _is_sha256(sha256):
         raise ValueError("model_sha256 must be a hexadecimal SHA-256 digest")
     version = metadata.get("schema_version")
     if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
@@ -609,11 +637,50 @@ def _validate_stacking_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     model = metadata.get("model")
     if not isinstance(model, dict):
         raise ValueError("stacking model metadata is missing")
+
+    random_state = model.get("random_state")
+    if (
+        not isinstance(random_state, int)
+        or isinstance(random_state, bool)
+        or random_state < 0
+    ):
+        raise ValueError(
+            "stacking random_state must be a non-negative integer"
+        )
+
+    threshold = model.get("threshold")
+    if (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, (int, float))
+        or not math.isfinite(float(threshold))
+        or not 0 <= float(threshold) <= 1
+    ):
+        raise ValueError("stacking threshold is invalid")
+
+    validation = metadata.get("validation")
+    if not isinstance(validation, dict):
+        raise ValueError("stacking validation metadata is missing")
+    target_recall = validation.get("target_recall")
+    if (
+        isinstance(target_recall, bool)
+        or not isinstance(target_recall, (int, float))
+        or not math.isfinite(float(target_recall))
+        or not 0 < float(target_recall) <= 1
+    ):
+        raise ValueError("stacking validation target_recall is invalid")
+
     return {
         "sha256": sha256,
         "schema_version": version,
         "model_name": _non_empty_string(model.get("model_name"), "model_name"),
         "created_at": _non_empty_string(metadata.get("created_at"), "created_at"),
+        "random_state": random_state,
+        "classification_threshold": float(threshold),
+        "threshold_source_split": "validation",
+        "threshold_selection_metric": (
+            "maximize_f2_subject_to_target_recall"
+        ),
+        "target_recall": float(target_recall),
     }
 
 
@@ -680,6 +747,13 @@ def _non_empty_string(value: object, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} must be a non-empty string")
     return value.strip()
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(
+        character in "0123456789abcdef"
+        for character in value.lower()
+    )
 
 
 def _format_ratio(value: float | None) -> str:

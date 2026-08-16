@@ -65,6 +65,10 @@ def _metadata() -> dict:
     return {
         "source_split": "test",
         "dataset_fingerprint": "dataset",
+        "split_manifest": "sms_split_v1.csv",
+        "split_manifest_sha256": "b" * 64,
+        "random_state": 42,
+        "positive_label": "phishing",
         "evaluation_schema_version": 1,
         "model_id": "test-model",
         "region": "us-east-1",
@@ -89,7 +93,14 @@ def _stacking_metadata() -> dict:
         "created_at": "2026-08-11T00:00:00+00:00",
         "model_sha256": "a" * 64,
         "schema_version": 1,
-        "model": {"model_name": "stacking_phishing_classifier"},
+        "model": {
+            "model_name": "stacking_phishing_classifier",
+            "random_state": 42,
+            "threshold": 0.25,
+        },
+        "validation": {
+            "target_recall": 0.95,
+        },
     }
 
 
@@ -122,6 +133,17 @@ def test_builds_three_mode_comparison_and_reductions() -> None:
     assert "every test sample" in report["classification_policy"][
         "full_dataset_metrics"
     ]
+    assert report["evaluation_provenance"] == {
+        "split_manifest": "sms_split_v1.csv",
+        "split_manifest_sha256": "b" * 64,
+        "random_state": 42,
+        "positive_label": "phishing",
+    }
+    assert report["stacking_artifact"]["classification_threshold"] == 0.25
+    assert report["stacking_artifact"]["threshold_source_split"] == "validation"
+    assert report["stacking_artifact"]["threshold_selection_metric"] == (
+        "maximize_f2_subject_to_target_recall"
+    )
     assert (
         modes["SELF_MODEL_ONLY"]["classification"]["available_only"]["recall"]
         == 0.0
@@ -238,6 +260,35 @@ def test_rejects_invalid_price() -> None:
             source_metadata=_metadata(),
             policy=_policy(),
             input_price_per_million=-1.0,
+            output_price_per_million=5.0,
+            currency="USD",
+            pricing_as_of="2026-08-13",
+            stacking_metadata=_stacking_metadata(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error_message"),
+    [
+        ("split_manifest_sha256", "invalid", "SHA-256"),
+        ("random_state", -1, "random_state"),
+        ("positive_label", "normal", "positive_label"),
+    ],
+)
+def test_rejects_invalid_evaluation_provenance(
+    field: str,
+    value,
+    error_message: str,
+) -> None:
+    metadata = _metadata()
+    metadata[field] = value
+
+    with pytest.raises(ValueError, match=error_message):
+        build_comparison_report(
+            _records(),
+            source_metadata=metadata,
+            policy=_policy(),
+            input_price_per_million=1.0,
             output_price_per_million=5.0,
             currency="USD",
             pricing_as_of="2026-08-13",
