@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -30,6 +31,7 @@ from data_science.SMSModel.hybrid_evaluation.cache import (
 from data_science.SMSModel.train_sms import (
     DATA_PATH,
     SPLIT_MANIFEST_PATH,
+    build_dataset_split_config,
     load_data,
     split_data,
 )
@@ -151,6 +153,18 @@ def calculate_test_dataset_fingerprint(test) -> str:
         )
         for row in test.itertuples(index=False)
     )
+
+
+def calculate_file_sha256(path: Path) -> str:
+    """평가 입력 파일의 재현성 확인용 SHA-256을 계산"""
+
+    digest = hashlib.sha256()
+
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+
+    return digest.hexdigest()
 
 def load_frozen_validation_policy() -> ConditionalLlmPolicy:
     """validation에서 선정된 임계값만 읽음"""
@@ -396,6 +410,14 @@ def save_evaluation_records(
     dataset_fingerprint: str,
 ) -> None:
     """원문 없는 평가 레코드를 저장"""
+
+    if not SPLIT_MANIFEST_PATH.is_file():
+        raise FileNotFoundError(
+            f"split manifest is required: {SPLIT_MANIFEST_PATH}"
+        )
+
+    split_config = build_dataset_split_config()
+
     _atomic_write_json(
         EVALUATION_RECORDS_PATH,
         {
@@ -404,6 +426,12 @@ def save_evaluation_records(
             ),
             "source_split": "test",
             "dataset_fingerprint": dataset_fingerprint,
+            "split_manifest": SPLIT_MANIFEST_PATH.name,
+            "split_manifest_sha256": calculate_file_sha256(
+                SPLIT_MANIFEST_PATH
+            ),
+            "random_state": split_config.random_state,
+            "positive_label": "phishing",
             "model_id": settings.BEDROCK_MODEL_ID,
             "region": settings.AWS_REGION,
             "prompt_version": build_prompt_version(),

@@ -17,6 +17,7 @@ from sklearn.metrics import (
 from data_science.SMSModel.hybrid_evaluation.models import (
     ClassificationMetrics,
     CostMetrics,
+    FullDatasetMetrics,
     LatencyMetrics,
     OperationalMetrics,
     OperationalOutcome,
@@ -24,6 +25,7 @@ from data_science.SMSModel.hybrid_evaluation.models import (
 )
 
 LABEL_ORDER = ("normal", "phishing")
+UNAVAILABLE_LABEL = "unknown"
 
 def _validate_binary_labels(
     y_true: Sequence[str],
@@ -132,6 +134,86 @@ def calculate_classification_metrics(
         false_positive=false_positive,
         false_negative=false_negative,
         true_positive=true_positive,
+    )
+
+
+def calculate_full_dataset_metrics(
+    y_true: Sequence[str],
+    y_pred: Sequence[str],
+) -> FullDatasetMetrics:
+    """UNKNOWN을 실패로 포함한 전체 데이터셋 지표를 계산"""
+
+    true_values = np.asarray(y_true, dtype=str)
+    predicted_values = np.asarray(y_pred, dtype=str)
+
+    if true_values.ndim != 1 or predicted_values.ndim != 1:
+        raise ValueError(
+            "y_true and y_pred must be one-dimensional"
+        )
+
+    if len(true_values) == 0:
+        raise ValueError(
+            "cannot calculate full-dataset metrics from empty labels"
+        )
+
+    if len(true_values) != len(predicted_values):
+        raise ValueError(
+            "y_true and y_pred must have the same length"
+        )
+
+    binary_labels = set(LABEL_ORDER)
+
+    if not set(true_values).issubset(binary_labels):
+        raise ValueError(
+            "y_true contains unsupported labels"
+        )
+
+    allowed_predictions = {*binary_labels, UNAVAILABLE_LABEL}
+
+    if not set(predicted_values).issubset(allowed_predictions):
+        raise ValueError(
+            "y_pred contains unsupported labels"
+        )
+
+    available_mask = np.isin(predicted_values, LABEL_ORDER)
+    unavailable_mask = predicted_values == UNAVAILABLE_LABEL
+    correct_mask = available_mask & (true_values == predicted_values)
+    incorrect_mask = available_mask & (true_values != predicted_values)
+    phishing_mask = true_values == "phishing"
+    detected_phishing_mask = phishing_mask & (
+        predicted_values == "phishing"
+    )
+
+    total_sample_count = len(true_values)
+    available_count = int(available_mask.sum())
+    unavailable_count = int(unavailable_mask.sum())
+    correct_count = int(correct_mask.sum())
+    incorrect_count = int(incorrect_mask.sum())
+    actual_normal_count = int((true_values == "normal").sum())
+    actual_phishing_count = int(phishing_mask.sum())
+    detected_phishing_count = int(detected_phishing_mask.sum())
+    missed_phishing_count = (
+        actual_phishing_count - detected_phishing_count
+    )
+
+    phishing_detection_rate = (
+        detected_phishing_count / actual_phishing_count
+        if actual_phishing_count > 0
+        else 0.0
+    )
+
+    return FullDatasetMetrics(
+        total_sample_count=total_sample_count,
+        available_count=available_count,
+        unavailable_count=unavailable_count,
+        correct_count=correct_count,
+        incorrect_count=incorrect_count,
+        accuracy=correct_count / total_sample_count,
+        actual_normal_count=actual_normal_count,
+        actual_phishing_count=actual_phishing_count,
+        detected_phishing_count=detected_phishing_count,
+        missed_phishing_count=missed_phishing_count,
+        phishing_detection_rate=phishing_detection_rate,
     )
 
 def calculate_latency_metrics(

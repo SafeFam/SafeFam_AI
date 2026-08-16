@@ -11,12 +11,13 @@ from typing import Any
 from .metrics import (
     calculate_classification_metrics,
     calculate_cost_metrics,
+    calculate_full_dataset_metrics,
     calculate_latency_metrics,
     calculate_operational_metrics,
 )
 from .models import EvaluationMode, OperationalOutcome, TokenUsage
 
-REPORT_SCHEMA_VERSION = 2
+REPORT_SCHEMA_VERSION = 3
 _MODES = tuple(EvaluationMode)
 _BINARY_LABELS = {"normal", "phishing"}
 
@@ -67,6 +68,13 @@ def build_comparison_report(
     llm_report = mode_reports[EvaluationMode.LLM_ONLY.value]
     hybrid_report = mode_reports[EvaluationMode.HYBRID.value]
 
+    reference_records = grouped[EvaluationMode.SELF_MODEL_ONLY]
+    normal_count = sum(
+        record["expected_label"] == "normal"
+        for record in reference_records
+    )
+    phishing_count = len(reference_records) - normal_count
+
     comparisons = {
         "llm_call_reduction_rate": _reduction_rate(
             llm_report["operations"]["llm_call_rate"],
@@ -85,14 +93,24 @@ def build_comparison_report(
             hybrid_report["latency_ms"]["p95_ms"],
         ),
         "hybrid_recall_delta_vs_self_model": _metric_delta(
-            hybrid_report["classification"],
-            self_report["classification"],
+            hybrid_report["classification"]["available_only"],
+            self_report["classification"]["available_only"],
             "recall",
         ),
         "hybrid_f2_delta_vs_self_model": _metric_delta(
-            hybrid_report["classification"],
-            self_report["classification"],
+            hybrid_report["classification"]["available_only"],
+            self_report["classification"]["available_only"],
             "f2",
+        ),
+        "hybrid_full_accuracy_delta_vs_self_model": _metric_delta(
+            hybrid_report["classification"]["full_dataset"],
+            self_report["classification"]["full_dataset"],
+            "accuracy",
+        ),
+        "hybrid_detection_rate_delta_vs_self_model": _metric_delta(
+            hybrid_report["classification"]["full_dataset"],
+            self_report["classification"]["full_dataset"],
+            "phishing_detection_rate",
         ),
     }
 
@@ -110,6 +128,18 @@ def build_comparison_report(
         "sample_count": len(sample_ids),
         "dataset_fingerprint": metadata["dataset_fingerprint"],
         "evaluation_schema_version": metadata["evaluation_schema_version"],
+        "evaluation_provenance": {
+            "split_manifest": metadata["split_manifest"],
+            "split_manifest_sha256": metadata["split_manifest_sha256"],
+            "random_state": metadata["random_state"],
+            "positive_label": metadata["positive_label"],
+        },
+        "dataset": {
+            "total_count": len(sample_ids),
+            "normal_count": normal_count,
+            "phishing_count": phishing_count,
+            "positive_label": "phishing",
+        },
         "stacking_artifact": stacking,
         "model": {
             "provider": "AWS_BEDROCK",
@@ -146,9 +176,19 @@ def build_comparison_report(
         },
         "classification_policy": {
             "positive_label": "phishing",
+            "available_only_metrics": (
+                "Binary classification metrics use only records with an "
+                "available normal or phishing prediction."
+            ),
+            "full_dataset_metrics": (
+                "Full-dataset accuracy uses every test sample; unavailable "
+                "results count as unsuccessful outcomes. Phishing detection "
+                "rate counts unavailable phishing samples as missed."
+            ),
             "unknown_handling": (
-                "UNKNOWN results are excluded from binary classification "
-                "metrics and reported as unavailable_count."
+                "UNKNOWN results are excluded from available-only binary "
+                "metrics, retained in full-dataset denominators, and reported "
+                "as unavailable_count."
             ),
         },
     }
@@ -166,7 +206,17 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"- 생성 시각: `{report['generated_at']}`",
         f"- 평가 split: `{report['source_split']}`",
         f"- 샘플 수: `{report['sample_count']}`",
+        "- 라벨 분포: "
+        f"`normal={report['dataset']['normal_count']}`, "
+        f"`phishing={report['dataset']['phishing_count']}`",
+        f"- Positive label: `{report['dataset']['positive_label']}`",
         f"- 데이터셋 fingerprint: `{report['dataset_fingerprint']}`",
+        "- Split manifest: "
+        f"`{report['evaluation_provenance']['split_manifest']}`",
+        "- Split manifest SHA-256: "
+        f"`{report['evaluation_provenance']['split_manifest_sha256']}`",
+        "- Random state: "
+        f"`{report['evaluation_provenance']['random_state']}`",
         f"- LLM: `{report['model']['provider']}` / `{report['model']['model_id']}`",
         f"- Region: `{report['model']['region']}`",
         f"- 프롬프트 버전: `{report['model']['prompt_version']}`",
@@ -174,6 +224,12 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"`{report['stacking_artifact']['sha256']}`",
         "- Stacking artifact schema: "
         f"`{report['stacking_artifact']['schema_version']}`",
+        "- Stacking classification threshold: "
+        f"`{report['stacking_artifact']['classification_threshold']:.8f}`",
+        "- Threshold source split: "
+        f"`{report['stacking_artifact']['threshold_source_split']}`",
+        "- Threshold selection: "
+        f"`{report['stacking_artifact']['threshold_selection_metric']}`",
         "",
         "## 라우팅 정책",
         "",
@@ -189,7 +245,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         f"{report['sample_count']}` "
         f"(`{_percent(report['routing_policy']['test_uncertain_rate'])}`)",
         "",
-        "## 모드별 비교",
+        "## 전체 표본 기준 비교",
+        "",
+        "`UNKNOWN`을 포함한 전체 test 표본을 분모로 사용합니다. 사용 불가능한 "
+        "결과는 전체 정확도에서 실패로, 실제 피싱 표본에서는 미탐으로 계산합니다.",
         "",
         "| 지표 | Stacking only | Claude only | Hybrid |",
         "|---|---:|---:|---:|",
@@ -202,12 +261,77 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     }
     ordered = [modes[mode.value] for mode in _MODES]
 
-    def add_row(label: str, path: tuple[str, str], formatter) -> None:
-        values = [mode[path[0]][path[1]] for mode in ordered]
+    def add_row(label: str, path: tuple[str, ...], formatter) -> None:
+        values = []
+        for mode in ordered:
+            value: Any = mode
+            for key in path:
+                value = value.get(key) if value is not None else None
+            values.append(value)
         lines.append(
             f"| {label} | " + " | ".join(formatter(value) for value in values) + " |"
         )
 
+    add_row(
+        "전체 표본 수",
+        ("classification", "full_dataset", "total_sample_count"),
+        str,
+    )
+    add_row(
+        "결과 있음",
+        ("classification", "full_dataset", "available_count"),
+        str,
+    )
+    add_row(
+        "결과 없음",
+        ("classification", "full_dataset", "unavailable_count"),
+        str,
+    )
+    add_row("Availability", ("availability", "availability_rate"), _percent)
+    add_row(
+        "전체 정확도",
+        ("classification", "full_dataset", "accuracy"),
+        _format_ratio,
+    )
+    add_row(
+        "피싱 탐지율",
+        ("classification", "full_dataset", "phishing_detection_rate"),
+        _format_ratio,
+    )
+    add_row(
+        "정답",
+        ("classification", "full_dataset", "correct_count"),
+        str,
+    )
+    add_row(
+        "오분류",
+        ("classification", "full_dataset", "incorrect_count"),
+        str,
+    )
+    add_row(
+        "피싱 미탐",
+        ("classification", "full_dataset", "missed_phishing_count"),
+        str,
+    )
+
+    lines.extend(
+        [
+            "",
+            "## 결과 성공 표본 기준 이진 분류",
+            "",
+            "아래 지표는 `UNKNOWN`을 제외한 결과이므로 Availability와 함께 "
+            "해석해야 합니다.",
+            "",
+            "| 지표 | Stacking only | Claude only | Hybrid |",
+            "|---|---:|---:|---:|",
+        ]
+    )
+
+    add_row(
+        "평가 표본 수",
+        ("classification", "available_only", "sample_count"),
+        lambda value: "N/A" if value is None else str(value),
+    )
     for metric_name, label in (
         ("accuracy", "Accuracy"),
         ("precision", "Precision"),
@@ -215,7 +339,36 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ("f1", "F1"),
         ("f2", "F2"),
     ):
-        add_row(label, ("classification", metric_name), _format_ratio)
+        add_row(
+            label,
+            ("classification", "available_only", metric_name),
+            _format_ratio,
+        )
+
+    for metric_name, label in (
+        ("true_negative", "TN"),
+        ("false_positive", "FP"),
+        ("false_negative", "FN"),
+        ("true_positive", "TP"),
+    ):
+        add_row(
+            label,
+            ("classification", "available_only", metric_name),
+            lambda value: "N/A" if value is None else str(value),
+        )
+
+    lines.extend(
+        [
+            "",
+            "## 운영·비용 비교",
+            "",
+            "Latency는 성공·실패·fallback을 모두 포함한 메시지 단위 "
+            "end-to-end 처리 시간입니다.",
+            "",
+            "| 지표 | Stacking only | Claude only | Hybrid |",
+            "|---|---:|---:|---:|",
+        ]
+    )
 
     add_row("평균 지연시간 (ms)", ("latency_ms", "average_ms"), _format_number)
     add_row("P50 지연시간 (ms)", ("latency_ms", "p50_ms"), _format_number)
@@ -231,7 +384,6 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ("operations", "all_engines_unavailable_count"),
         str,
     )
-    add_row("결과 없음", ("availability", "unavailable_count"), str)
 
     comparisons = report["comparisons"]
     lines.extend(
@@ -276,8 +428,9 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "",
             "## 판정 정책",
             "",
-            "`UNKNOWN` 결과는 정상으로 간주하지 않습니다. 이진 분류 지표에서 제외하고 "
-            "각 모드의 `결과 없음` 건수로 별도 기록합니다.",
+            "`UNKNOWN` 결과는 정상으로 간주하지 않습니다. Available-only 이진 분류 "
+            "지표에서는 제외하지만 전체 표본 지표의 분모에는 유지하며, 실제 피싱의 "
+            "`UNKNOWN`은 미탐으로 계산합니다.",
             "",
             "## 재현 명령어",
             "",
@@ -304,7 +457,7 @@ def render_markdown_report(report: dict[str, Any]) -> str:
             "data_science.SMSModel.run_hybrid_evaluation --collect",
             "```",
             "",
-            "## Issue #37 PR 3 체크리스트 (Bedrock/Claude)",
+            "## 평가 검증 체크리스트",
             "",
             "- [x] 고정된 test split에서 Stacking-only 평가",
             "- [x] AWS Bedrock Claude Haiku test 예측 수집",
@@ -331,10 +484,20 @@ def render_csv_report(report: dict[str, Any]) -> str:
     output = io.StringIO(newline="")
     fieldnames = [
         "generated_at", "source_split", "sample_count", "dataset_fingerprint",
-        "stacking_artifact_sha256", "llm_provider", "llm_model_id", "aws_region",
-        "prompt_version", "normal_probability_max", "phishing_probability_min",
-        "currency", "input_price_per_million", "output_price_per_million", "mode",
-        "accuracy", "precision", "recall", "f1", "f2", "average_latency_ms",
+        "normal_sample_count", "phishing_sample_count", "positive_label",
+        "split_manifest", "split_manifest_sha256", "random_state",
+        "stacking_artifact_sha256", "stacking_classification_threshold",
+        "threshold_source_split", "threshold_selection_metric", "llm_provider",
+        "llm_model_id", "aws_region", "prompt_version", "normal_probability_max",
+        "phishing_probability_min", "currency", "input_price_per_million",
+        "output_price_per_million", "mode", "available_sample_count",
+        "unavailable_sample_count", "availability_rate", "available_only_accuracy",
+        "available_only_precision", "available_only_recall", "available_only_f1",
+        "available_only_f2", "true_negative", "false_positive", "false_negative",
+        "true_positive", "full_dataset_accuracy",
+        "full_dataset_phishing_detection_rate", "full_dataset_correct_count",
+        "full_dataset_incorrect_count", "full_dataset_unavailable_count",
+        "average_latency_ms",
         "p50_latency_ms", "p95_latency_ms", "llm_call_rate", "input_tokens",
         "output_tokens", "cost_per_message", "fallback_count",
         "all_engines_unavailable_count", "unmeasured_token_usage_count",
@@ -343,13 +506,29 @@ def render_csv_report(report: dict[str, Any]) -> str:
     writer.writeheader()
     for mode in _MODES:
         summary = report["modes"][mode.value]
-        classification = summary["classification"] or {}
+        available_only = summary["classification"]["available_only"] or {}
+        full_dataset = summary["classification"]["full_dataset"]
         writer.writerow({
             "generated_at": report["generated_at"],
             "source_split": report["source_split"],
             "sample_count": report["sample_count"],
             "dataset_fingerprint": report["dataset_fingerprint"],
+            "normal_sample_count": report["dataset"]["normal_count"],
+            "phishing_sample_count": report["dataset"]["phishing_count"],
+            "positive_label": report["dataset"]["positive_label"],
+            "split_manifest": report["evaluation_provenance"]["split_manifest"],
+            "split_manifest_sha256": report["evaluation_provenance"]["split_manifest_sha256"],
+            "random_state": report["evaluation_provenance"]["random_state"],
             "stacking_artifact_sha256": report["stacking_artifact"]["sha256"],
+            "stacking_classification_threshold": report[
+                "stacking_artifact"
+            ]["classification_threshold"],
+            "threshold_source_split": report[
+                "stacking_artifact"
+            ]["threshold_source_split"],
+            "threshold_selection_metric": report[
+                "stacking_artifact"
+            ]["threshold_selection_metric"],
             "llm_provider": report["model"]["provider"],
             "llm_model_id": report["model"]["model_id"],
             "aws_region": report["model"]["region"],
@@ -360,11 +539,23 @@ def render_csv_report(report: dict[str, Any]) -> str:
             "input_price_per_million": report["pricing"]["input_price"],
             "output_price_per_million": report["pricing"]["output_price"],
             "mode": mode.value,
-            "accuracy": classification.get("accuracy"),
-            "precision": classification.get("precision"),
-            "recall": classification.get("recall"),
-            "f1": classification.get("f1"),
-            "f2": classification.get("f2"),
+            "available_sample_count": full_dataset["available_count"],
+            "unavailable_sample_count": full_dataset["unavailable_count"],
+            "availability_rate": summary["availability"]["availability_rate"],
+            "available_only_accuracy": available_only.get("accuracy"),
+            "available_only_precision": available_only.get("precision"),
+            "available_only_recall": available_only.get("recall"),
+            "available_only_f1": available_only.get("f1"),
+            "available_only_f2": available_only.get("f2"),
+            "true_negative": available_only.get("true_negative"),
+            "false_positive": available_only.get("false_positive"),
+            "false_negative": available_only.get("false_negative"),
+            "true_positive": available_only.get("true_positive"),
+            "full_dataset_accuracy": full_dataset["accuracy"],
+            "full_dataset_phishing_detection_rate": full_dataset["phishing_detection_rate"],
+            "full_dataset_correct_count": full_dataset["correct_count"],
+            "full_dataset_incorrect_count": full_dataset["incorrect_count"],
+            "full_dataset_unavailable_count": full_dataset["unavailable_count"],
             "average_latency_ms": summary["latency_ms"]["average_ms"],
             "p50_latency_ms": summary["latency_ms"]["p50_ms"],
             "p95_latency_ms": summary["latency_ms"]["p95_ms"],
@@ -453,7 +644,7 @@ def _summarize_mode(
         if record["result_available"] is True
         and record["predicted_label"] in _BINARY_LABELS
     ]
-    classification = (
+    available_only = (
         calculate_classification_metrics(
             [str(record["expected_label"]) for record in available],
             [str(record["predicted_label"]) for record in available],
@@ -461,6 +652,17 @@ def _summarize_mode(
         if available
         else None
     )
+    full_predictions = [
+        str(record["predicted_label"])
+        if record["result_available"] is True
+        and record["predicted_label"] in _BINARY_LABELS
+        else "unknown"
+        for record in records
+    ]
+    full_dataset = calculate_full_dataset_metrics(
+        [str(record["expected_label"]) for record in records],
+        full_predictions,
+    ).to_dict()
     operations = calculate_operational_metrics(
         [
             OperationalOutcome(
@@ -487,7 +689,10 @@ def _summarize_mode(
         output_price_per_million=output_price_per_million,
     ).to_dict()
     return {
-        "classification": classification,
+        "classification": {
+            "available_only": available_only,
+            "full_dataset": full_dataset,
+        },
         "availability": {
             "available_count": len(available),
             "unavailable_count": len(records) - len(available),
@@ -531,6 +736,7 @@ def _validate_source_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("evaluation records must come from test split")
     for field in (
         "dataset_fingerprint",
+        "split_manifest",
         "model_id",
         "region",
         "prompt_version",
@@ -539,12 +745,33 @@ def _validate_source_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     version = metadata.get("evaluation_schema_version")
     if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
         raise ValueError("evaluation_schema_version is invalid")
+
+    manifest_sha256 = _non_empty_string(
+        metadata.get("split_manifest_sha256"),
+        "split_manifest_sha256",
+    )
+    if not _is_sha256(manifest_sha256):
+        raise ValueError(
+            "split_manifest_sha256 must be a hexadecimal SHA-256 digest"
+        )
+
+    random_state = metadata.get("random_state")
+    if (
+        not isinstance(random_state, int)
+        or isinstance(random_state, bool)
+        or random_state < 0
+    ):
+        raise ValueError("random_state must be a non-negative integer")
+
+    if metadata.get("positive_label") != "phishing":
+        raise ValueError("positive_label must be phishing")
+
     return metadata
 
 
 def _validate_stacking_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     sha256 = _non_empty_string(metadata.get("model_sha256"), "model_sha256")
-    if len(sha256) != 64 or any(character not in "0123456789abcdef" for character in sha256.lower()):
+    if not _is_sha256(sha256):
         raise ValueError("model_sha256 must be a hexadecimal SHA-256 digest")
     version = metadata.get("schema_version")
     if not isinstance(version, int) or isinstance(version, bool) or version <= 0:
@@ -552,11 +779,50 @@ def _validate_stacking_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     model = metadata.get("model")
     if not isinstance(model, dict):
         raise ValueError("stacking model metadata is missing")
+
+    random_state = model.get("random_state")
+    if (
+        not isinstance(random_state, int)
+        or isinstance(random_state, bool)
+        or random_state < 0
+    ):
+        raise ValueError(
+            "stacking random_state must be a non-negative integer"
+        )
+
+    threshold = model.get("threshold")
+    if (
+        isinstance(threshold, bool)
+        or not isinstance(threshold, (int, float))
+        or not math.isfinite(float(threshold))
+        or not 0 <= float(threshold) <= 1
+    ):
+        raise ValueError("stacking threshold is invalid")
+
+    validation = metadata.get("validation")
+    if not isinstance(validation, dict):
+        raise ValueError("stacking validation metadata is missing")
+    target_recall = validation.get("target_recall")
+    if (
+        isinstance(target_recall, bool)
+        or not isinstance(target_recall, (int, float))
+        or not math.isfinite(float(target_recall))
+        or not 0 < float(target_recall) <= 1
+    ):
+        raise ValueError("stacking validation target_recall is invalid")
+
     return {
         "sha256": sha256,
         "schema_version": version,
         "model_name": _non_empty_string(model.get("model_name"), "model_name"),
         "created_at": _non_empty_string(metadata.get("created_at"), "created_at"),
+        "random_state": random_state,
+        "classification_threshold": float(threshold),
+        "threshold_source_split": "validation",
+        "threshold_selection_metric": (
+            "maximize_f2_subject_to_target_recall"
+        ),
+        "target_recall": float(target_recall),
     }
 
 
@@ -567,13 +833,19 @@ def _build_target_assessment(
     comparisons: dict[str, float | None],
     target_recall: float,
 ) -> dict[str, Any]:
-    hybrid_classification = hybrid_report["classification"]
-    self_classification = self_report["classification"]
-    if hybrid_classification is None or self_classification is None:
+    hybrid_available = hybrid_report["classification"]["available_only"]
+    self_available = self_report["classification"]["available_only"]
+    hybrid_full = hybrid_report["classification"]["full_dataset"]
+    if hybrid_available is None or self_available is None:
         raise ValueError("target assessment requires classification metrics")
 
     specifications = [
-        ("Hybrid Recall", f">= {target_recall:.4f}", hybrid_classification["recall"], hybrid_classification["recall"] >= target_recall),
+        (
+            "Hybrid full-dataset phishing detection rate",
+            f">= {target_recall:.4f}",
+            hybrid_full["phishing_detection_rate"],
+            hybrid_full["phishing_detection_rate"] >= target_recall,
+        ),
         ("Hybrid F2 vs Stacking-only", ">= 0 delta", comparisons["hybrid_f2_delta_vs_self_model"], (comparisons["hybrid_f2_delta_vs_self_model"] or 0) >= 0),
         ("Claude call reduction", "> 0%", comparisons["llm_call_reduction_rate"], (comparisons["llm_call_reduction_rate"] or 0) > 0),
         ("Cost reduction", "> 0%", comparisons["cost_per_message_reduction_rate"], (comparisons["cost_per_message_reduction_rate"] or 0) > 0),
@@ -617,6 +889,13 @@ def _non_empty_string(value: object, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} must be a non-empty string")
     return value.strip()
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(
+        character in "0123456789abcdef"
+        for character in value.lower()
+    )
 
 
 def _format_ratio(value: float | None) -> str:

@@ -10,6 +10,7 @@ from data_science.SMSModel.hybrid_evaluation import (
     calculate_classification_metrics,
     calculate_cost_metrics,
     calculate_cost_reduction_rate,
+    calculate_full_dataset_metrics,
     calculate_latency_metrics,
     calculate_operational_metrics,
 )
@@ -98,6 +99,86 @@ def test_classification_metrics_handle_no_positive_prediction() -> None:
     assert metrics.f1 == 0.0
     assert metrics.f2 == 0.0
     assert metrics.false_negative == 1
+
+
+def test_full_dataset_metrics_match_binary_metrics_when_all_available() -> None:
+    """모든 결과가 있으면 전체 정확도는 이진 분류 정확도와 같습니다."""
+
+    metrics = calculate_full_dataset_metrics(
+        y_true=["normal", "normal", "phishing", "phishing"],
+        y_pred=["normal", "phishing", "normal", "phishing"],
+    )
+
+    assert metrics.total_sample_count == 4
+    assert metrics.available_count == 4
+    assert metrics.unavailable_count == 0
+    assert metrics.correct_count == 2
+    assert metrics.incorrect_count == 2
+    assert metrics.accuracy == pytest.approx(0.5)
+    assert metrics.actual_normal_count == 2
+    assert metrics.actual_phishing_count == 2
+    assert metrics.detected_phishing_count == 1
+    assert metrics.missed_phishing_count == 1
+    assert metrics.phishing_detection_rate == pytest.approx(0.5)
+
+
+def test_full_dataset_metrics_count_unknown_as_unavailable_failure() -> None:
+    """UNKNOWN은 전체 분모와 피싱 미탐에 포함합니다."""
+
+    metrics = calculate_full_dataset_metrics(
+        y_true=["normal", "phishing", "phishing"],
+        y_pred=["unknown", "unknown", "phishing"],
+    )
+
+    assert metrics.total_sample_count == 3
+    assert metrics.available_count == 1
+    assert metrics.unavailable_count == 2
+    assert metrics.correct_count == 1
+    assert metrics.incorrect_count == 0
+    assert metrics.accuracy == pytest.approx(1 / 3)
+    assert metrics.detected_phishing_count == 1
+    assert metrics.missed_phishing_count == 1
+    assert metrics.phishing_detection_rate == pytest.approx(0.5)
+    assert (
+        metrics.correct_count
+        + metrics.incorrect_count
+        + metrics.unavailable_count
+        == metrics.total_sample_count
+    )
+
+
+def test_full_dataset_metrics_handle_no_phishing_samples() -> None:
+    """피싱 표본이 없으면 탐지율을 0으로 반환합니다."""
+
+    metrics = calculate_full_dataset_metrics(
+        y_true=["normal", "normal"],
+        y_pred=["normal", "unknown"],
+    )
+
+    assert metrics.actual_phishing_count == 0
+    assert metrics.detected_phishing_count == 0
+    assert metrics.missed_phishing_count == 0
+    assert metrics.phishing_detection_rate == 0.0
+
+
+@pytest.mark.parametrize(
+    ("y_true", "y_pred", "error_message"),
+    [
+        ([], [], "empty labels"),
+        (["normal"], ["normal", "unknown"], "same length"),
+        (["safe"], ["normal"], "y_true contains unsupported labels"),
+        (["normal"], ["unavailable"], "y_pred contains unsupported labels"),
+    ],
+)
+def test_rejects_invalid_full_dataset_inputs(
+    y_true: list[str],
+    y_pred: list[str],
+    error_message: str,
+) -> None:
+    """전체 지표도 빈 입력, 길이 및 label 계약을 검증합니다."""
+
+    with pytest.raises(ValueError, match=error_message):
+        calculate_full_dataset_metrics(y_true, y_pred)
 
 
 @pytest.mark.parametrize(

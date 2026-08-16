@@ -65,6 +65,10 @@ def _metadata() -> dict:
     return {
         "source_split": "test",
         "dataset_fingerprint": "dataset",
+        "split_manifest": "sms_split_v1.csv",
+        "split_manifest_sha256": "b" * 64,
+        "random_state": 42,
+        "positive_label": "phishing",
         "evaluation_schema_version": 1,
         "model_id": "test-model",
         "region": "us-east-1",
@@ -89,7 +93,14 @@ def _stacking_metadata() -> dict:
         "created_at": "2026-08-11T00:00:00+00:00",
         "model_sha256": "a" * 64,
         "schema_version": 1,
-        "model": {"model_name": "stacking_phishing_classifier"},
+        "model": {
+            "model_name": "stacking_phishing_classifier",
+            "random_state": 42,
+            "threshold": 0.25,
+        },
+        "validation": {
+            "target_recall": 0.95,
+        },
     }
 
 
@@ -112,9 +123,43 @@ def test_builds_three_mode_comparison_and_reductions() -> None:
     modes = report["modes"]
 
     assert report["sample_count"] == 2
-    assert modes["SELF_MODEL_ONLY"]["classification"]["recall"] == 0.0
-    assert modes["LLM_ONLY"]["classification"]["recall"] == 1.0
-    assert modes["HYBRID"]["classification"]["f2"] == 1.0
+    assert report["report_schema_version"] == 3
+    assert report["dataset"] == {
+        "total_count": 2,
+        "normal_count": 1,
+        "phishing_count": 1,
+        "positive_label": "phishing",
+    }
+    assert "every test sample" in report["classification_policy"][
+        "full_dataset_metrics"
+    ]
+    assert report["evaluation_provenance"] == {
+        "split_manifest": "sms_split_v1.csv",
+        "split_manifest_sha256": "b" * 64,
+        "random_state": 42,
+        "positive_label": "phishing",
+    }
+    assert report["stacking_artifact"]["classification_threshold"] == 0.25
+    assert report["stacking_artifact"]["threshold_source_split"] == "validation"
+    assert report["stacking_artifact"]["threshold_selection_metric"] == (
+        "maximize_f2_subject_to_target_recall"
+    )
+    assert (
+        modes["SELF_MODEL_ONLY"]["classification"]["available_only"]["recall"]
+        == 0.0
+    )
+    assert (
+        modes["LLM_ONLY"]["classification"]["available_only"]["recall"]
+        == 1.0
+    )
+    assert (
+        modes["HYBRID"]["classification"]["available_only"]["f2"]
+        == 1.0
+    )
+    assert (
+        modes["HYBRID"]["classification"]["full_dataset"]["accuracy"]
+        == 1.0
+    )
     assert modes["SELF_MODEL_ONLY"]["operations"]["llm_call_rate"] == 0.0
     assert modes["LLM_ONLY"]["operations"]["llm_call_rate"] == 1.0
     assert modes["HYBRID"]["operations"]["llm_call_rate"] == 0.5
@@ -145,7 +190,34 @@ def test_unknown_is_excluded_and_reported_as_unavailable() -> None:
     hybrid = report["modes"]["HYBRID"]
 
     assert hybrid["availability"]["unavailable_count"] == 1
-    assert hybrid["classification"]["sample_count"] == 1
+    assert hybrid["classification"]["available_only"]["sample_count"] == 1
+    assert hybrid["classification"]["full_dataset"]["total_sample_count"] == 2
+    assert hybrid["classification"]["full_dataset"]["unavailable_count"] == 1
+    assert hybrid["classification"]["full_dataset"]["accuracy"] == 0.5
+    assert (
+        hybrid["classification"]["full_dataset"]["phishing_detection_rate"]
+        == 0.0
+    )
+
+
+def test_full_dataset_metrics_use_all_records_in_each_mode() -> None:
+    records = _records()
+    for record in records:
+        if record["mode"] == "LLM_ONLY" and record["sample_id"] == "a":
+            record.update(
+                predicted_label="unknown",
+                result_available=False,
+                llm_available=False,
+                all_engines_unavailable=True,
+            )
+
+    report = _build(records)
+    llm = report["modes"]["LLM_ONLY"]
+
+    assert llm["classification"]["available_only"]["accuracy"] == 1.0
+    assert llm["classification"]["full_dataset"]["accuracy"] == 0.5
+    assert llm["classification"]["full_dataset"]["correct_count"] == 1
+    assert llm["classification"]["full_dataset"]["unavailable_count"] == 1
 
 
 def test_rejects_mismatched_sample_sets() -> None:
@@ -195,6 +267,35 @@ def test_rejects_invalid_price() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "error_message"),
+    [
+        ("split_manifest_sha256", "invalid", "SHA-256"),
+        ("random_state", -1, "random_state"),
+        ("positive_label", "normal", "positive_label"),
+    ],
+)
+def test_rejects_invalid_evaluation_provenance(
+    field: str,
+    value,
+    error_message: str,
+) -> None:
+    metadata = _metadata()
+    metadata[field] = value
+
+    with pytest.raises(ValueError, match=error_message):
+        build_comparison_report(
+            _records(),
+            source_metadata=metadata,
+            policy=_policy(),
+            input_price_per_million=1.0,
+            output_price_per_million=5.0,
+            currency="USD",
+            pricing_as_of="2026-08-13",
+            stacking_metadata=_stacking_metadata(),
+        )
+
+
 def test_renders_markdown_without_sample_identifiers() -> None:
     markdown = render_markdown_report(_build())
 
@@ -206,13 +307,29 @@ def test_renders_markdown_without_sample_identifiers() -> None:
     assert "Stacking artifact SHA-256" in markdown
     assert "목표 지표 충족 여부" in markdown
     assert "임계값 채택 결론" in markdown
-    assert "Issue #37 PR 3 체크리스트" in markdown
+    assert "전체 표본 기준 비교" in markdown
+    assert "결과 성공 표본 기준 이진 분류" in markdown
+    assert "Positive label: `phishing`" in markdown
+    assert "| TN |" in markdown
+    assert "| FP |" in markdown
+    assert "| FN |" in markdown
+    assert "| TP |" in markdown
+    assert "평가 검증 체크리스트" in markdown
+    assert "Issue #37 PR 3 체크리스트" not in markdown
 
 
 def test_renders_reproducible_summary_csv_without_message_data() -> None:
     csv_report = render_csv_report(_build())
 
     assert "stacking_artifact_sha256" in csv_report
+    assert "available_only_accuracy" in csv_report
+    assert "full_dataset_accuracy" in csv_report
+    assert "full_dataset_phishing_detection_rate" in csv_report
+    assert "split_manifest_sha256" in csv_report
+    assert "true_negative" in csv_report
+    assert "false_positive" in csv_report
+    assert "false_negative" in csv_report
+    assert "true_positive" in csv_report
     assert "SELF_MODEL_ONLY" in csv_report
     assert "LLM_ONLY" in csv_report
     assert "HYBRID" in csv_report
