@@ -172,3 +172,26 @@ class EvaluationRecord:
         payload["mode"] = self.mode.value
 
         return payload
+
+
+@dataclass(frozen=True)
+class FullDatasetMetrics:
+    """전체 데이터셋의 분류 및 피싱 탐지 성능 지표"""
+
+    total_sample_count: int
+    available_count: int
+    unavailable_count: int
+    correct_count: int
+    incorrect_count: int
+    accuracy: float
+
+    actual_normal_count: int
+    actual_phishing_count: int
+    detected_phishing_count: int
+    missed_phishing_count: int
+    phishing_detection_rate: float
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON 직렬화가 가능한 dictionary로 변환"""
+
+        return asdict(self)
