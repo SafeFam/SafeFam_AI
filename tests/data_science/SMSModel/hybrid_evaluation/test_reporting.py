@@ -307,13 +307,29 @@ def test_renders_markdown_without_sample_identifiers() -> None:
     assert "Stacking artifact SHA-256" in markdown
     assert "목표 지표 충족 여부" in markdown
     assert "임계값 채택 결론" in markdown
-    assert "Issue #37 PR 3 체크리스트" in markdown
+    assert "전체 표본 기준 비교" in markdown
+    assert "결과 성공 표본 기준 이진 분류" in markdown
+    assert "Positive label: `phishing`" in markdown
+    assert "| TN |" in markdown
+    assert "| FP |" in markdown
+    assert "| FN |" in markdown
+    assert "| TP |" in markdown
+    assert "평가 검증 체크리스트" in markdown
+    assert "Issue #37 PR 3 체크리스트" not in markdown
 
 
 def test_renders_reproducible_summary_csv_without_message_data() -> None:
     csv_report = render_csv_report(_build())
 
     assert "stacking_artifact_sha256" in csv_report
+    assert "available_only_accuracy" in csv_report
+    assert "full_dataset_accuracy" in csv_report
+    assert "full_dataset_phishing_detection_rate" in csv_report
+    assert "split_manifest_sha256" in csv_report
+    assert "true_negative" in csv_report
+    assert "false_positive" in csv_report
+    assert "false_negative" in csv_report
+    assert "true_positive" in csv_report
     assert "SELF_MODEL_ONLY" in csv_report
     assert "LLM_ONLY" in csv_report
     assert "HYBRID" in csv_report
