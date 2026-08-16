@@ -32,8 +32,22 @@ from data_science.SMSModel.template_grouping import (
     TemplateGroupingConfig,
     prepare_template_groups,
 )
+from data_science.SMSModel.data_quality import (
+    validate_sms_dataset,
+)
 
 warnings.filterwarnings("ignore")
+
+# 허용 source 상수
+ALLOWED_DATA_SOURCES = {
+    "original",
+    "reviewed_reclassification_v2",
+    "public_phishing_v2",
+    "synthetic_diversity_v2",
+    "synthetic_hard_negative_v2",
+    "synthetic_new_holdout",
+    "synthetic_fp_stress",
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -126,6 +140,11 @@ def build_dataset_split_config() -> DatasetSplitConfig:
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """CSV를 읽고 학습용 데이터와 별도 holdout 데이터를 반환"""
     df = pd.read_csv(path)
+
+    df = validate_sms_dataset(
+    df,
+    allowed_sources=ALLOWED_DATA_SOURCES,
+)
 
     required_columns = {
         "text",

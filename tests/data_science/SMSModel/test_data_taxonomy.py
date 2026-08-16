@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import pytest
+import pandas as pd
 
 from data_science.SMSModel.data_quality import (
     NORMAL_MESSAGE_TYPES,
     PHISHING_MESSAGE_TYPES,
     is_allowed_label_type_pair,
     normalize_legacy_message_type,
+)
+from data_science.SMSModel.data_quality import (
+    validate_sms_dataset,
 )
 
 
@@ -70,3 +74,47 @@ def test_rejects_invalid_label_type_pairs(
         label,
         message_type,
     )
+
+
+def _dataset() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "text": "정상 카드 결제 안내",
+                "label": "normal",
+                "type": "정상카드결제알림",
+                "has_url": False,
+                "source": "original",
+            },
+            {
+                "text": "주소 오류 링크 확인",
+                "label": "phishing",
+                "type": "택배사칭",
+                "has_url": True,
+                "source": "original",
+            },
+        ]
+    )
+
+
+def test_validates_and_normalizes_dataset() -> None:
+    result = validate_sms_dataset(
+        _dataset(),
+        allowed_sources={"original"},
+    )
+
+    assert result.loc[1, "type"] == "택배배송사칭"
+
+
+def test_rejects_invalid_label_type_pair() -> None:
+    dataset = _dataset()
+    dataset.loc[0, "type"] = "택배배송사칭"
+
+    with pytest.raises(
+        ValueError,
+        match="invalid label/type pairs",
+    ):
+        validate_sms_dataset(
+            dataset,
+            allowed_sources={"original"},
+        )    
