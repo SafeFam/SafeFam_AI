@@ -163,86 +163,62 @@ def apply_annotations(
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """승인된 그룹을 원본 행에 적용하고 변경 보고서를 반환"""
 
-    approved = validate_approved_annotations(
-        annotations
-    )
+    approved = validate_approved_annotations(annotations)
+    result = normalize_message_types(dataset)
 
-    result = normalize_message_types(
-        dataset
-    )
-
-    # label은 절대 변경하지 않았는지 확인하기 위해 보존
     original_labels = result["label"].copy()
 
-    result["__text_norm"] = result[
-        "text"
-    ].map(normalize_text)
-
-    result["__fingerprint"] = result[
-        "__text_norm"
-    ].map(create_text_fingerprint)
+    result["__text_norm"] = result["text"].map(normalize_text)
+    result["__fingerprint"] = result["__text_norm"].map(create_text_fingerprint)
 
     fingerprint_to_type: dict[str, str] = {}
     fingerprint_to_group: dict[str, str] = {}
 
     for row in approved.itertuples(index=False):
-        fingerprints = _split_fingerprints(
-            str(row.member_fingerprints)
-        )
-
+        fingerprints = _split_fingerprints(str(row.member_fingerprints))
         for fingerprint in fingerprints:
-            fingerprint_to_type[fingerprint] = str(
-                row.proposed_type
-            )
-            fingerprint_to_group[fingerprint] = str(
-                row.template_group_id
-            )
+            fingerprint_to_type[fingerprint] = str(row.proposed_type)
+            fingerprint_to_group[fingerprint] = str(row.template_group_id)
 
-    target_mask = result[
-        "__fingerprint"
-    ].isin(fingerprint_to_type)
+    target_mask = (
+        result["__fingerprint"].isin(fingerprint_to_type)
+        & (result["type"] == "기타피싱")
+    )
 
     if not target_mask.any():
-        raise ValueError(
-            "approved annotations do not match dataset rows"
-        )
+        raise ValueError("approved annotations do not match dataset rows")
 
-    if (
-        result.loc[target_mask, "label"]
-        != "phishing"
-    ).any():
-        raise ValueError(
-            "annotations must not modify normal rows"
-        )
+    if (result.loc[target_mask, "label"] != "phishing").any():
+        raise ValueError("annotations must not modify normal rows")
 
-    before_types = result.loc[
-        target_mask,
-        "type",
-    ].astype(str).value_counts().to_dict()
+    before_types = (
+        result.loc[target_mask, "type"].astype(str).value_counts().to_dict()
+    )
 
     result.loc[target_mask, "type"] = result.loc[
-        target_mask,
-        "__fingerprint",
+        target_mask, "__fingerprint"
     ].map(fingerprint_to_type)
 
     changed_rows = int(target_mask.sum())
 
     if not result["label"].equals(original_labels):
-        raise RuntimeError(
-            "binary labels changed during annotation"
-        )
+        raise RuntimeError("binary labels changed during annotation")
 
     matched_fingerprints = set(
+        result.loc[target_mask, "__fingerprint"].astype(str)
+    )
+    
+    already_resolved_fingerprints = set(
         result.loc[
-            target_mask,
+            result["__fingerprint"].isin(fingerprint_to_type)
+            & (result["type"] != "기타피싱"),
             "__fingerprint",
         ].astype(str)
     )
-    expected_fingerprints = set(
-        fingerprint_to_type
-    )
+    
+    expected_fingerprints = set(fingerprint_to_type)
     missing_fingerprints = (
-        expected_fingerprints - matched_fingerprints
+        expected_fingerprints - matched_fingerprints - already_resolved_fingerprints
     )
 
     if missing_fingerprints:
@@ -255,30 +231,22 @@ def apply_annotations(
         "schema_version": 1,
         "approved_group_count": len(approved),
         "changed_row_count": changed_rows,
-        "matched_unique_fingerprint_count": len(
-            matched_fingerprints
-        ),
+        "matched_unique_fingerprint_count": len(matched_fingerprints),
         "before_type_distribution": {
-            str(key): int(value)
-            for key, value in before_types.items()
+            str(key): int(value) for key, value in before_types.items()
         },
         "after_type_distribution": {
             str(key): int(value)
-            for key, value in result.loc[
-                target_mask,
-                "type",
-            ].value_counts().sort_index().items()
+            for key, value in result.loc[target_mask, "type"]
+            .value_counts()
+            .sort_index()
+            .items()
         },
         "unchanged_binary_label_count": len(result),
     }
 
     return (
-        result.drop(
-            columns=[
-                "__text_norm",
-                "__fingerprint",
-            ]
-        ),
+        result.drop(columns=["__text_norm", "__fingerprint"]),
         change_report,
     )
 

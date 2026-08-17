@@ -1,4 +1,4 @@
-"""검수된 SMS 다양성 데이터를 기본 데이터셋에 병합."""
+"""검수된 SMS 다양성 데이터를 기본 데이터셋에 병합"""
 
 from __future__ import annotations
 
@@ -39,18 +39,24 @@ def merge_approved_additions(
     dataset: pd.DataFrame,
     additions: pd.DataFrame,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """APPROVED 행만 fingerprint 중복 제거 후 병합."""
+    """APPROVED 행만 fingerprint 중복 제거 후 병합"""
     missing = REVIEW_COLUMNS - set(additions.columns)
+    
     if missing:
         raise ValueError(f"addition review columns are missing: {missing}")
-    if (additions["review_status"] == "PENDING").any():
+    
+    review_status = additions["review_status"].fillna("").astype(str).str.strip()
+    if review_status.isin({"", "PENDING"}).any():
         raise ValueError("all diversity additions must be reviewed")
 
-    approved = additions[additions["review_status"] == "APPROVED"].copy()
+    approved = additions.loc[review_status.eq("APPROVED")].copy()
+
     if approved.empty:
         raise ValueError("no approved diversity additions")
+    
     if approved["reviewer"].fillna("").str.strip().eq("").any():
         raise ValueError("approved additions require reviewer")
+    
     if approved["review_note"].fillna("").str.strip().eq("").any():
         raise ValueError("approved additions require review_note")
 
