@@ -62,7 +62,7 @@ DATA_PATH = (
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v1.csv"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v2.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"
@@ -143,9 +143,9 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     df = pd.read_csv(path)
 
     df = validate_sms_dataset(
-    df,
-    allowed_sources=ALLOWED_DATA_SOURCES,
-)
+        df,
+        allowed_sources=ALLOWED_DATA_SOURCES,
+    )
 
     required_columns = {
         "text",

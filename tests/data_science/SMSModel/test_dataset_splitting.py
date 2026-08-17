@@ -65,6 +65,17 @@ def test_each_split_contains_both_labels():
         assert set(part["label"]) == {"normal", "phishing"}
 
 
+def test_each_split_label_ratio_is_close_to_full_dataset():
+    df = make_dataset()
+    expected = df["label"].value_counts(normalize=True)
+    splits = split_grouped_dataset(df)
+
+    for part in (splits.train, splits.validation, splits.test):
+        actual = part["label"].value_counts(normalize=True)
+        for label in expected.index:
+            assert abs(actual[label] - expected[label]) <= 0.10
+
+
 def test_validation_rejects_group_leakage():
     df = make_dataset()
     splits = split_grouped_dataset(df)

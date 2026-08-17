@@ -68,7 +68,7 @@ LATENCY_SAMPLE_COUNT = 100
 COMPARISON_RUN_SCHEMA_VERSION = 1
 
 # 현재 committed split manifest의 파일명 기반 버전
-EXPECTED_SPLIT_MANIFEST_VERSION = "sms_split_v1"
+EXPECTED_SPLIT_MANIFEST_VERSION = "sms_split_v2"
 
 
 def _get_package_version(package_name: str) -> str:
@@ -426,9 +426,9 @@ def _build_run_report(
             ),
         },
         "split_manifest": {
-            "path": SPLIT_MANIFEST_PATH.relative_to(
-                SMS_MODEL_DIR
-            ).as_posix(),
+            # 전달받은 version과 path가 서로 다른 보고서를 만들지 않도록 동일한
+            # 입력에서 portable path를 구성한다.
+            "path": f"splits/{split_manifest_version}.csv",
             "version": split_manifest_version,
             "sha256": manifest_sha256,
             "counts": {

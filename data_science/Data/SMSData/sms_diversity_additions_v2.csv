@@ -1,1 +1,27 @@
 text,label,type,has_url,source,review_status,reviewer,review_note
+"[국민카드] 08/17 12:31 편의점 8,500원 승인. 누적 154,200원",normal,정상카드결제알림,False,synthetic_hard_negative_v2,APPROVED,pearseona,정상 카드 승인 알림 변형
+"[우리은행] 고객님의 계좌에서 자동이체 42,000원이 정상 처리되었습니다.",normal,정상금융알림,False,synthetic_hard_negative_v2,APPROVED,pearseona,정상 금융 금액 포함 알림
+"[한진택배] 상품이 문 앞에 배송되었습니다. 운송장 1234-5678",normal,정상택배배송안내,False,synthetic_hard_negative_v2,APPROVED,pearseona,정상 배송 안내 변형
+"[우체국] 등기우편 배달 완료. 조회: https://service.epost.go.kr",normal,정상택배배송안내,True,synthetic_hard_negative_v2,APPROVED,pearseona,공식 URL 포함 정상 배송 알림
+"[SafeFam] 로그인 인증번호는 381204입니다. 타인에게 알려주지 마세요.",normal,정상인증알림,False,synthetic_hard_negative_v2,APPROVED,pearseona,보안 문구 포함 정상 인증 알림
+"[정부24] 신청하신 주민등록등본 발급이 완료되었습니다. 정부24 앱에서 확인하세요.",normal,정상공공기관알림,False,synthetic_hard_negative_v2,APPROVED,pearseona,정상 공공기관 알림
+"[통신사] 이번 달 멤버십 포인트 3,000점이 8월 31일 소멸 예정입니다.",normal,정상포인트소멸알림,False,synthetic_hard_negative_v2,APPROVED,pearseona,정상 포인트 소멸 알림
+"(광고) 여름 정기 세일 최대 30% 할인. 수신거부 080-000-0000",normal,정상광고프로모션,False,synthetic_hard_negative_v2,APPROVED,pearseona,수신거부 포함 정상 광고
+"회의가 3시로 변경됐어. 도착하면 010-1234-5678로 연락 줘.",normal,일상대화,False,synthetic_hard_negative_v2,APPROVED,pearseona,전화번호 포함 일상 대화
+"엄마 오늘 택배 올 거야. 내가 주문한 거니까 대신 받아줘!",normal,일상대화,False,synthetic_hard_negative_v2,APPROVED,pearseona,택배 키워드 포함 일상 대화
+"결제 취소했어. 환불은 카드사 사정에 따라 3일 정도 걸린대.",normal,일상대화,False,synthetic_hard_negative_v2,APPROVED,pearseona,환불 키워드 포함 일상 대화
+"회사 보안교육 자료입니다: https://training.example.com/security",normal,기타정상,True,synthetic_hard_negative_v2,APPROVED,pearseona,URL 포함 정상 업무 알림
+"[도로관리센터] 과태료 미납 확인 필요 hxxps://road-check[.]example/notice",phishing,정부공공기관사칭,True,synthetic_diversity_v2,APPROVED,pearseona,URL 난독화 공공기관 사칭
+"[검찰 안내] 사건번호 2026-0817 본인 확인을 위해 담당자 메신저 추가 요청",phishing,수사기관사칭,False,synthetic_diversity_v2,APPROVED,pearseona,링크 없는 메신저 유도 수사기관 사칭
+"[은행 보안팀] 비정상 이체가 감지됐습니다. 즉시 앱 설치 후 계좌를 보호하세요.",phishing,복합피싱,False,synthetic_diversity_v2,APPROVED,pearseona,금융 사칭과 앱 설치 복합 유형
+"저금리 전환대출 승인 대상입니다. 보증료 입금 후 즉시 실행됩니다.",phishing,대출사기,False,synthetic_diversity_v2,APPROVED,pearseona,선입금 요구 대출 사기
+"배송지 오류로 보관 중입니다. 주소 재입력: parcel-check[.]example",phishing,택배배송사칭,True,synthetic_diversity_v2,APPROVED,pearseona,도메인 난독화 택배 사칭
+"해외 결제 489,000원 완료. 본인 결제가 아니면 취소 신청: pay-cancel[.]example",phishing,결제환불사칭,True,synthetic_diversity_v2,APPROVED,pearseona,가짜 결제 취소 유도
+"아빠 휴대폰이 고장 나서 임시번호야. 급한 병원비 70만원만 보내줘.",phishing,지인가족사칭,False,synthetic_diversity_v2,APPROVED,pearseona,링크 없는 가족 사칭
+"모바일 청첩장이 도착했습니다. 사진 보기 wedding-photo[.]example",phishing,경조사사칭,True,synthetic_diversity_v2,APPROVED,pearseona,청첩장 링크 경조사 사칭
+"축하합니다. 경품 수령을 위해 배송비 3,000원을 먼저 결제해 주세요.",phishing,이벤트당첨사칭,False,synthetic_diversity_v2,APPROVED,pearseona,선결제 요구 당첨 사칭
+"리뷰 작성 재택업무 일급 30만원. 업무 시작 전 예치금이 필요합니다.",phishing,채용부업사기,False,synthetic_diversity_v2,APPROVED,pearseona,예치금 요구 부업 사기
+"오늘 급등 종목 무료 공개. 오픈채팅 입장 후 투자금 입금 바랍니다.",phishing,투자리딩방사기,False,synthetic_diversity_v2,APPROVED,pearseona,링크 없는 리딩방 유도
+"중고 거래 안전결제를 위해 판매자가 보낸 QR을 스캔하고 계좌를 인증하세요.",phishing,중고거래사기,False,synthetic_diversity_v2,APPROVED,pearseona,QR 기반 중고거래 사기
+"계정이 24시간 뒤 정지됩니다. 본인확인 페이지 account-verify[.]example 접속",phishing,계정정지본인인증유도,True,synthetic_diversity_v2,APPROVED,pearseona,도메인 난독화 계정 확인 유도
+"보안 업데이트 파일을 설치해야 환급금을 받을 수 있습니다. 설치 허용을 눌러주세요.",phishing,악성링크앱설치유도,False,synthetic_diversity_v2,APPROVED,pearseona,링크 없이 앱 설치를 유도

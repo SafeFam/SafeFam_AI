@@ -2,9 +2,24 @@
   "annotation_group_count": 47,
   "covered_raw_row_count": 752,
   "dataset_row_count": 2976,
+  "proposed_type_distribution": {
+    "결제환불사칭": 19,
+    "경조사사칭": 153,
+    "계정정지본인인증유도": 44,
+    "금융기관사칭": 36,
+    "기타피싱": 23,
+    "복합피싱": 34,
+    "악성링크앱설치유도": 56,
+    "이벤트당첨사칭": 96,
+    "정부공공기관사칭": 159,
+    "채용부업사기": 36,
+    "택배배송사칭": 52,
+    "투자리딩방사기": 44
+  },
   "raw_other_phishing_count": 752,
+  "remaining_other_phishing_raw_row_count": 23,
   "review_status": {
-    "PENDING": 47
+    "APPROVED": 47
   },
   "schema_version": 2,
   "source_distribution": {

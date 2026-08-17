@@ -1,0 +1,17 @@
+{
+  "added_count": 26,
+  "added_label_distribution": {
+    "normal": 12,
+    "phishing": 14
+  },
+  "added_source_distribution": {
+    "synthetic_diversity_v2": 14,
+    "synthetic_hard_negative_v2": 12
+  },
+  "approved_addition_count": 26,
+  "duplicate_with_dataset_count": 0,
+  "duplicate_within_additions_count": 0,
+  "final_dataset_row_count": 3002,
+  "reviewed_row_count": 26,
+  "schema_version": 1
+}
