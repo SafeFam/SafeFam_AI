@@ -38,15 +38,16 @@ from data_science.SMSModel.data_quality import (
 
 warnings.filterwarnings("ignore")
 
-# 허용 source 상수
 ALLOWED_DATA_SOURCES = {
     "original",
+    "user_added",
+    "synthetic_new_holdout",
+    "synthetic_fp_stress",
+    "synthetic_fp_stress_train",
     "reviewed_reclassification_v2",
     "public_phishing_v2",
     "synthetic_diversity_v2",
     "synthetic_hard_negative_v2",
-    "synthetic_new_holdout",
-    "synthetic_fp_stress",
 }
 
 

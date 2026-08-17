@@ -1,31 +1,22 @@
 {
+  "annotation_group_count": 47,
+  "covered_raw_row_count": 752,
   "dataset_row_count": 2976,
-  "other_phishing_count": 752,
+  "raw_other_phishing_count": 752,
   "review_status": {
-    "PENDING": 752
+    "PENDING": 47
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "source_distribution": {
-    "original": 752
+    "original": 2734,
+    "synthetic_fp_stress": 105,
+    "synthetic_fp_stress_train": 20,
+    "synthetic_new_holdout": 105,
+    "user_added": 12
   },
-  "type_distribution": {
-    "('normal', '일상대화')": 170,
-    "('normal', '정상알림톡')": 750,
-    "('normal', '정상카드결제알림')": 40,
-    "('normal', '정상택배배송안내')": 40,
-    "('normal', '정상포인트소멸알림')": 59,
-    "('phishing', '경조사사칭')": 100,
-    "('phishing', '금융기관사칭')": 413,
-    "('phishing', '기타피싱')": 752,
-    "('phishing', '대출_사기')": 4,
-    "('phishing', '수사기관사칭형')": 35,
-    "('phishing', '이벤트당첨사칭')": 100,
-    "('phishing', '정부공공기관사칭')": 183,
-    "('phishing', '중고거래_사기')": 31,
-    "('phishing', '지인사칭')": 108,
-    "('phishing', '채용알바사기형')": 35,
-    "('phishing', '택배사칭')": 100,
-    "('phishing', '투자_리딩방')": 21,
-    "('phishing', '투자리딩방사칭형')": 35
-  }
+  "suggested_type_distribution": {
+    "기타피싱": 44,
+    "택배배송사칭": 3
+  },
+  "unique_other_phishing_count": 63
 }
