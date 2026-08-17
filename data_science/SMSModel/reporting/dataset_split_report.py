@@ -118,12 +118,19 @@ def _split_statistics(
     group_sizes = df["template_group_id"].value_counts()
 
     return {
-        "row_count": len(df),
-        "group_count": int(df["template_group_id"].nunique()),
-        "largest_group_size": (int(group_sizes.max()) if not group_sizes.empty else 0),
-        "labels": _label_statistics(df),
-        "types": _type_statistics(df),
-    }
+    "row_count": len(df),
+    "group_count": int(
+        df["template_group_id"].nunique()
+    ),
+    "largest_group_size": (
+        int(group_sizes.max())
+        if not group_sizes.empty
+        else 0
+    ),
+    "labels": _label_statistics(df),
+    "types": _type_statistics(df),
+    "sources": _source_statistics(df),
+}
 
 
 def _find_pairwise_overlaps(
@@ -221,10 +228,19 @@ def build_dataset_split_summary(
         },
         "dataset": {
             "row_count": int(total_row_count),
-            "group_count": int(source["template_group_id"].nunique()),
+            "group_count": int(
+                source["template_group_id"].nunique()
+            ),
             "labels": _label_statistics(source),
             "types": _type_statistics(source),
-        },
+            "sources": _source_statistics(source),
+            "unresolved_other_phishing_count": int(
+                (
+                    (source["label"] == "phishing")
+                    & (source["type"] == "기타피싱")
+                ).sum()
+            ),
+        },  
         "splits": {
             "train": {
                 **_split_statistics(splits.train),
@@ -398,3 +414,22 @@ def generate_dataset_split_reports(
     )
 
     return summary
+
+def _source_statistics(
+    df: pd.DataFrame,
+) -> dict[str, dict[str, int | float]]:
+    """데이터 source별 건수와 비율을 반환합니다."""
+
+    counts = df["source"].astype(str).value_counts()
+
+    return {
+        source: {
+            "count": int(count),
+            "ratio": (
+                round(int(count) / len(df), 6)
+                if len(df)
+                else 0.0
+            ),
+        }
+        for source, count in counts.sort_index().items()
+    }
