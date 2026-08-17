@@ -1,0 +1,14 @@
+{
+  "after_type_distribution": {
+    "기타피싱": 717,
+    "택배배송사칭": 35
+  },
+  "approved_group_count": 47,
+  "before_type_distribution": {
+    "기타피싱": 752
+  },
+  "changed_row_count": 752,
+  "matched_unique_fingerprint_count": 63,
+  "schema_version": 1,
+  "unchanged_binary_label_count": 2976
+}
