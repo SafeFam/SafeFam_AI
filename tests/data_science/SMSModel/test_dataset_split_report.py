@@ -31,6 +31,7 @@ def report_data():
                     "template_group_id": f"group-{group_index}",
                     "label": label,
                     "type": message_types[group_index % len(message_types)],
+                    "source": "original" if group_index % 3 else "user_added",
                 }
             )
     source = pd.DataFrame(rows)
@@ -83,6 +84,9 @@ def test_summary_contains_counts_distributions_and_configuration(report_data):
         "phishing",
     }
     assert summary["splits"]["validation"]["types"]
+    assert summary["dataset"]["sources"]["original"]["count"] > 0
+    assert "sources" in summary["splits"]["train"]
+    assert summary["dataset"]["unresolved_other_phishing_count"] == 0
     assert summary["configuration"]["template_grouping"]["similarity_threshold"] == 0.88
     assert summary["validation"]["group_overlap_count"] == 0
     assert summary["validation"]["fingerprint_overlap_count"] == 0
@@ -110,6 +114,7 @@ def test_report_generation_creates_valid_json_and_markdown(
     assert parsed["validation"]["passed"] is True
     assert "## Split Overview" in markdown
     assert "## Message Type Distribution" in markdown
+    assert "## Source Distribution" in markdown
 
 
 def test_report_generation_is_deterministic(tmp_path, report_data):

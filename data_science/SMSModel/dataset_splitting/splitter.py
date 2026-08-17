@@ -42,7 +42,7 @@ def _candidate_score(
     target_size: float,
     label_column: str,
     labels: list[str],
-) -> tuple[float, float]:
+) -> tuple[int, float, float]:
     """목표 행 비율과 전체 클래스 비율에 가까울수록 낮은 점수 제공"""
     size_error = abs((len(selected) / len(full_data)) - target_size)
     class_error = np.abs(
@@ -57,9 +57,11 @@ def _candidate_score(
             labels=labels,
         )
     ).sum()
-    # 행 비율을 우선 최적화하고, 같은 크기 오차에서는 클래스 분포가
-    # 전체 데이터에 더 가까운 후보를 선택합니다.
-    return size_error, float(class_error)
+    # 행 비율 오차가 1%p 이내인 후보는 같은 크기 등급으로 취급하고 클래스
+    # 분포를 먼저 비교한다. 이렇게 하면 크기는 안정적으로 유지하면서도 정확히
+    # 같은 행 수라는 이유만으로 클래스가 심하게 치우친 후보가 선택되지 않는다.
+    size_error_bucket = int(size_error / 0.01)
+    return size_error_bucket, float(class_error), size_error
 
 
 def _contains_all_labels(
@@ -83,7 +85,7 @@ def _select_best_group_split(
     required_labels = set(labels)
     n_groups = df[config.group_column].nunique()
     best: tuple[pd.DataFrame, pd.DataFrame] | None = None
-    best_score = (float("inf"), float("inf"))
+    best_score = (int(1e9), float("inf"), float("inf"))
 
     # GroupShuffleSplit의 test_size는 행 비율이 아닌 그룹 개수를 뜻합니다.
     # 불균등한 그룹에서도 행 비율 목표를 찾을 수 있도록 가능한 그룹 개수를

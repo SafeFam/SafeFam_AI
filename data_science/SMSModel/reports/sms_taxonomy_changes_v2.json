@@ -1,0 +1,25 @@
+{
+  "after_type_distribution": {
+    "결제환불사칭": 19,
+    "경조사사칭": 153,
+    "계정정지본인인증유도": 44,
+    "금융기관사칭": 36,
+    "기타피싱": 23,
+    "복합피싱": 34,
+    "악성링크앱설치유도": 56,
+    "이벤트당첨사칭": 96,
+    "정부공공기관사칭": 159,
+    "채용부업사기": 36,
+    "택배배송사칭": 52,
+    "투자리딩방사기": 44
+  },
+  "approved_group_count": 47,
+  "before_type_distribution": {
+    "기타피싱": 717,
+    "택배배송사칭": 35
+  },
+  "changed_row_count": 752,
+  "matched_unique_fingerprint_count": 63,
+  "schema_version": 1,
+  "unchanged_binary_label_count": 2976
+}

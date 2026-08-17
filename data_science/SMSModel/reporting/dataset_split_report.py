@@ -26,6 +26,7 @@ REQUIRED_REPORT_COLUMNS = {
     "label",
     "type",
     "split",
+    "source",
 }
 
 
@@ -111,6 +112,21 @@ def _type_statistics(
     }
 
 
+def _source_statistics(
+    df: pd.DataFrame,
+) -> dict[str, dict[str, int | float]]:
+    """데이터 출처별 건수와 비율을 반환."""
+    counts = df["source"].astype(str).value_counts()
+
+    return {
+        source: {
+            "count": int(count),
+            "ratio": round(int(count) / len(df), 6) if len(df) else 0.0,
+        }
+        for source, count in counts.sort_index().items()
+    }
+
+
 def _split_statistics(
     df: pd.DataFrame,
 ) -> dict[str, Any]:
@@ -120,9 +136,12 @@ def _split_statistics(
     return {
         "row_count": len(df),
         "group_count": int(df["template_group_id"].nunique()),
-        "largest_group_size": (int(group_sizes.max()) if not group_sizes.empty else 0),
+        "largest_group_size": (
+            int(group_sizes.max()) if not group_sizes.empty else 0
+        ),
         "labels": _label_statistics(df),
         "types": _type_statistics(df),
+        "sources": _source_statistics(df),
     }
 
 
@@ -221,10 +240,19 @@ def build_dataset_split_summary(
         },
         "dataset": {
             "row_count": int(total_row_count),
-            "group_count": int(source["template_group_id"].nunique()),
+            "group_count": int(
+                source["template_group_id"].nunique()
+            ),
             "labels": _label_statistics(source),
             "types": _type_statistics(source),
-        },
+            "sources": _source_statistics(source),
+            "unresolved_other_phishing_count": int(
+                (
+                    (source["label"] == "phishing")
+                    & (source["type"] == "기타피싱")
+                ).sum()
+            ),
+        },  
         "splits": {
             "train": {
                 **_split_statistics(splits.train),
@@ -264,6 +292,10 @@ def render_dataset_split_markdown(
         (f"- Dataset fingerprint: `{summary['dataset_fingerprint']}`"),
         (f"- Total rows: {summary['dataset']['row_count']}"),
         (f"- Template groups: {summary['dataset']['group_count']}"),
+        (
+            "- Unresolved other phishing rows: "
+            f"{summary['dataset']['unresolved_other_phishing_count']}"
+        ),
         "",
         "## Configuration",
         "",
@@ -340,6 +372,24 @@ def render_dataset_split_markdown(
             )
 
         lines.append("")
+
+    lines.extend(
+        [
+            "## Source Distribution",
+            "",
+            "| Source | Count | Ratio |",
+            "|---|---:|---:|",
+        ]
+    )
+
+    for source, statistics in summary["dataset"]["sources"].items():
+        escaped_source = source.replace("|", "\\|")
+        lines.append(
+            f"| {escaped_source} | {statistics['count']} "
+            f"| {statistics['ratio']:.2%} |"
+        )
+
+    lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
 

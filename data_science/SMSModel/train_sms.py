@@ -32,8 +32,23 @@ from data_science.SMSModel.template_grouping import (
     TemplateGroupingConfig,
     prepare_template_groups,
 )
+from data_science.SMSModel.data_quality import (
+    validate_sms_dataset,
+)
 
 warnings.filterwarnings("ignore")
+
+ALLOWED_DATA_SOURCES = {
+    "original",
+    "user_added",
+    "synthetic_new_holdout",
+    "synthetic_fp_stress",
+    "synthetic_fp_stress_train",
+    "reviewed_reclassification_v2",
+    "public_phishing_v2",
+    "synthetic_diversity_v2",
+    "synthetic_hard_negative_v2",
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -47,7 +62,7 @@ DATA_PATH = (
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v1.csv"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v2.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"
@@ -126,6 +141,11 @@ def build_dataset_split_config() -> DatasetSplitConfig:
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """CSV를 읽고 학습용 데이터와 별도 holdout 데이터를 반환"""
     df = pd.read_csv(path)
+
+    df = validate_sms_dataset(
+        df,
+        allowed_sources=ALLOWED_DATA_SOURCES,
+    )
 
     required_columns = {
         "text",
