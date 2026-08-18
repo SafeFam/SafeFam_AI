@@ -1,4 +1,4 @@
-"""Stacking 학습 스크립트의 임계값 선택 및 artifact 저장 테스트."""
+"""Stacking 학습 스크립트의 임계값 선택 및 artifact 저장 테스트"""
 
 from __future__ import annotations
 
