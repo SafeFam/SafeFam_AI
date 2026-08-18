@@ -28,9 +28,6 @@
         "text_fingerprint": "a5bd16e9e8c638a07feac44cc91021ad0b5b5a56523b4f7a52050065625e0907"
       },
       {
-        "text_fingerprint": "f9cf49989bd91792719aa506fa701db83db29c35863fcb7e555ca854d14ba637"
-      },
-      {
         "text_fingerprint": "7e3aabb364ce57866b881da6ef7dd6b953268e05267a323c72a50799df39731f"
       },
       {
@@ -41,12 +38,6 @@
       },
       {
         "text_fingerprint": "3ffe7351bbaae187b623b7d3f36883ce33291d3bd21776a744e1ce49899884be"
-      },
-      {
-        "text_fingerprint": "b7d667bc51f5c9fe97cb257c1e513e5f019c61be26f6771dfe8843883a5bf29d"
-      },
-      {
-        "text_fingerprint": "1b538383bd482eac3211546f3eb77fe3340f71e1a507f1727bbcd7c5554e4ba7"
       },
       {
         "text_fingerprint": "4500e37aa1d42963021b06531c284b87f20d0c6f558084f04a52a9a34fabb42c"
@@ -66,9 +57,9 @@
     ]
   },
   "latency_stats": {
-    "mean": 6.667278632478633,
-    "p50": 6.5228,
-    "p95": 8.33592,
+    "mean": 7.699250427350429,
+    "p50": 7.5386,
+    "p95": 10.65416,
     "sample_count": 117
   },
   "normal_by_type": {
@@ -103,14 +94,14 @@
       "true_negative": 1
     },
     "정상광고프로모션": {
-      "false_positive": 8,
-      "false_positive_rate": 1.0,
+      "false_positive": 5,
+      "false_positive_rate": 0.625,
       "false_positive_rate_95_ci": {
-        "lower": 0.6755843804891231,
-        "upper": 1.0
+        "lower": 0.30573785458380187,
+        "upper": 0.863158240538479
       },
       "sample_count": 8,
-      "true_negative": 0
+      "true_negative": 3
     },
     "정상금융알림": {
       "false_positive": 1,
@@ -164,16 +155,16 @@
     }
   },
   "overall_metrics": {
-    "accuracy": 0.8290598290598291,
+    "accuracy": 0.8547008547008547,
     "confusion_matrix": {
       "false_negative": 4,
-      "false_positive": 16,
-      "true_negative": 42,
+      "false_positive": 13,
+      "true_negative": 45,
       "true_positive": 55
     },
-    "f1_score": 0.846153846153846,
-    "f2_score": 0.8957654723127035,
-    "precision": 0.7746478873239436,
+    "f1_score": 0.8661417322834646,
+    "f2_score": 0.9046052631578947,
+    "precision": 0.8088235294117647,
     "recall": 0.9322033898305084
   },
   "phishing_by_type": {
@@ -339,19 +330,19 @@
   },
   "schema_version": 1,
   "shared_metrics": {
-    "accuracy": 0.8290598290598291,
-    "f1": 0.8461538461538461,
-    "f2": 0.8957654723127035,
+    "accuracy": 0.8547008547008547,
+    "f1": 0.8661417322834646,
+    "f2": 0.9046052631578947,
     "false_negative": 4,
-    "false_positive": 16,
-    "precision": 0.7746478873239436,
+    "false_positive": 13,
+    "precision": 0.8088235294117647,
     "recall": 0.9322033898305084,
     "sample_count": 117,
-    "true_negative": 42,
+    "true_negative": 45,
     "true_positive": 55
   },
   "split": "test",
-  "threshold": 0.3038914498086088,
+  "threshold": 0.30448047609435736,
   "unavailable_models": [],
   "unique_template_metrics": {
     "accuracy": 0.8433734939759037,
