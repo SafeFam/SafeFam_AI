@@ -1,5 +1,4 @@
-"""그룹 보존과 클래스 비율 최적화를 적용한 데이터 분할"""
-
+"""그룹 보존과 클래스·유형 비율 최적화를 적용한 데이터 분할"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -20,18 +19,35 @@ class DatasetSplits:
     test: pd.DataFrame
 
 
-def _label_distribution(
+def _column_distribution(
     df: pd.DataFrame,
     *,
-    label_column: str,
-    labels: list[str],
+    column: str,
+    values: list[str],
 ) -> np.ndarray:
+    """지정한 컬럼의 값 비율을 values 순서대로 반환"""
     if df.empty:
-        return np.zeros(len(labels), dtype=float)
-    proportions = df[label_column].value_counts(normalize=True)
+        return np.zeros(len(values), dtype=float)
+    proportions = df[column].astype(str).value_counts(normalize=True)
     return np.asarray(
-        [proportions.get(label, 0.0) for label in labels],
+        [proportions.get(value, 0.0) for value in values],
         dtype=float,
+    )
+
+
+def _distribution_error(
+    *,
+    selected: pd.DataFrame,
+    full_data: pd.DataFrame,
+    column: str,
+    values: list[str],
+) -> float:
+    """전체 분포와 선택된 부분 분포의 L1 거리를 반환(0~2)"""
+    return float(
+        np.abs(
+            _column_distribution(full_data, column=column, values=values)
+            - _column_distribution(selected, column=column, values=values)
+        ).sum()
     )
 
 
@@ -42,26 +58,32 @@ def _candidate_score(
     target_size: float,
     label_column: str,
     labels: list[str],
+    type_column: str | None,
+    type_values: list[str],
+    type_weight: float,
 ) -> tuple[int, float, float]:
-    """목표 행 비율과 전체 클래스 비율에 가까울수록 낮은 점수 제공"""
+    """목표 행 비율과 클래스·유형 분포에 가까울수록 낮은 점수를 반환"""
     size_error = abs((len(selected) / len(full_data)) - target_size)
-    class_error = np.abs(
-        _label_distribution(
-            full_data,
-            label_column=label_column,
-            labels=labels,
+
+    distribution_error = _distribution_error(
+        selected=selected,
+        full_data=full_data,
+        column=label_column,
+        values=labels,
+    )
+
+    # 세부 유형이 한쪽 split에만 몰리면 그 split으로 고른 threshold가 다른 split에 전이 X
+    # label 분포와 함께 유형 분포 오차도 반영
+    if type_column is not None and type_values:
+        distribution_error += type_weight * _distribution_error(
+            selected=selected,
+            full_data=full_data,
+            column=type_column,
+            values=type_values,
         )
-        - _label_distribution(
-            selected,
-            label_column=label_column,
-            labels=labels,
-        )
-    ).sum()
-    # 행 비율 오차가 1%p 이내인 후보는 같은 크기 등급으로 취급하고 클래스
-    # 분포를 먼저 비교한다. 이렇게 하면 크기는 안정적으로 유지하면서도 정확히
-    # 같은 행 수라는 이유만으로 클래스가 심하게 치우친 후보가 선택되지 않는다.
+
     size_error_bucket = int(size_error / 0.01)
-    return size_error_bucket, float(class_error), size_error
+    return size_error_bucket, distribution_error, size_error
 
 
 def _contains_all_labels(
@@ -80,16 +102,22 @@ def _select_best_group_split(
     config: DatasetSplitConfig,
     random_state_offset: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """여러 결정적 후보 중 크기와 클래스 비율이 가장 좋은 분할 선택"""
-    labels = sorted(df[config.label_column].unique())
+    """여러 결정적 후보 중 크기와 클래스·유형 비율이 가장 좋은 분할 선택"""
+    labels = sorted(df[config.label_column].astype(str).unique())
     required_labels = set(labels)
+
+    # 유형 컬럼이 설정돼 있고 실제로 존재할 때만 유형 분포를 점수에 반영
+    type_column = config.type_column
+    type_values: list[str] = []
+    if type_column is not None and type_column in df.columns:
+        type_values = sorted(df[type_column].astype(str).unique())
+    else:
+        type_column = None
+
     n_groups = df[config.group_column].nunique()
     best: tuple[pd.DataFrame, pd.DataFrame] | None = None
     best_score = (int(1e9), float("inf"), float("inf"))
 
-    # GroupShuffleSplit의 test_size는 행 비율이 아닌 그룹 개수를 뜻합니다.
-    # 불균등한 그룹에서도 행 비율 목표를 찾을 수 있도록 가능한 그룹 개수를
-    # 고르게 탐색하고 각 개수에서 결정적인 후보를 평가합니다.
     feasible_group_counts = np.arange(1, n_groups)
     candidate_group_counts = np.resize(
         feasible_group_counts,
@@ -128,6 +156,9 @@ def _select_best_group_split(
             target_size=selected_size,
             label_column=config.label_column,
             labels=labels,
+            type_column=type_column,
+            type_values=type_values,
+            type_weight=config.type_weight,
         )
         if score < best_score:
             best_score = score

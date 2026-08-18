@@ -1,5 +1,4 @@
-"""SMS train/validation/test 분할 설정."""
-
+"""SMS train/validation/test 분할 설정"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,7 +6,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class DatasetSplitConfig:
-    """그룹 보존 분할을 동일하게 재현하기 위한 불변 설정."""
+    """그룹 보존 분할을 동일하게 재현하기 위한 불변 설정"""
 
     train_size: float = 0.70
     val_size: float = 0.15
@@ -17,6 +16,11 @@ class DatasetSplitConfig:
     group_column: str = "template_group_id"
     label_column: str = "label"
     fingerprint_column: str = "text_fingerprint"
+
+    type_column: str | None = "type"
+
+    # 후보 점수에서 유형 분포 오차에 곱할 가중치
+    type_weight: float = 1.0
 
     def __post_init__(self) -> None:
         total_size = self.train_size + self.val_size + self.test_size
@@ -31,3 +35,5 @@ class DatasetSplitConfig:
                 raise ValueError(f"{name} must be between 0 and 1")
         if self.candidate_count <= 0:
             raise ValueError("candidate_count must be greater than 0")
+        if self.type_weight < 0.0:
+            raise ValueError("type_weight must not be negative")
