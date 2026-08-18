@@ -27,6 +27,7 @@ def make_result(model_name: str, threshold: float) -> ModelEvaluationResult:
         ),
         test_metrics=ClassificationMetrics(
             sample_count=2,
+            accuracy=1.0,
             precision=1.0,
             recall=1.0,
             f1=1.0,

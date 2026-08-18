@@ -1,0 +1,367 @@
+{
+  "error_samples": {
+    "false_negatives": [],
+    "false_positives": [
+      {
+        "text_fingerprint": "6b818d1bcc889de492158cbb27cc6fead5196d4d92e194550c0617b9ea94c9ce"
+      },
+      {
+        "text_fingerprint": "af129827c3283f2218baef8752bf17dc48159f820b6793985bfcd7c83213f83b"
+      },
+      {
+        "text_fingerprint": "a8eea65ccc27637fe47071d1d32ffa49d7c3aa0dc00d7d7c6f339435979650c6"
+      },
+      {
+        "text_fingerprint": "78690649e236da13080f383a4fd0f81b4fbeabb9e9a2684e751679c854473a20"
+      },
+      {
+        "text_fingerprint": "40effa08f76d5f67a25a0c0369c47e88bc4358eafe60b72c8314f986459ecb8d"
+      },
+      {
+        "text_fingerprint": "f3162cc2b253bc20515e6f75b914ce103f69f9ed6dd5b2cf7aecbc8965368de7"
+      },
+      {
+        "text_fingerprint": "60aced738636c31917e9dc613957ed3c0d5963a2aa417b94ab6cf430610891b1"
+      },
+      {
+        "text_fingerprint": "c2cfdee4aca9f5222c5fea8cd933dd08fa4033d474d81a662e3c4d9c6d3e1a10"
+      },
+      {
+        "text_fingerprint": "c54dfa3b24a493b38a0758d1e2081e0113661d38f18c2a361e86c4cc908e708d"
+      },
+      {
+        "text_fingerprint": "1c63e295924146345469a5bdb7bea4e2c651e4be050af1f4ee241fc2b71436c2"
+      },
+      {
+        "text_fingerprint": "340643ac085f401dad843c15572b1f5e9d150c89a13a0c90a4002bd8437eb127"
+      },
+      {
+        "text_fingerprint": "c2c90aec6b8691fa77c0cd637c92c75fc4023ce987e471fbded32df5a8e1dcd4"
+      },
+      {
+        "text_fingerprint": "fded9f3fbe3d5f29002813c835ac6a0e6a88033e9785cf5ac7424f4df3eb0711"
+      },
+      {
+        "text_fingerprint": "740f666aa55ba32be0a4497f55b68d7252b36af6a7f6b007a5dba150c343a141"
+      },
+      {
+        "text_fingerprint": "375356d6803c13f4be91908f8220b7f56b370ead5a04b446d0ef0e1c3945fc3f"
+      },
+      {
+        "text_fingerprint": "a5d44e0c58b8a7405592371d3269b95bcccbaafb9bd7a010294c4561f14867c8"
+      },
+      {
+        "text_fingerprint": "49225758d75143d92c6efaa5acf0b58588bf8ae9fb51d7804b4f299f4ea7f9f7"
+      },
+      {
+        "text_fingerprint": "77278a2e5683eafd5419c0275eb61bd2678328fca4fd4d5934aed15d50930fca"
+      },
+      {
+        "text_fingerprint": "9e7f78fa2d245016e03d4b9c2736cced573cd253da46f1a57aee500b9218b419"
+      },
+      {
+        "text_fingerprint": "46c8caa872762ad9a7ed9a0205217fe0744867fc655e350a89a1d1e3935983eb"
+      },
+      {
+        "text_fingerprint": "c93f5a36821c5c2b8da55869897655034cdcf78c17cb2d7a4a935933f67214a3"
+      },
+      {
+        "text_fingerprint": "6ad99290e53acba1f66ae22a8ebe5fc9f585d25f892bf4aea5d7e88c372d656d"
+      },
+      {
+        "text_fingerprint": "8c30ccaf935e05203e168e08ed304704a908a7f91e5a6217d1596e6ccaa91ed1"
+      },
+      {
+        "text_fingerprint": "a7fecec3955d55a85934f68d4184eec4933040aa80d8e9b9075653c307f7cbe6"
+      },
+      {
+        "text_fingerprint": "03d59bf1111617477a3cd283de6c9340b5358b90a6e6b95cebe01a106157b724"
+      },
+      {
+        "text_fingerprint": "4179f54dfe26365994664664a8621684d1b47818b3588d81bd890449acf218ee"
+      },
+      {
+        "text_fingerprint": "67d4419ebf73e190f9269eba71b37e3c3fba296655405d8c0b0cb44facc2f37e"
+      },
+      {
+        "text_fingerprint": "5807b7d3d2784730e3fa2498d6a5602c9d394b091d0a0aa1df3c5e9323906236"
+      },
+      {
+        "text_fingerprint": "fe00ed6c2ed234e40809cba49171dea1633ec3f89d7ac15244c5d481c6e52c0a"
+      },
+      {
+        "text_fingerprint": "534c8fd679825d3fe1f006f271adb420465ef772ba31a9bcb5d8d10f0c8a2db7"
+      },
+      {
+        "text_fingerprint": "68b556611de433b70c7d30e8a151ed623193f44774a6a3493e14ec8333c0cd91"
+      },
+      {
+        "text_fingerprint": "70fc743b6c40fb7f712a1b968a2aed72b0b2086796ed236f2b955dce428807e0"
+      },
+      {
+        "text_fingerprint": "e6cd21c9e01cb99e84865edc5b5bab1377bb48a1feb147298d81fae4c750e12c"
+      },
+      {
+        "text_fingerprint": "ce40e5bed2be31fba6fb7e7513151e28f23bb6e0ca951b9844d4e5247c25c083"
+      },
+      {
+        "text_fingerprint": "956f6a3f1e97884c8ba70f0a41b6dc23cc8505b5d5a6c9fe8fbf50b55938194c"
+      },
+      {
+        "text_fingerprint": "dc54db46b6aaee174c4010a54d14d160df29dae43373528c18d19f0636d7aefc"
+      },
+      {
+        "text_fingerprint": "fca1b9cc71bff612b9877ae03e79de1cfa22ab88fd8ab3958d9f2daac22e5cae"
+      },
+      {
+        "text_fingerprint": "e72457ee803b744d5a6495adf968ad93ff7276649b8271ac5e6d2fcd8fff2641"
+      },
+      {
+        "text_fingerprint": "c1815dc3d94d6cef446b868eb215dbbad095704e7ac9af4d852b0e1a32ee36d4"
+      },
+      {
+        "text_fingerprint": "fa9a518b8e529a6cf3ba22c869764ace7ba493fe109251e79b61ced209c73e52"
+      },
+      {
+        "text_fingerprint": "5f3a11655d8186c91d23c63b75028732eae5a0a84079196553c3050b3f5d713f"
+      },
+      {
+        "text_fingerprint": "0a3f686bd31714f7740c7f91e4761024e351d600bb4fb125251ded429f08ddd2"
+      },
+      {
+        "text_fingerprint": "426bf67c21cfb764413d9498ec94efe6f94c07c4999a4c5bd9591e63f5b263c4"
+      },
+      {
+        "text_fingerprint": "c452cc059cd868f8971aae413710acde6b4c8177767bb8496694174d800d8d02"
+      },
+      {
+        "text_fingerprint": "5c592f4b179588f01e19e4d2f9abf254bd4367fd16279f0d30d85082ada24294"
+      },
+      {
+        "text_fingerprint": "18d20d2efa8df4580a1cc07cc785ed24ce1ca69d60f38575927c95940e05006f"
+      },
+      {
+        "text_fingerprint": "14084b8ddfb7377e940b580b01b54edb58c92d0c8e7d1e19d5f671affde41a79"
+      },
+      {
+        "text_fingerprint": "f5632aa15a179afb0a9bda37a4f4872d0507a8d1cb5b9b194313f5b0e4164453"
+      },
+      {
+        "text_fingerprint": "061121ea6e5a60f9512b6ff0fee3292a4adf8ed5bf1e7c3b9edd4aec854eee0c"
+      },
+      {
+        "text_fingerprint": "cfca46486c6a987552b9660e08f053a59082144d93d29e50375917b7f633c3d9"
+      }
+    ]
+  },
+  "latency_stats": {
+    "mean": 7.676674264705883,
+    "p50": 6.8557,
+    "p95": 11.998525,
+    "sample_count": 136
+  },
+  "normal_by_type": {
+    "기타정상": {
+      "false_positive": 35,
+      "false_positive_rate": 0.9722222222222222,
+      "false_positive_rate_95_ci": {
+        "lower": 0.8582996626496918,
+        "upper": 0.9950797197044302
+      },
+      "sample_count": 36,
+      "true_negative": 1
+    },
+    "일상대화": {
+      "false_positive": 22,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.8513404742740388,
+        "upper": 1.0
+      },
+      "sample_count": 22,
+      "true_negative": 0
+    },
+    "정상공공기관알림": {
+      "false_positive": 1,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_negative": 0
+    },
+    "정상포인트소멸알림": {
+      "false_positive": 1,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_negative": 0
+    }
+  },
+  "overall_metrics": {
+    "accuracy": 0.5661764705882353,
+    "confusion_matrix": {
+      "false_negative": 0,
+      "false_positive": 59,
+      "true_negative": 1,
+      "true_positive": 76
+    },
+    "f1_score": 0.7203791469194314,
+    "f2_score": 0.8656036446469249,
+    "precision": 0.562962962962963,
+    "recall": 1.0
+  },
+  "phishing_by_type": {
+    "경조사사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.7008472464490407,
+        "upper": 1.0
+      },
+      "sample_count": 9,
+      "true_positive": 9
+    },
+    "계정정지본인인증유도": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "금융기관사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.8241154494176252,
+        "upper": 1.0
+      },
+      "sample_count": 18,
+      "true_positive": 18
+    },
+    "대출사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "악성링크앱설치유도": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "이벤트당첨사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.8241154494176252,
+        "upper": 1.0
+      },
+      "sample_count": 18,
+      "true_positive": 18
+    },
+    "정부공공기관사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.43849391955098227,
+        "upper": 1.0
+      },
+      "sample_count": 3,
+      "true_positive": 3
+    },
+    "중고거래사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "채용부업사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.7961107336956521,
+        "upper": 1.0
+      },
+      "sample_count": 15,
+      "true_positive": 15
+    },
+    "택배배송사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.6755843804891231,
+        "upper": 1.0
+      },
+      "sample_count": 8,
+      "true_positive": 8
+    },
+    "투자리딩방사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    }
+  },
+  "sample_summary": {
+    "failure_counts": {
+      "engine_failure": 0,
+      "exception": 0,
+      "missing_result": 0
+    },
+    "successful_samples": 136,
+    "total_samples": 136
+  },
+  "schema_version": 1,
+  "shared_metrics": {
+    "accuracy": 0.5661764705882353,
+    "f1": 0.7203791469194313,
+    "f2": 0.8656036446469249,
+    "false_negative": 0,
+    "false_positive": 59,
+    "precision": 0.562962962962963,
+    "recall": 1.0,
+    "sample_count": 136,
+    "true_negative": 1,
+    "true_positive": 76
+  },
+  "split": "test",
+  "threshold": 0.014429172671629664,
+  "unavailable_models": [],
+  "unique_template_metrics": {
+    "accuracy": 0.4888888888888889,
+    "f1_score": 0.6515151515151515,
+    "f2_score": 0.8237547892720305,
+    "false_negative": 0,
+    "false_positive": 46,
+    "precision": 0.48314606741573035,
+    "recall": 1.0,
+    "sample_count": 90,
+    "true_negative": 1,
+    "true_positive": 43
+  }
+}
