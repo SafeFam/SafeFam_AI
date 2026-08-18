@@ -304,6 +304,7 @@ def test_saved_report_keeps_only_fingerprints(tmp_path: Path) -> None:
         threshold=0.5,
         unavailable_models=(),
         output_directory=tmp_path,
+        artifact_version="v3",
     )
 
     false_positives = report["error_samples"]["false_positives"]

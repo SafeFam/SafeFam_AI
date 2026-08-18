@@ -1,0 +1,22 @@
+{
+  "after_type_distribution": {
+    "기타정상": 303,
+    "일상대화": 173,
+    "정상공공기관알림": 33,
+    "정상광고프로모션": 171,
+    "정상금융알림": 73,
+    "정상인증알림": 7,
+    "정상카드결제알림": 33,
+    "정상택배배송안내": 107,
+    "정상포인트소멸알림": 24
+  },
+  "approved_group_count": 305,
+  "before_type_distribution": {
+    "기타정상": 751,
+    "일상대화": 173
+  },
+  "changed_row_count": 924,
+  "matched_unique_fingerprint_count": 392,
+  "schema_version": 1,
+  "unchanged_binary_label_count": 3002
+}

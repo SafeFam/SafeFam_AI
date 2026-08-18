@@ -35,7 +35,7 @@ from data_science.SMSModel.train_sms import (
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
 
-STACKING_ARTIFACT_VERSION = "v2"
+STACKING_ARTIFACT_VERSION = "v3"
 
 STACKING_ARTIFACT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
@@ -55,28 +55,27 @@ STACKING_METADATA_PATH = (
 STACKING_REPORT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
     / "reports"
-    / "stacking_v2"
+    / f"stacking_{STACKING_ARTIFACT_VERSION}"
 )
 
 TARGET_RECALL = 0.95
 EXPECTED_DATASET_FINGERPRINT = (
-    "46c1c9393d30f25ab03f0f7b6e85e5a"
-    "8706f682f9bf2b68c872567b7eb5256f2"
+    "46aa236b5c70453bc5b5e91664f4a43"
+    "d499fffd9a3f103eec9178a30aab85f22"
 )
 
-# 실행 가드와 metadata가 같은 값을 참조하도록 분할 크기를 한 곳에서 정의합니다.
-EXPECTED_TOTAL_CSV_ROWS = 3002
-EXPECTED_TRAINING_POOL_ROWS = 885
-EXPECTED_HOLDOUT_ROWS = 210
+EXPECTED_TOTAL_CSV_ROWS = 3078
+EXPECTED_TRAINING_POOL_ROWS = 804
+EXPECTED_HOLDOUT_ROWS = 280
 EXPECTED_SPLIT_COUNTS = {
-    "train": 623,
-    "validation": 126,
-    "test": 136,
+    "train": 565,
+    "validation": 122,
+    "test": 117,
 }
 
 
 def collect_library_versions() -> dict[str, str]:
-    """재현성 확인에 필요한 실행 환경과 라이브러리 버전을 반환합니다."""
+    """재현성 확인에 필요한 실행 환경과 라이브러리 버전을 반환"""
     packages = {
         "joblib": "joblib",
         "numpy": "numpy",
@@ -109,7 +108,7 @@ def calculate_sha256(path: Path) -> str:
 
 
 def calculate_json_sha256(value: dict[str, object]) -> str:
-    """정렬된 JSON 설정의 결정적인 SHA-256을 반환합니다."""
+    """정렬된 JSON 설정의 결정적인 SHA-256을 반환"""
     serialized = json.dumps(
         value,
         ensure_ascii=False,
@@ -120,7 +119,7 @@ def calculate_json_sha256(value: dict[str, object]) -> str:
 
 
 def validate_dataset_fingerprint() -> str:
-    """#77에서 확정한 데이터 fingerprint와 split 검증 상태를 확인합니다."""
+    """확정한 데이터 fingerprint와 split 검증 상태를 확인"""
     if not DATASET_SPLIT_JSON_REPORT_PATH.is_file():
         raise FileNotFoundError(
             "dataset split summary is required: "
@@ -214,8 +213,6 @@ def select_validation_threshold(
             best = candidate
 
     if best is None:
-        # 목표 Recall을 만족하지 못하면 validation에서 Recall이
-        # 최대가 되는 보수적인 최저 임계값을 사용
         threshold = float(np.min(candidates))
         predictions = (probability_array >= threshold).astype(int)
 
@@ -258,11 +255,7 @@ def save_artifact(
     verification_df: pd.DataFrame | None = None,
     expected_probabilities: np.ndarray | None = None,
 ) -> None:
-    """모델과 비민감 metadata를 저장하고 재로드 검증
-
-    dataset_counts와 split_counts는 이번 실행에서 실제로 관측한 행 수여야 합니다.
-    상수를 그대로 기록하면 검증되지 않은 값이 metadata에 남을 수 있습니다.
-    """
+    """모델과 비민감 metadata를 저장하고 재로드 검증"""
 
     missing_dataset_keys = {
         "total_csv_rows",
@@ -371,7 +364,7 @@ def save_artifact(
             "test_used_for_tuning": False,
             "random_state": 42,
         },
-        "split_manifest": "sms_split_v2.csv",
+        "split_manifest": "sms_split_v3.csv",
         "split_manifest_sha256": calculate_sha256(SPLIT_MANIFEST_PATH),
         "model_sha256": calculate_sha256(
             STACKING_MODEL_PATH
@@ -397,7 +390,7 @@ def save_artifact(
     )
 
 def train_stacking(*, overwrite_artifacts: bool) -> None:
-    """Stacking v2를 학습하고 고정된 test split을 한 번 평가"""
+    """Stacking artifact를 학습하고 고정된 test split을 한 번 평가"""
 
     # committed v2 manifest가 없으면 실행 중단
     if not SPLIT_MANIFEST_PATH.is_file():
@@ -405,9 +398,9 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
             f"split manifest is required: {SPLIT_MANIFEST_PATH}"
         )
 
-    if SPLIT_MANIFEST_PATH.name != "sms_split_v2.csv":
+    if SPLIT_MANIFEST_PATH.name != "sms_split_v3.csv":
         raise ValueError(
-            "Stacking v2 must use sms_split_v2.csv"
+            "Stacking must use sms_split_v3.csv"
         )
 
     # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리
@@ -440,8 +433,6 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         create_manifest=False,
     )
 
-    # split_data가 split 보고서를 다시 생성하므로, artifact에 기록할 fingerprint가
-    # 이번 실행 결과와 일치하는지 저장 직전에 한 번 더 확인합니다.
     validate_dataset_fingerprint()
 
     dataset_counts = {
@@ -490,7 +481,6 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         )
     )
 
-    # 이 시점부터 threshold는 변경하면 안 됨
     classifier.set_threshold(threshold)
 
     # 고정된 threshold로 test 136건을 단 한 번 평가
@@ -533,9 +523,10 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         threshold=threshold,
         unavailable_models=test_unavailable,
         output_directory=STACKING_REPORT_DIRECTORY,
+        artifact_version=STACKING_ARTIFACT_VERSION,
     )
 
-    print("[Stacking v2] training completed")
+    print(f"[Stacking {STACKING_ARTIFACT_VERSION}] training completed")
     print(f"  train={len(splits.train)}")
     print(f"  validation={len(splits.validation)}")
     print(f"  test={len(splits.test)}")

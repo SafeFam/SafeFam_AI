@@ -94,7 +94,10 @@ def test_audit_report_tracks_raw_and_group_counts() -> None:
         annotations,
     )
 
-    assert report["raw_other_phishing_count"] == 4
+    assert report["schema_version"] == 3
+    assert report["target_label"] == "phishing"
+    assert report["current_types"] == ["기타피싱"]
+    assert report["raw_target_count"] == 4
     assert report["annotation_group_count"] == len(
         annotations
     )

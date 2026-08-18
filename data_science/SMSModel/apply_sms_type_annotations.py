@@ -10,6 +10,7 @@ import pandas as pd
 
 from app.analysis.text.preprocessing import normalize_text
 from data_science.SMSModel.data_quality import (
+    NORMAL_MESSAGE_TYPES,
     PHISHING_MESSAGE_TYPES,
     normalize_message_types,
 )
@@ -75,8 +76,20 @@ def _split_fingerprints(
     return fingerprints
 
 
+def allowed_types_for_label(target_label: str) -> frozenset[str]:
+    """검수 대상 label에서 proposed_type으로 허용되는 유형 집합"""
+
+    if target_label == "normal":
+        return NORMAL_MESSAGE_TYPES
+
+    return PHISHING_MESSAGE_TYPES
+
+
 def validate_approved_annotations(
     annotations: pd.DataFrame,
+    *,
+    # 기본값은 #77의 기타피싱 검수와 동일하게 유지한다.
+    allowed_types: frozenset[str] = PHISHING_MESSAGE_TYPES,
 ) -> pd.DataFrame:
     """APPROVED annotation의 필수값과 중복을 검증"""
 
@@ -118,7 +131,7 @@ def validate_approved_annotations(
 
     unsupported = (
         set(approved["proposed_type"].astype(str))
-        - PHISHING_MESSAGE_TYPES
+        - allowed_types
     )
 
     if unsupported:
@@ -160,10 +173,17 @@ def validate_approved_annotations(
 def apply_annotations(
     dataset: pd.DataFrame,
     annotations: pd.DataFrame,
+    *,
+    # 기본값은 #77의 기타피싱 검수와 동일하게 유지한다.
+    target_label: str = "phishing",
+    current_types: tuple[str, ...] = ("기타피싱",),
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """승인된 그룹을 원본 행에 적용하고 변경 보고서를 반환"""
 
-    approved = validate_approved_annotations(annotations)
+    approved = validate_approved_annotations(
+        annotations,
+        allowed_types=allowed_types_for_label(target_label),
+    )
     result = normalize_message_types(dataset)
 
     original_labels = result["label"].copy()
@@ -182,14 +202,17 @@ def apply_annotations(
 
     target_mask = (
         result["__fingerprint"].isin(fingerprint_to_type)
-        & (result["type"] == "기타피싱")
+        & (result["type"].isin(current_types))
     )
 
     if not target_mask.any():
         raise ValueError("approved annotations do not match dataset rows")
 
-    if (result.loc[target_mask, "label"] != "phishing").any():
-        raise ValueError("annotations must not modify normal rows")
+    # 검수 대상 label 밖의 행이 수정되면 이진 정답이 오염되므로 차단한다.
+    if (result.loc[target_mask, "label"] != target_label).any():
+        raise ValueError(
+            f"annotations must only modify rows labelled {target_label}"
+        )
 
     before_types = (
         result.loc[target_mask, "type"].astype(str).value_counts().to_dict()
@@ -211,7 +234,7 @@ def apply_annotations(
     already_resolved_fingerprints = set(
         result.loc[
             result["__fingerprint"].isin(fingerprint_to_type)
-            & (result["type"] != "기타피싱"),
+            & (~result["type"].isin(current_types)),
             "__fingerprint",
         ].astype(str)
     )
@@ -281,6 +304,18 @@ def main() -> None:
         "--overwrite",
         action="store_true",
     )
+    parser.add_argument(
+        "--label",
+        default="phishing",
+        choices=("phishing", "normal"),
+        help="검수 대상 label",
+    )
+    parser.add_argument(
+        "--current-type",
+        nargs="+",
+        default=["기타피싱"],
+        help="검수 대상 type (여러 개 지정 가능)",
+    )
     arguments = parser.parse_args()
 
     output_path = (
@@ -303,6 +338,8 @@ def main() -> None:
     updated, report = apply_annotations(
         dataset,
         annotations,
+        target_label=arguments.label,
+        current_types=tuple(arguments.current_type),
     )
 
     output_path.parent.mkdir(

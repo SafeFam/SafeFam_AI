@@ -17,7 +17,11 @@ from data_science.SMSModel.evaluation.metrics import (
     calculate_classification_metrics,
 )
 from data_science.SMSModel.template_grouping import create_text_fingerprint
-from data_science.SMSModel.train_sms import DATA_PATH, load_data
+from data_science.SMSModel.train_sms import (
+    DATA_PATH,
+    load_data,
+    select_real_holdout,
+)
 
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
@@ -34,7 +38,8 @@ DEFAULT_MODEL_PATHS = (
     DEFAULT_V1_MODEL_PATH,
     DEFAULT_V2_MODEL_PATH,
 )
-EXPECTED_HOLDOUT_COUNT = 210
+# 주 평가셋은 실제 문자로만 구성한다. 합성 스트레스 셋은 보조 지표로 따로 본다.
+EXPECTED_HOLDOUT_COUNT = 157
 
 
 def is_default_artifact_path(model_path: Path) -> bool:
@@ -197,7 +202,8 @@ def load_holdout(holdout_path: Path | None = None) -> pd.DataFrame:
     """운영 데이터 CSV에서 학습에 제외된 공통 holdout을 복원합니다."""
     training_pool: pd.DataFrame | None = None
     if holdout_path is None:
-        training_pool, holdout_df = load_data(DATA_PATH)
+        training_pool, full_holdout = load_data(DATA_PATH)
+        holdout_df = select_real_holdout(full_holdout)
     else:
         holdout_df = pd.read_csv(holdout_path)
 

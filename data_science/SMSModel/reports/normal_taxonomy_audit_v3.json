@@ -1,0 +1,35 @@
+{
+  "annotation_group_count": 305,
+  "covered_raw_row_count": 924,
+  "current_types": [
+    "기타정상",
+    "일상대화"
+  ],
+  "dataset_row_count": 3002,
+  "raw_target_count": 924,
+  "review_status": {
+    "PENDING": 305
+  },
+  "schema_version": 3,
+  "source_distribution": {
+    "original": 2734,
+    "synthetic_diversity_v2": 14,
+    "synthetic_fp_stress": 105,
+    "synthetic_fp_stress_train": 20,
+    "synthetic_hard_negative_v2": 12,
+    "synthetic_new_holdout": 105,
+    "user_added": 12
+  },
+  "suggested_type_distribution": {
+    "기타정상": 242,
+    "정상공공기관알림": 2,
+    "정상광고프로모션": 19,
+    "정상금융알림": 12,
+    "정상인증알림": 6,
+    "정상카드결제알림": 1,
+    "정상택배배송안내": 22,
+    "정상포인트소멸알림": 1
+  },
+  "target_label": "normal",
+  "unique_target_count": 392
+}

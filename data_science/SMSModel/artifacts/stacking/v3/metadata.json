@@ -1,0 +1,72 @@
+{
+  "artifact_version": "v3",
+  "created_at": "2026-08-18T06:07:16.622322+00:00",
+  "dataset": {
+    "dataset_fingerprint": "46aa236b5c70453bc5b5e91664f4a43d499fffd9a3f103eec9178a30aab85f22",
+    "holdout_rows": 280,
+    "total_csv_rows": 3078,
+    "training_pool_rows": 804
+  },
+  "dataset_path": "Data/SMSData/phishing_total_dataset_reclassified.csv",
+  "library_versions": {
+    "joblib": "1.5.3",
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "python": "3.13.14",
+    "scikit_learn": "1.8.0",
+    "scipy": "1.18.0"
+  },
+  "model": {
+    "base_models": [
+      "naive_bayes",
+      "logistic_regression",
+      "linear_svm"
+    ],
+    "meta_classifier": "LogisticRegression",
+    "meta_feature_names": [
+      "naive_bayes_score",
+      "logistic_regression_score",
+      "linear_svm_score",
+      "has_url",
+      "has_short_url",
+      "has_phone",
+      "has_account",
+      "has_card",
+      "has_amount",
+      "has_web_tag",
+      "has_urgency",
+      "has_transfer_request",
+      "has_personal_info_request",
+      "has_link_action",
+      "is_long_text"
+    ],
+    "model_name": "stacking_phishing_classifier",
+    "oof_splits": 5,
+    "random_state": 42,
+    "threshold": 0.30448047609435736
+  },
+  "model_configuration_sha256": "702b42d87ebbecea9dab08a809a1a38d324a4653a44c7e8e98d095e0431159b4",
+  "model_sha256": "335ad70ab86b59fc55581e08060f70bc489ec5c1065c13c970ff3b87e717d481",
+  "schema_version": 2,
+  "split_manifest": "sms_split_v3.csv",
+  "split_manifest_sha256": "459c24d86bc73503147d8fbe0844b30ee985a0b2a1e8d4d3981510a124037d2a",
+  "splits": {
+    "test": 117,
+    "train": 565,
+    "validation": 122
+  },
+  "training_policy": {
+    "final_evaluation_split": "test",
+    "holdout_used_during_training": false,
+    "random_state": 42,
+    "test_used_for_tuning": false,
+    "threshold_selection_split": "validation",
+    "training_split": "train"
+  },
+  "validation": {
+    "f2": 0.9061488673139159,
+    "recall": 0.9655172413793104,
+    "target_recall": 0.95,
+    "target_recall_met": true
+  }
+}
