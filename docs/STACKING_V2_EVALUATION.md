@@ -6,9 +6,10 @@
 
 Stacking v2는 피싱 Recall `1.0`을 달성했지만, 독립 Test에서 정상 메시지 60건 중 59건을 피싱으로 분류했다. 공통 holdout에서도 v1 대비 정상 오탐이 1건 감소하는 데 그쳤으며, McNemar exact test 결과 통계적으로 유의한 개선이 아니었다.
 
-**최종 결정: `REJECT`**
+**최종 결정: `REJECT_CURRENT_ARTIFACT`**
 
-- Stacking v2를 단독 운영 모델로 채택하지 않는다.
+- Stacking 단독 운영이라는 제품 방향은 유지한다.
+- 현재 Stacking v2 artifact만 단독 운영 모델로 채택하지 않는다.
 - 기존 운영 artifact를 v2 artifact로 교체하지 않는다.
 - v2 artifact는 실험 결과 재현과 후속 분석을 위해 별도 경로에 보존한다.
 - 후속 실험에서는 validation 목표를 Recall 단독으로 두지 말고 정상 메시지 오탐 제한을 함께 적용해야 한다.
@@ -157,7 +158,7 @@ Test의 136개 행은 90개 고유 template group으로 구성된다. 각 그룹
 | 정상공공기관알림 | 1 | 0 | 1 | 1.0000 | 0.2065–1.0000 |
 | 정상포인트소멸알림 | 1 | 0 | 1 | 1.0000 | 0.2065–1.0000 |
 
-특히 일상대화 22건을 모두 피싱으로 판정했다. 이는 Stacking 단독 운영을 불가능하게 만드는 핵심 실패 요인이다.
+특히 일상대화 22건을 모두 피싱으로 판정했다. 이는 현재 v2 artifact를 단독 운영에 사용할 수 없게 만드는 핵심 실패 요인이다.
 
 ### 5.5 추론시간
 
@@ -263,9 +264,9 @@ Recall을 유지했다는 사실만으로는 채택할 수 없다. 낮은 thresh
 
 ## 9. 최종 결정 및 후속 권고
 
-**Decision: `REJECT`**
+**Decision: `REJECT_CURRENT_ARTIFACT`**
 
-Stacking v2는 Issue #78의 평가 기준상 단독 운영 후보로 채택하지 않는다. v2 artifact는 운영 경로로 승격하지 않고 실험 artifact로만 보존한다.
+Stacking 단독 운영 방향은 유지한다. 다만 현재 Stacking v2 artifact는 Issue #78의 평가 기준상 운영 후보로 채택하지 않는다. v2 artifact는 운영 경로로 승격하지 않고 실험 artifact로만 보존하며, 데이터와 threshold 정책을 개선한 새 버전을 재평가한다.
 
 후속 실험에서는 다음을 권장한다.
 
