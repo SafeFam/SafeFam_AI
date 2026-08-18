@@ -106,3 +106,27 @@ def test_label_balance_is_preserved() -> None:
     for frame in (splits.train, splits.validation, splits.test):
         ratio = (frame["label"] == "phishing").mean()
         assert abs(ratio - overall_phishing_ratio) < 0.15
+
+def test_types_with_enough_groups_appear_in_every_split() -> None:
+    """template group이 3개 이상인 유형은 세 split에 모두 나타나야 한다.
+
+    group이 2개 이하인 유형은 group 무결성을 지키면서 세 split에 나눌 수 없으므로
+    검증 대상에서 제외한다.
+    """
+    dataset = make_typed_dataset()
+
+    splits = split_grouped_dataset(
+        dataset,
+        config=DatasetSplitConfig(candidate_count=200),
+    )
+
+    groups_per_type = dataset.groupby("type")["template_group_id"].nunique()
+    splittable_types = set(groups_per_type[groups_per_type >= 3].index)
+
+    for split_name, frame in (
+        ("train", splits.train),
+        ("validation", splits.validation),
+        ("test", splits.test),
+    ):
+        missing = splittable_types - set(frame["type"])
+        assert not missing, f"{split_name}에 없는 유형: {sorted(missing)}"

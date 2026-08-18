@@ -60,18 +60,19 @@ STACKING_REPORT_DIRECTORY = (
 
 TARGET_RECALL = 0.95
 EXPECTED_DATASET_FINGERPRINT = (
-    "56d2d8863a43a150097c273b0d9e942"
-    "44991a2aff533251ee01690335b5d9ad6"
+    "46aa236b5c70453bc5b5e91664f4a43"
+    "d499fffd9a3f103eec9178a30aab85f22"
 )
 
 # 실행 가드와 metadata가 같은 값을 참조하도록 분할 크기를 한 곳에서 정의합니다.
 EXPECTED_TOTAL_CSV_ROWS = 3078
-EXPECTED_TRAINING_POOL_ROWS = 961
-EXPECTED_HOLDOUT_ROWS = 210
+EXPECTED_TRAINING_POOL_ROWS = 804
+# 평가셋은 실제 문자 157건과 합성 스트레스 123건으로 구성된다.
+EXPECTED_HOLDOUT_ROWS = 280
 EXPECTED_SPLIT_COUNTS = {
-    "train": 674,
-    "validation": 147,
-    "test": 140,
+    "train": 565,
+    "validation": 122,
+    "test": 117,
 }
 
 

@@ -1,0 +1,33 @@
+{
+  "candidate_pool_unique_count": 961,
+  "holdout_ratio": 0.2,
+  "label_distribution": {
+    "normal": 190,
+    "phishing": 529
+  },
+  "minimum_type_size": 10,
+  "moved_group_count": 156,
+  "moved_row_count": 719,
+  "moved_unique_count": 157,
+  "previous_sources": {
+    "original": 717,
+    "user_added": 2
+  },
+  "type_distribution": {
+    "경조사사칭": 55,
+    "금융기관사칭": 184,
+    "기타정상": 42,
+    "이벤트당첨사칭": 66,
+    "일상대화": 34,
+    "정부공공기관사칭": 62,
+    "정상광고프로모션": 83,
+    "정상금융알림": 9,
+    "정상카드결제알림": 4,
+    "정상택배배송안내": 15,
+    "정상포인트소멸알림": 3,
+    "지인가족사칭": 50,
+    "채용부업사기": 22,
+    "택배배송사칭": 67,
+    "투자리딩방사기": 23
+  }
+}

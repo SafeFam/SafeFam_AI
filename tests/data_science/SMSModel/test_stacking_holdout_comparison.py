@@ -286,11 +286,27 @@ def test_load_holdout_excludes_training_overlap(
 ) -> None:
     """학습 pool과 겹치는 표본을 제외하고 감사 내역을 기록하는지 검증"""
     overlap_text = "겹치는 메시지"
+    # 주 평가셋은 source가 real_holdout인 실제 문자만 사용한다.
     holdout_df = pd.DataFrame(
         [
-            {"text": "정상 메시지", "label": "normal", "type": "chat"},
-            {"text": "피싱 메시지", "label": "phishing", "type": "loan"},
-            {"text": overlap_text, "label": "normal", "type": "chat"},
+            {
+                "text": "정상 메시지",
+                "label": "normal",
+                "type": "chat",
+                "source": "real_holdout",
+            },
+            {
+                "text": "피싱 메시지",
+                "label": "phishing",
+                "type": "loan",
+                "source": "real_holdout",
+            },
+            {
+                "text": overlap_text,
+                "label": "normal",
+                "type": "chat",
+                "source": "real_holdout",
+            },
         ]
     )
     training_pool = pd.DataFrame(

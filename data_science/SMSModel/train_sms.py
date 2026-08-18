@@ -30,6 +30,7 @@ from data_science.SMSModel.reporting import (
 )
 from data_science.SMSModel.template_grouping import (
     TemplateGroupingConfig,
+    add_text_fingerprints,
     prepare_template_groups,
 )
 from data_science.SMSModel.data_quality import (
@@ -50,7 +51,19 @@ ALLOWED_DATA_SOURCES = {
     "synthetic_hard_negative_v2",
     # #83에서 보강한 정상 알림 hard negative (학습 전용, 평가셋 사용 금지)
     "synthetic_normal_v3",
+    # #83에서 실제 문자로 구성한 주 평가셋
+    "real_holdout",
 }
+
+# 학습 pool에서 제외할 평가 전용 source.
+# real_holdout: 실제 문자로 구성한 주 평가셋 (#83)
+# synthetic_*: #77에서 만든 합성 셋. 주 평가셋에서 보조 스트레스 셋으로 강등.
+REAL_HOLDOUT_SOURCES = ("real_holdout",)
+SYNTHETIC_STRESS_SOURCES = (
+    "synthetic_new_holdout",
+    "synthetic_fp_stress",
+)
+HOLDOUT_SOURCES = REAL_HOLDOUT_SOURCES + SYNTHETIC_STRESS_SOURCES
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -140,6 +153,24 @@ def build_dataset_split_config() -> DatasetSplitConfig:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def select_real_holdout(holdout: pd.DataFrame) -> pd.DataFrame:
+    """실제 문자로 구성된 주 평가셋만 반환한다."""
+    if "source" not in holdout.columns:
+        return holdout.iloc[0:0]
+    return holdout[
+        holdout["source"].isin(REAL_HOLDOUT_SOURCES)
+    ].reset_index(drop=True)
+
+
+def select_synthetic_stress(holdout: pd.DataFrame) -> pd.DataFrame:
+    """합성 FP 스트레스 셋만 반환한다. 보조 지표로만 사용한다."""
+    if "source" not in holdout.columns:
+        return holdout.iloc[0:0]
+    return holdout[
+        holdout["source"].isin(SYNTHETIC_STRESS_SOURCES)
+    ].reset_index(drop=True)
+
+
 def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """CSV를 읽고 학습용 데이터와 별도 holdout 데이터를 반환"""
     df = pd.read_csv(path)
@@ -179,15 +210,19 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         pd.Series("original", index=df.index),
     )
 
-    is_new_holdout = source.isin(
-        [
-            "synthetic_new_holdout",
-            "synthetic_fp_stress",
-        ]
-    )
+    is_new_holdout = source.isin(HOLDOUT_SOURCES)
 
     # 신규 시나리오 holdout은 학습 데이터 그룹화 대상에서도 제외
     df_holdout = df[is_new_holdout].copy().reset_index(drop=True)
+
+    # 평가셋도 완전 중복을 제거한다. 같은 템플릿이 여러 번 들어가면 지표가
+    # 반복 횟수가 많은 문자 몇 건에 좌우된다.
+    df_holdout = add_text_fingerprints(df_holdout, text_column="text_norm")
+    holdout_before_deduplication = len(df_holdout)
+    df_holdout = df_holdout.drop_duplicates(
+        subset="text_fingerprint",
+        keep="first",
+    ).reset_index(drop=True)
 
     df_pool = df[~is_new_holdout].copy().reset_index(drop=True)
 
@@ -223,8 +258,12 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     print(f"[Pool] label 분포: {df_pool['label'].value_counts().to_dict()}")
 
     print(
-        f"[Holdout] 완전 신규 시나리오 {len(df_holdout)}건 분리 "
-        f"(학습에 전혀 사용 안 됨)"
+        f"[Holdout] 평가셋 {holdout_before_deduplication} → "
+        f"{len(df_holdout)}건 분리 (학습에 전혀 사용 안 됨)"
+    )
+    print(
+        "[Holdout] source 분포: "
+        f"{df_holdout['source'].value_counts().to_dict()}"
     )
 
     return df_pool, df_holdout

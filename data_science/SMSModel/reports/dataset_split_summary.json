@@ -18,520 +18,552 @@
     }
   },
   "dataset": {
-    "group_count": 676,
+    "group_count": 521,
     "labels": {
       "normal": {
-        "count": 491,
-        "ratio": 0.510926
+        "count": 417,
+        "ratio": 0.518657
       },
       "phishing": {
-        "count": 470,
-        "ratio": 0.489074
+        "count": 387,
+        "ratio": 0.481343
       }
     },
-    "row_count": 961,
+    "row_count": 804,
     "sources": {
       "original": {
-        "count": 846,
-        "ratio": 0.880333
+        "count": 691,
+        "ratio": 0.859453
       },
       "synthetic_diversity_v2": {
         "count": 14,
-        "ratio": 0.014568
+        "ratio": 0.017413
       },
       "synthetic_fp_stress_train": {
         "count": 1,
-        "ratio": 0.001041
+        "ratio": 0.001244
       },
       "synthetic_hard_negative_v2": {
         "count": 12,
-        "ratio": 0.012487
+        "ratio": 0.014925
       },
       "synthetic_normal_v3": {
         "count": 76,
-        "ratio": 0.079084
+        "ratio": 0.094527
       },
       "user_added": {
-        "count": 12,
-        "ratio": 0.012487
+        "count": 10,
+        "ratio": 0.012438
       }
     },
     "types": {
       "결제환불사칭": {
         "count": 2,
-        "ratio": 0.002081
+        "ratio": 0.002488
       },
       "경조사사칭": {
-        "count": 79,
-        "ratio": 0.082206
+        "count": 64,
+        "ratio": 0.079602
       },
       "계정정지본인인증유도": {
         "count": 3,
-        "ratio": 0.003122
+        "ratio": 0.003731
       },
       "금융기관사칭": {
-        "count": 91,
-        "ratio": 0.094693
+        "count": 73,
+        "ratio": 0.090796
       },
       "기타정상": {
-        "count": 69,
-        "ratio": 0.0718
+        "count": 56,
+        "ratio": 0.069652
       },
       "기타피싱": {
         "count": 3,
-        "ratio": 0.003122
+        "ratio": 0.003731
       },
       "대출사기": {
         "count": 5,
-        "ratio": 0.005203
+        "ratio": 0.006219
       },
       "복합피싱": {
         "count": 3,
-        "ratio": 0.003122
+        "ratio": 0.003731
       },
       "수사기관사칭": {
         "count": 1,
-        "ratio": 0.001041
+        "ratio": 0.001244
       },
       "악성링크앱설치유도": {
         "count": 4,
-        "ratio": 0.004162
+        "ratio": 0.004975
       },
       "이벤트당첨사칭": {
-        "count": 100,
-        "ratio": 0.104058
+        "count": 81,
+        "ratio": 0.100746
       },
       "일상대화": {
-        "count": 173,
-        "ratio": 0.180021
+        "count": 139,
+        "ratio": 0.172886
       },
       "정부공공기관사칭": {
-        "count": 36,
-        "ratio": 0.037461
+        "count": 29,
+        "ratio": 0.03607
       },
       "정상공공기관알림": {
         "count": 30,
-        "ratio": 0.031217
+        "ratio": 0.037313
       },
       "정상광고프로모션": {
-        "count": 42,
-        "ratio": 0.043704
+        "count": 34,
+        "ratio": 0.042289
       },
       "정상금융알림": {
-        "count": 50,
-        "ratio": 0.052029
+        "count": 44,
+        "ratio": 0.054726
       },
       "정상인증알림": {
         "count": 30,
-        "ratio": 0.031217
+        "ratio": 0.037313
       },
       "정상카드결제알림": {
-        "count": 30,
-        "ratio": 0.031217
+        "count": 26,
+        "ratio": 0.032338
       },
       "정상택배배송안내": {
-        "count": 50,
-        "ratio": 0.052029
+        "count": 44,
+        "ratio": 0.054726
       },
       "정상포인트소멸알림": {
-        "count": 17,
-        "ratio": 0.01769
+        "count": 14,
+        "ratio": 0.017413
       },
       "중고거래사기": {
         "count": 6,
-        "ratio": 0.006243
+        "ratio": 0.007463
       },
       "지인가족사칭": {
-        "count": 47,
-        "ratio": 0.048907
+        "count": 39,
+        "ratio": 0.048507
       },
       "채용부업사기": {
-        "count": 18,
-        "ratio": 0.01873
+        "count": 15,
+        "ratio": 0.018657
       },
       "택배배송사칭": {
-        "count": 47,
-        "ratio": 0.048907
+        "count": 38,
+        "ratio": 0.047264
       },
       "투자리딩방사기": {
-        "count": 25,
-        "ratio": 0.026015
+        "count": 21,
+        "ratio": 0.026119
       }
     },
     "unresolved_other_phishing_count": 3
   },
-  "dataset_fingerprint": "56d2d8863a43a150097c273b0d9e94244991a2aff533251ee01690335b5d9ad6",
+  "dataset_fingerprint": "46aa236b5c70453bc5b5e91664f4a43d499fffd9a3f103eec9178a30aab85f22",
   "schema_version": 1,
   "splits": {
     "test": {
-      "dataset_ratio": 0.145682,
-      "group_count": 99,
+      "dataset_ratio": 0.145522,
+      "group_count": 83,
       "labels": {
         "normal": {
-          "count": 74,
-          "ratio": 0.528571
+          "count": 58,
+          "ratio": 0.495726
         },
         "phishing": {
-          "count": 66,
-          "ratio": 0.471429
+          "count": 59,
+          "ratio": 0.504274
         }
       },
       "largest_group_size": 10,
-      "row_count": 140,
+      "row_count": 117,
       "sources": {
         "original": {
-          "count": 120,
-          "ratio": 0.857143
+          "count": 95,
+          "ratio": 0.811966
         },
         "synthetic_diversity_v2": {
-          "count": 1,
-          "ratio": 0.007143
-        },
-        "synthetic_fp_stress_train": {
-          "count": 1,
-          "ratio": 0.007143
+          "count": 6,
+          "ratio": 0.051282
         },
         "synthetic_hard_negative_v2": {
-          "count": 3,
-          "ratio": 0.021429
+          "count": 2,
+          "ratio": 0.017094
         },
         "synthetic_normal_v3": {
-          "count": 13,
-          "ratio": 0.092857
+          "count": 12,
+          "ratio": 0.102564
         },
         "user_added": {
           "count": 2,
-          "ratio": 0.014286
+          "ratio": 0.017094
         }
       },
       "types": {
         "결제환불사칭": {
           "count": 1,
-          "ratio": 0.007143
+          "ratio": 0.008547
         },
         "경조사사칭": {
-          "count": 8,
-          "ratio": 0.057143
+          "count": 10,
+          "ratio": 0.08547
+        },
+        "계정정지본인인증유도": {
+          "count": 1,
+          "ratio": 0.008547
         },
         "금융기관사칭": {
-          "count": 18,
-          "ratio": 0.128571
+          "count": 15,
+          "ratio": 0.128205
         },
         "기타정상": {
-          "count": 9,
-          "ratio": 0.064286
+          "count": 5,
+          "ratio": 0.042735
+        },
+        "기타피싱": {
+          "count": 1,
+          "ratio": 0.008547
         },
         "대출사기": {
           "count": 1,
-          "ratio": 0.007143
+          "ratio": 0.008547
+        },
+        "복합피싱": {
+          "count": 1,
+          "ratio": 0.008547
+        },
+        "악성링크앱설치유도": {
+          "count": 1,
+          "ratio": 0.008547
         },
         "이벤트당첨사칭": {
-          "count": 13,
-          "ratio": 0.092857
+          "count": 14,
+          "ratio": 0.119658
         },
         "일상대화": {
-          "count": 23,
-          "ratio": 0.164286
+          "count": 21,
+          "ratio": 0.179487
         },
         "정부공공기관사칭": {
-          "count": 6,
-          "ratio": 0.042857
+          "count": 4,
+          "ratio": 0.034188
         },
         "정상공공기관알림": {
           "count": 4,
-          "ratio": 0.028571
+          "ratio": 0.034188
         },
         "정상광고프로모션": {
           "count": 8,
-          "ratio": 0.057143
+          "ratio": 0.068376
         },
         "정상금융알림": {
-          "count": 6,
-          "ratio": 0.042857
+          "count": 4,
+          "ratio": 0.034188
         },
         "정상인증알림": {
           "count": 4,
-          "ratio": 0.028571
+          "ratio": 0.034188
         },
         "정상카드결제알림": {
-          "count": 8,
-          "ratio": 0.057143
+          "count": 4,
+          "ratio": 0.034188
         },
         "정상택배배송안내": {
-          "count": 7,
-          "ratio": 0.05
+          "count": 6,
+          "ratio": 0.051282
         },
         "정상포인트소멸알림": {
-          "count": 5,
-          "ratio": 0.035714
+          "count": 2,
+          "ratio": 0.017094
+        },
+        "중고거래사기": {
+          "count": 1,
+          "ratio": 0.008547
         },
         "지인가족사칭": {
-          "count": 4,
-          "ratio": 0.028571
+          "count": 1,
+          "ratio": 0.008547
+        },
+        "채용부업사기": {
+          "count": 1,
+          "ratio": 0.008547
         },
         "택배배송사칭": {
-          "count": 14,
-          "ratio": 0.1
+          "count": 6,
+          "ratio": 0.051282
         },
         "투자리딩방사기": {
           "count": 1,
-          "ratio": 0.007143
+          "ratio": 0.008547
         }
       }
     },
     "train": {
-      "dataset_ratio": 0.701353,
-      "group_count": 454,
+      "dataset_ratio": 0.702736,
+      "group_count": 358,
       "labels": {
         "normal": {
-          "count": 344,
-          "ratio": 0.510386
+          "count": 295,
+          "ratio": 0.522124
         },
         "phishing": {
-          "count": 330,
-          "ratio": 0.489614
+          "count": 270,
+          "ratio": 0.477876
         }
       },
       "largest_group_size": 19,
-      "row_count": 674,
+      "row_count": 565,
       "sources": {
         "original": {
-          "count": 599,
-          "ratio": 0.888724
+          "count": 490,
+          "ratio": 0.867257
         },
         "synthetic_diversity_v2": {
-          "count": 10,
-          "ratio": 0.014837
+          "count": 7,
+          "ratio": 0.012389
+        },
+        "synthetic_fp_stress_train": {
+          "count": 1,
+          "ratio": 0.00177
         },
         "synthetic_hard_negative_v2": {
-          "count": 7,
-          "ratio": 0.010386
+          "count": 9,
+          "ratio": 0.015929
         },
         "synthetic_normal_v3": {
-          "count": 49,
-          "ratio": 0.0727
+          "count": 51,
+          "ratio": 0.090265
         },
         "user_added": {
-          "count": 9,
-          "ratio": 0.013353
+          "count": 7,
+          "ratio": 0.012389
         }
       },
       "types": {
         "결제환불사칭": {
           "count": 1,
-          "ratio": 0.001484
+          "ratio": 0.00177
         },
         "경조사사칭": {
-          "count": 50,
-          "ratio": 0.074184
+          "count": 44,
+          "ratio": 0.077876
         },
         "계정정지본인인증유도": {
-          "count": 3,
-          "ratio": 0.004451
+          "count": 1,
+          "ratio": 0.00177
         },
         "금융기관사칭": {
-          "count": 52,
-          "ratio": 0.077151
+          "count": 41,
+          "ratio": 0.072566
         },
         "기타정상": {
-          "count": 52,
-          "ratio": 0.077151
+          "count": 46,
+          "ratio": 0.081416
         },
         "기타피싱": {
-          "count": 3,
-          "ratio": 0.004451
+          "count": 2,
+          "ratio": 0.00354
         },
         "대출사기": {
           "count": 3,
-          "ratio": 0.004451
+          "ratio": 0.00531
         },
         "복합피싱": {
-          "count": 3,
-          "ratio": 0.004451
+          "count": 1,
+          "ratio": 0.00177
         },
         "수사기관사칭": {
           "count": 1,
-          "ratio": 0.001484
+          "ratio": 0.00177
         },
         "악성링크앱설치유도": {
           "count": 2,
-          "ratio": 0.002967
+          "ratio": 0.00354
         },
         "이벤트당첨사칭": {
-          "count": 73,
-          "ratio": 0.108309
+          "count": 52,
+          "ratio": 0.092035
         },
         "일상대화": {
-          "count": 117,
-          "ratio": 0.173591
+          "count": 97,
+          "ratio": 0.171681
         },
         "정부공공기관사칭": {
-          "count": 24,
-          "ratio": 0.035608
+          "count": 21,
+          "ratio": 0.037168
         },
         "정상공공기관알림": {
           "count": 21,
-          "ratio": 0.031157
+          "ratio": 0.037168
         },
         "정상광고프로모션": {
-          "count": 32,
-          "ratio": 0.047478
+          "count": 14,
+          "ratio": 0.024779
         },
         "정상금융알림": {
-          "count": 39,
-          "ratio": 0.057864
+          "count": 35,
+          "ratio": 0.061947
         },
         "정상인증알림": {
           "count": 21,
-          "ratio": 0.031157
+          "ratio": 0.037168
         },
         "정상카드결제알림": {
-          "count": 19,
-          "ratio": 0.02819
+          "count": 18,
+          "ratio": 0.031858
         },
         "정상택배배송안내": {
-          "count": 34,
-          "ratio": 0.050445
+          "count": 33,
+          "ratio": 0.058407
         },
         "정상포인트소멸알림": {
-          "count": 9,
-          "ratio": 0.013353
+          "count": 10,
+          "ratio": 0.017699
         },
         "중고거래사기": {
           "count": 4,
-          "ratio": 0.005935
+          "ratio": 0.00708
         },
         "지인가족사칭": {
-          "count": 42,
-          "ratio": 0.062315
+          "count": 36,
+          "ratio": 0.063717
         },
         "채용부업사기": {
-          "count": 17,
-          "ratio": 0.025223
+          "count": 14,
+          "ratio": 0.024779
         },
         "택배배송사칭": {
           "count": 28,
-          "ratio": 0.041543
+          "ratio": 0.049558
         },
         "투자리딩방사기": {
-          "count": 24,
-          "ratio": 0.035608
+          "count": 19,
+          "ratio": 0.033628
         }
       }
     },
     "validation": {
-      "dataset_ratio": 0.152966,
-      "group_count": 123,
+      "dataset_ratio": 0.151741,
+      "group_count": 80,
       "labels": {
         "normal": {
-          "count": 73,
-          "ratio": 0.496599
+          "count": 64,
+          "ratio": 0.52459
         },
         "phishing": {
-          "count": 74,
-          "ratio": 0.503401
+          "count": 58,
+          "ratio": 0.47541
         }
       },
-      "largest_group_size": 9,
-      "row_count": 147,
+      "largest_group_size": 13,
+      "row_count": 122,
       "sources": {
         "original": {
-          "count": 127,
-          "ratio": 0.863946
+          "count": 106,
+          "ratio": 0.868852
         },
         "synthetic_diversity_v2": {
-          "count": 3,
-          "ratio": 0.020408
+          "count": 1,
+          "ratio": 0.008197
         },
         "synthetic_hard_negative_v2": {
-          "count": 2,
-          "ratio": 0.013605
+          "count": 1,
+          "ratio": 0.008197
         },
         "synthetic_normal_v3": {
-          "count": 14,
-          "ratio": 0.095238
+          "count": 13,
+          "ratio": 0.106557
         },
         "user_added": {
           "count": 1,
-          "ratio": 0.006803
+          "ratio": 0.008197
         }
       },
       "types": {
         "경조사사칭": {
-          "count": 21,
-          "ratio": 0.142857
+          "count": 10,
+          "ratio": 0.081967
+        },
+        "계정정지본인인증유도": {
+          "count": 1,
+          "ratio": 0.008197
         },
         "금융기관사칭": {
-          "count": 21,
-          "ratio": 0.142857
+          "count": 17,
+          "ratio": 0.139344
         },
         "기타정상": {
-          "count": 8,
-          "ratio": 0.054422
+          "count": 5,
+          "ratio": 0.040984
         },
         "대출사기": {
           "count": 1,
-          "ratio": 0.006803
+          "ratio": 0.008197
+        },
+        "복합피싱": {
+          "count": 1,
+          "ratio": 0.008197
         },
         "악성링크앱설치유도": {
-          "count": 2,
-          "ratio": 0.013605
+          "count": 1,
+          "ratio": 0.008197
         },
         "이벤트당첨사칭": {
-          "count": 14,
-          "ratio": 0.095238
+          "count": 15,
+          "ratio": 0.122951
         },
         "일상대화": {
-          "count": 33,
-          "ratio": 0.22449
+          "count": 21,
+          "ratio": 0.172131
         },
         "정부공공기관사칭": {
-          "count": 6,
-          "ratio": 0.040816
+          "count": 4,
+          "ratio": 0.032787
         },
         "정상공공기관알림": {
           "count": 5,
-          "ratio": 0.034014
+          "ratio": 0.040984
         },
         "정상광고프로모션": {
-          "count": 2,
-          "ratio": 0.013605
+          "count": 12,
+          "ratio": 0.098361
         },
         "정상금융알림": {
           "count": 5,
-          "ratio": 0.034014
+          "ratio": 0.040984
         },
         "정상인증알림": {
           "count": 5,
-          "ratio": 0.034014
+          "ratio": 0.040984
         },
         "정상카드결제알림": {
-          "count": 3,
-          "ratio": 0.020408
+          "count": 4,
+          "ratio": 0.032787
         },
         "정상택배배송안내": {
-          "count": 9,
-          "ratio": 0.061224
+          "count": 5,
+          "ratio": 0.040984
         },
         "정상포인트소멸알림": {
-          "count": 3,
-          "ratio": 0.020408
+          "count": 2,
+          "ratio": 0.016393
         },
         "중고거래사기": {
-          "count": 2,
-          "ratio": 0.013605
+          "count": 1,
+          "ratio": 0.008197
         },
         "지인가족사칭": {
-          "count": 1,
-          "ratio": 0.006803
-        },
-        "채용부업사기": {
-          "count": 1,
-          "ratio": 0.006803
+          "count": 2,
+          "ratio": 0.016393
         },
         "택배배송사칭": {
-          "count": 5,
-          "ratio": 0.034014
+          "count": 4,
+          "ratio": 0.032787
+        },
+        "투자리딩방사기": {
+          "count": 1,
+          "ratio": 0.008197
         }
       }
     }
