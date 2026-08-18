@@ -49,15 +49,10 @@ ALLOWED_DATA_SOURCES = {
     "public_phishing_v2",
     "synthetic_diversity_v2",
     "synthetic_hard_negative_v2",
-    # #83에서 보강한 정상 알림 hard negative (학습 전용, 평가셋 사용 금지)
     "synthetic_normal_v3",
-    # #83에서 실제 문자로 구성한 주 평가셋
     "real_holdout",
 }
 
-# 학습 pool에서 제외할 평가 전용 source.
-# real_holdout: 실제 문자로 구성한 주 평가셋 (#83)
-# synthetic_*: #77에서 만든 합성 셋. 주 평가셋에서 보조 스트레스 셋으로 강등.
 REAL_HOLDOUT_SOURCES = ("real_holdout",)
 SYNTHETIC_STRESS_SOURCES = (
     "synthetic_new_holdout",
@@ -91,25 +86,15 @@ DATASET_SPLIT_MARKDOWN_REPORT_PATH = REPORTS_DIR / "dataset_split_summary.md"
 # ─────────────────────────────────────────────────────────────────────────────
 
 RANDOM_STATE = 42
-VAL_SIZE = 0.15  # 튜닝(alpha/threshold) 전용
-TEST_SIZE = 0.15  # 최종 평가 전용 — 튜닝에 절대 사용하지 않음
+VAL_SIZE = 0.15  
+TEST_SIZE = 0.15 
 TARGET_PHISHING_RECALL = 0.96
-# validation phishing 표본이 수십 건 수준이라 recall(phishing) 1건 차이가 약 1.5%p를
-# 움직인다. target 미달로 fallback(§train_and_tune)이 작동할 때, 이 정도 차이는
-# noise로 보고 recall(normal)이 뚜렷이 나은 후보를 대신 선택할 수 있도록 허용폭을 둔다.
 FALLBACK_RECALL_TOLERANCE = 0.02
 
-# risk_level 구간 — 종합 점수(베이즈 + VirusTotal)에도 동일하게 적용
-RISK_HIGH_THRESHOLD = 70  # HIGH   : 70점 이상
-RISK_MEDIUM_THRESHOLD = 40  # MEDIUM : 40~69점 (LLM 에스컬레이션 대상)
-# LOW    : 40점 미만
+RISK_HIGH_THRESHOLD = 70 
+RISK_MEDIUM_THRESHOLD = 40 
 
 # 격자 탐색 범위
-# alpha 하한을 1.5로 둔다: 현재 학습 풀 규모(800~900건대)에서는 alpha<1.5 구간이
-# validation 점수만 보면 더 높게 나오지만, 실제로는 희귀 n-gram에 과적합돼 일상 대화체
-# 문장을 피싱으로 오탐하는 등 검증 세트 밖에서 불안정하다는 것을 회귀 테스트로 반복
-# 확인했다(#65). alpha=1.5는 이 불안정 구간을 벗어나는 가장 작은(=가장 덜 과도하게
-# 스무딩된) 값이라 그 안에서는 여전히 recall(normal)을 최대화한다.
 ALPHA_GRID = [1.5, 2.0, 3.0, 5.0]
 THRESHOLD_GRID = np.round(np.arange(0.30, 0.75, 0.05), 2)
 
@@ -154,7 +139,7 @@ def build_dataset_split_config() -> DatasetSplitConfig:
 
 
 def select_real_holdout(holdout: pd.DataFrame) -> pd.DataFrame:
-    """실제 문자로 구성된 주 평가셋만 반환한다."""
+    """실제 문자로 구성된 주 평가셋만 반환"""
     if "source" not in holdout.columns:
         return holdout.iloc[0:0]
     return holdout[
@@ -163,7 +148,7 @@ def select_real_holdout(holdout: pd.DataFrame) -> pd.DataFrame:
 
 
 def select_synthetic_stress(holdout: pd.DataFrame) -> pd.DataFrame:
-    """합성 FP 스트레스 셋만 반환한다. 보조 지표로만 사용한다."""
+    """합성 FP 스트레스 셋만 반환한다. 보조 지표로만 사용"""
     if "source" not in holdout.columns:
         return holdout.iloc[0:0]
     return holdout[
@@ -202,7 +187,7 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     print(f"[Load] 원본 {len(df)}건 | {df['label'].value_counts().to_dict()}")
 
-    # 학습과 API가 공유하는 공통 정규화 함수를 사용
+    # 학습과 API가 공유하는 공통 정규화 함수 사용
     df["text_norm"] = df["text"].apply(normalize_text)
 
     source = df.get(
@@ -215,8 +200,7 @@ def load_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     # 신규 시나리오 holdout은 학습 데이터 그룹화 대상에서도 제외
     df_holdout = df[is_new_holdout].copy().reset_index(drop=True)
 
-    # 평가셋도 완전 중복을 제거한다. 같은 템플릿이 여러 번 들어가면 지표가
-    # 반복 횟수가 많은 문자 몇 건에 좌우된다.
+    # 평가셋도 완전 중복 제거
     df_holdout = add_text_fingerprints(df_holdout, text_column="text_norm")
     holdout_before_deduplication = len(df_holdout)
     df_holdout = df_holdout.drop_duplicates(
@@ -306,14 +290,12 @@ def split_data(
         save_split_manifest(
             splits,
             SPLIT_MANIFEST_PATH,
-            # create_manifest가 명시된 경우만 기존 파일 변경을 허용합니다.
             overwrite=create_manifest,
         )
 
         print(f"[Split] 새 manifest 저장: {SPLIT_MANIFEST_PATH}")
 
-    # manifest를 로드한 경우에도 학습 직전에 다시 검증합니다. 실패 시 예외가
-    # 전파되어 모델 학습과 잘못된 보고서 생성을 모두 중단합니다.
+    # manifest를 로드한 경우에도 학습 직전에 다시 검증
     validate_dataset_splits(df, splits, config=split_config)
 
     summary = generate_dataset_split_reports(
@@ -366,7 +348,7 @@ def split_data(
 
 
 def build_vectorizer() -> CountVectorizer:
-    """char_wb(단어 경계 문자 n-gram): 형태소 분석기 없이 한글 조사 변형 대응."""
+    """char_wb(단어 경계 문자 n-gram): 형태소 분석기 없이 한글 조사 변형 대응"""
     return CountVectorizer(
         analyzer="char_wb",
         ngram_range=(2, 4),
@@ -384,9 +366,7 @@ def build_feature_matrix(
     fit: bool,
 ):
     """
-    텍스트 피처(CountVectorizer) + 구조적 피처(6개) sparse hstack 결합.
-    fit=True: fit_transform (학습 전용), fit=False: transform only (누수 방지)
-    """
+    텍스트 피처(CountVectorizer) + 구조적 피처(6개) sparse hstack 결합"""
     X_text = (
         vectorizer.fit_transform(text_norm) if fit else vectorizer.transform(text_norm)
     )
@@ -452,13 +432,11 @@ def train_and_tune(
     print("-" * len(header))
 
     for alpha in ALPHA_GRID:
-        # CalibratedClassifierCV: ComplementNB 위에 isotonic 보정 레이어 적용
-        # → predict_proba()가 실제 비율에 맞는 교정된 확률 반환
         base_model = ComplementNB(alpha=alpha)
         calibrated = CalibratedClassifierCV(
             estimator=base_model,
-            method="isotonic",  # 비선형 보정 (sigmoid보다 작은 데이터셋에 안정적)
-            cv=5,  # 5-fold로 보정 파라미터 추정
+            method="isotonic", 
+            cv=5,  
         )
         calibrated.fit(X_train, y_train)
 
@@ -472,11 +450,6 @@ def train_and_tune(
                 best["model"] is not None
                 and best["recall_phishing"] >= TARGET_PHISHING_RECALL
             )
-            # rec_n이 동률(">="）인 경우에도 교체를 허용해, alpha를 오름차순으로 도는 루프
-            # 특성상 더 큰(=더 강하게 스무딩된) alpha가 최종 선택되도록 한다. 작은 데이터셋에서
-            # alpha가 극단적으로 작으면(예: 0.01) validation 점수는 동일해도 실제로는 희귀
-            # n-gram에 과적합돼 일반 대화를 피싱으로 오탐하는 등 검증 세트 밖에서 불안정한
-            # 결과를 낸다는 것을 회귀 테스트(test_naive_bayes_analyzer.py)로 확인했다.
             should_replace = (
                 best["model"] is None
                 or (
@@ -521,10 +494,7 @@ def train_and_tune(
 
 
 def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
-    """
-    보정 후 prob_phishing 분포를 확인.
-    MEDIUM 구간(0.40~0.70)에 충분한 샘플이 있는지 검증.
-    """
+    """보정 후 prob_phishing 분포를 확인"""
     probs = model.predict_proba(X_test)[:, _phishing_idx(model)]
     df_prob = pd.DataFrame({"prob": probs, "label": y_test.values})
 
@@ -549,7 +519,7 @@ def verify_probability_distribution(model, X_test, y_test: pd.Series) -> None:
 
 
 def evaluate(model, threshold: float, X_test, y_test: pd.Series) -> None:
-    """최적 threshold 적용 후 classification report + confusion matrix 출력."""
+    """최적 threshold 적용 후 classification report + confusion matrix 출력"""
     y_prob = model.predict_proba(X_test)[:, _phishing_idx(model)]
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
@@ -607,12 +577,7 @@ def load_artifacts() -> tuple:
 
 
 def _map_risk_level(risk_score: int) -> str:
-    """
-    risk_score → risk_level 매핑.
-    HIGH   ≥ 70점 : 즉시 위험 판단
-    MEDIUM 40~69점: 애매 구간 → Claude API 에스컬레이션 대상
-    LOW    < 40점 : 정상 범주
-    """
+    """risk_score → risk_level 매핑"""
     if risk_score >= RISK_HIGH_THRESHOLD:
         return "HIGH"
     if risk_score >= RISK_MEDIUM_THRESHOLD:
@@ -627,11 +592,7 @@ def predict_risk_score(
     threshold: float,
     classes: list,
 ) -> dict:
-    """
-    단일 SMS를 분석해 위험 점수와 위험 등급을 반환
-
-    학습과 운영 API 모두 공통 normalize_text()와 extract_struct_feature_matrix()를 사용
-    """
+    """단일 SMS를 분석해 위험 점수와 위험 등급을 반환"""
     text_norm = normalize_text(text)
 
     struct = extract_struct_feature_matrix([text])
