@@ -1,11 +1,4 @@
-"""오탐·미탐 원인 분석 — 확률 상위 정상과 하위 피싱을 유형별로 정리한다.
-
-#84의 구조적 특징 보완 근거를 남기고, 특징 추가 전후 비교의 기준선을 만든다.
-구조적 특징을 추가하면 meta feature 행렬의 폭이 바뀌어 기존 artifact를 다시
-쓸 수 없으므로, 변경 전에 이 스크립트로 기준선을 파일에 고정해 둔다.
-
-원문은 저장하지 않고 fingerprint와 유형만 기록한다.
-"""
+"""오탐·미탐 원인 분석"""
 from __future__ import annotations
 
 import argparse
@@ -30,8 +23,7 @@ DEFAULT_MODEL_PATH = (
 )
 DEFAULT_OUTPUT_PATH = SMS_MODEL_DIRECTORY / "reports" / "error_analysis.json"
 
-# 오탐률 곡선을 확인할 지점. 임계값 변경은 곡선 위 이동이므로 이 표가
-# 현재 모델로 도달 가능한 운영점의 상한이 된다.
+# 오탐률 곡선을 확인할 지점
 FPR_TARGETS = (0.02, 0.05, 0.10, 0.15, 0.20)
 
 # 원인 파악용으로 들여다볼 표본 수
@@ -39,7 +31,7 @@ TOP_SAMPLE_COUNT = 15
 
 
 def load_classifier(model_path: Path):
-    """artifact에서 분류기를 꺼낸다."""
+    """artifact에서 분류기 꺼냄"""
     payload = joblib.load(model_path)
     if isinstance(payload, dict) and "classifier" in payload:
         return payload["classifier"]
@@ -47,7 +39,7 @@ def load_classifier(model_path: Path):
 
 
 def score_frame(classifier, frame: pd.DataFrame) -> pd.DataFrame:
-    """확률을 붙인 사본을 반환한다."""
+    """확률을 붙인 사본을 반환"""
     probabilities, unavailable = classifier.predict_probabilities(frame)
     if unavailable:
         raise RuntimeError(f"base models unavailable: {unavailable}")
@@ -58,7 +50,7 @@ def score_frame(classifier, frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def summarize_operating_points(scored: pd.DataFrame) -> list[dict[str, float]]:
-    """목표 오탐률마다 도달 가능한 최대 Recall을 계산한다."""
+    """목표 오탐률마다 도달 가능한 최대 Recall을 계산"""
     truth = (scored["label"].to_numpy() == "phishing").astype(int)
     probability = scored["probability"].to_numpy()
 
@@ -89,7 +81,7 @@ def summarize_false_positives(
     scored: pd.DataFrame,
     threshold: float,
 ) -> dict[str, object]:
-    """임계값을 넘은 정상 문자를 유형별로 집계한다."""
+    """임계값을 넘은 정상 문자를 유형별로 집계"""
     normals = scored[scored["label"] == "normal"]
     flagged_total = int((normals["probability"] >= threshold).sum())
 
@@ -119,7 +111,7 @@ def summarize_false_positives(
 
 
 def list_extreme_samples(scored: pd.DataFrame) -> dict[str, list[dict]]:
-    """임계값을 밀어올리는 정상과, 놓치기 쉬운 피싱을 뽑는다."""
+    """임계값을 밀어올리는 정상과, 놓치기 쉬운 피싱 추출"""
 
     def to_records(frame: pd.DataFrame) -> list[dict]:
         return [
@@ -147,7 +139,7 @@ def list_extreme_samples(scored: pd.DataFrame) -> dict[str, list[dict]]:
 
 
 def analyze(classifier, name: str, frame: pd.DataFrame) -> dict[str, object]:
-    """split 하나에 대한 분석 결과를 만든다."""
+    """split 하나에 대한 분석 결과 생성"""
     scored = score_frame(classifier, frame)
     truth = (scored["label"].to_numpy() == "phishing").astype(int)
     probability = scored["probability"].to_numpy()
@@ -168,7 +160,7 @@ def analyze(classifier, name: str, frame: pd.DataFrame) -> dict[str, object]:
 
 
 def build_report(classifier) -> dict[str, object]:
-    """validation·test·real_holdout 분석을 한데 모은다."""
+    """validation·test·real_holdout 분석을 한데 모으기"""
     pool, holdout = load_data(DATA_PATH)
     splits = split_data(pool, create_manifest=False)
 
