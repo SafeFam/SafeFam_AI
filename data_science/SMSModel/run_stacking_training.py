@@ -390,7 +390,7 @@ def save_artifact(
     )
 
 def train_stacking(*, overwrite_artifacts: bool) -> None:
-    """Stacking v2를 학습하고 고정된 test split을 한 번 평가"""
+    """Stacking artifact를 학습하고 고정된 test split을 한 번 평가"""
 
     # committed v2 manifest가 없으면 실행 중단
     if not SPLIT_MANIFEST_PATH.is_file():
@@ -523,9 +523,10 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         threshold=threshold,
         unavailable_models=test_unavailable,
         output_directory=STACKING_REPORT_DIRECTORY,
+        artifact_version=STACKING_ARTIFACT_VERSION,
     )
 
-    print("[Stacking v2] training completed")
+    print(f"[Stacking {STACKING_ARTIFACT_VERSION}] training completed")
     print(f"  train={len(splits.train)}")
     print(f"  validation={len(splits.validation)}")
     print(f"  test={len(splits.test)}")

@@ -149,7 +149,12 @@ def _stratified_group_candidates(
     유형마다 group을 섞어 비율만큼 떼어 두면 group이 둘 이상인 유형은 양쪽에
     반드시 남는다. 생성한 후보는 기존 후보와 같은 점수 기준으로 비교한다.
     """
-    if config.type_column is None or config.type_column not in df.columns:
+    # type_weight가 0이면 유형을 고려하지 않는 설정이므로 후보도 만들지 않는다.
+    if (
+        config.type_column is None
+        or config.type_weight == 0.0
+        or config.type_column not in df.columns
+    ):
         return []
 
     group_types = (

@@ -655,20 +655,41 @@ def main() -> None:
     verify_probability_distribution(best["model"], X_test, df_test["label"])
     evaluate(best["model"], best["threshold"], X_test, df_test["label"])
 
-    evaluate_new_holdout(best["model"], vectorizer, best["threshold"], df_holdout)
+    # 실제 문자 평가셋과 합성 스트레스 셋은 성격이 다르므로 따로 보고한다.
+    evaluate_new_holdout(
+        best["model"],
+        vectorizer,
+        best["threshold"],
+        select_real_holdout(df_holdout),
+        title="실제 문자 주 평가셋",
+    )
+    evaluate_new_holdout(
+        best["model"],
+        vectorizer,
+        best["threshold"],
+        select_synthetic_stress(df_holdout),
+        title="합성 FP 스트레스 셋 (보조 지표)",
+    )
 
     save_artifacts(best["model"], vectorizer, best["threshold"])
 
 
 def evaluate_new_holdout(
-    model, vectorizer: CountVectorizer, threshold: float, df_holdout: pd.DataFrame
+    model,
+    vectorizer: CountVectorizer,
+    threshold: float,
+    df_holdout: pd.DataFrame,
+    *,
+    title: str = "신규 시나리오",
 ) -> None:
     """
-    학습에 전혀 관여하지 않은 완전 신규 시나리오(synthetic_new_holdout,
-    synthetic_fp_stress)로 일반화 성능 + 오탐률을 검증.
+    학습에 전혀 관여하지 않은 평가셋으로 일반화 성능 + 오탐률을 검증.
+
+    주 평가셋(real_holdout)과 보조 스트레스 셋(synthetic_*)은 분포가 달라
+    지표를 합치면 해석이 흐려지므로 호출부에서 나눠 전달한다.
     """
     if df_holdout.empty:
-        print("\n[SKIP] 신규 holdout 데이터 없음")
+        print(f"\n[SKIP] {title} 데이터 없음")
         return
 
     text_norm = df_holdout["text"].apply(normalize_text)
@@ -679,7 +700,7 @@ def evaluate_new_holdout(
     y_pred = np.where(y_prob >= threshold, "phishing", "normal")
 
     print(
-        f"\n{'=' * 60}\n[ 완전 신규 시나리오 holdout 평가 — {len(df_holdout)}건 ]\n{'=' * 60}"
+        f"\n{'=' * 60}\n[ holdout 평가 · {title} — {len(df_holdout)}건 ]\n{'=' * 60}"
     )
     print(
         classification_report(

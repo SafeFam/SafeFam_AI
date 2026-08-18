@@ -1,12 +1,16 @@
 {
   "annotation_group_count": 305,
   "covered_raw_row_count": 924,
+  "current_types": [
+    "기타정상",
+    "일상대화"
+  ],
   "dataset_row_count": 3002,
-  "raw_other_phishing_count": 924,
+  "raw_target_count": 924,
   "review_status": {
     "PENDING": 305
   },
-  "schema_version": 2,
+  "schema_version": 3,
   "source_distribution": {
     "original": 2734,
     "synthetic_diversity_v2": 14,
@@ -26,5 +30,6 @@
     "정상택배배송안내": 22,
     "정상포인트소멸알림": 1
   },
-  "unique_other_phishing_count": 392
+  "target_label": "normal",
+  "unique_target_count": 392
 }

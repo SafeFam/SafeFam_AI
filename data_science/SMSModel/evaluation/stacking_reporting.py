@@ -1,4 +1,4 @@
-"""Stacking v2 종합 평가 보고서 생성 모듈"""
+"""Stacking 종합 평가 보고서 생성 모듈"""
 
 from __future__ import annotations
 
@@ -422,6 +422,8 @@ def save_stacking_test_report(
     threshold: float,
     unavailable_models: tuple[str, ...],
     output_directory: Path,
+    # 보고서 제목이 실제 artifact 버전과 어긋나지 않도록 호출부에서 받는다.
+    artifact_version: str,
 ) -> Dict[str, Any]:
     """개인정보를 제거한 test 평가 JSON과 Markdown을 저장합니다."""
     if not (
@@ -478,7 +480,7 @@ def save_stacking_test_report(
     latency = report["latency_stats"]
     markdown = "\n".join(
         [
-            "# Stacking v2 Test Evaluation",
+            f"# Stacking {artifact_version} Test Evaluation",
             "",
             "Threshold selection: validation only; final metrics: test only.",
             "",

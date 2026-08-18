@@ -427,7 +427,7 @@ def build_audit_report(
 ) -> dict[str, Any]:
     """그룹 기반 검수 현황과 분포를 기록"""
 
-    raw_other_count = int(
+    raw_target_count = int(
         (
             (dataset["label"] == target_label)
             & (dataset["type"].isin(current_types))
@@ -435,11 +435,14 @@ def build_audit_report(
     )
 
     return {
-        "schema_version": 2,
+        # v3: 검수 대상이 피싱으로 고정돼 있지 않으므로 target 중립 필드를 쓴다.
+        "schema_version": 3,
+        "target_label": target_label,
+        "current_types": sorted(current_types),
         "dataset_row_count": len(dataset),
-        "raw_other_phishing_count": raw_other_count,
+        "raw_target_count": raw_target_count,
         "annotation_group_count": len(annotations),
-        "unique_other_phishing_count": int(
+        "unique_target_count": int(
             annotations["unique_member_count"].sum()
         ),
         "covered_raw_row_count": int(
@@ -543,8 +546,9 @@ def main() -> None:
 
     print(
         "[Taxonomy audit] "
-        f"raw_rows={report['raw_other_phishing_count']} "
-        f"unique_rows={report['unique_other_phishing_count']} "
+        f"label={report['target_label']} "
+        f"raw_rows={report['raw_target_count']} "
+        f"unique_rows={report['unique_target_count']} "
         f"groups={report['annotation_group_count']}"
     )
     print(
