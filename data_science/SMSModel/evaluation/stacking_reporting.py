@@ -15,20 +15,42 @@ from data_science.SMSModel.evaluation.metrics import ClassificationMetrics
 from data_science.SMSModel.modeling.stacking import StackingPhishingClassifier
 
 
+EMAIL_PATTERN = re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")
+URL_PATTERN = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
+RRN_PATTERN = re.compile(r"\b\d{6}[-.\s]?[1-4]\d{6}\b")
+# 날짜/시각은 계좌번호 규칙보다 먼저 치환해야 "2026-11-29 19:56"이
+# [ACCOUNT/CARD]로 잘못 분류되지 않습니다.
+DATETIME_PATTERN = re.compile(
+    r"\b\d{4}\s?[-./]\s?\d{1,2}\s?[-./]\s?\d{1,2}\.?"
+    r"(?:\s?(?:오전|오후)?\s?\d{1,2}:\d{2}(?::\d{2})?)?"
+)
+PHONE_PATTERN = re.compile(r"\b\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{4}\b")
+ACCOUNT_PATTERN = re.compile(r"\b(?:\d[-.\s]?){10,16}\b")
+
+
 def default_mask_sensitive_text(text: str) -> str:
-    """전화번호, 주민번호, 계좌번호 등 민감정보 마스킹"""
+    """이메일, URL, 전화번호, 주민번호, 계좌번호 등 민감정보 마스킹"""
     if not isinstance(text, str):
         return ""
 
+    # 이메일
+    text = EMAIL_PATTERN.sub("[EMAIL]", text)
+
+    # URL
+    text = URL_PATTERN.sub("[URL]", text)
+
     # 주민등록번호
-    text = re.sub(r"\b\d{6}[-.\s]?[1-4]\d{6}\b", "[RRN]", text)
+    text = RRN_PATTERN.sub("[RRN]", text)
+
+    # 날짜/시각 (계좌번호 규칙보다 먼저 적용)
+    text = DATETIME_PATTERN.sub("[DATETIME]", text)
 
     # 전화번호
-    text = re.sub(r"\b\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{4}\b", "[PHONE]", text)
+    text = PHONE_PATTERN.sub("[PHONE]", text)
 
     # 계좌번호/카드번호
-    text = re.sub(r"\b(?:\d[-.\s]?){10,16}\b", "[ACCOUNT/CARD]", text)
-    
+    text = ACCOUNT_PATTERN.sub("[ACCOUNT/CARD]", text)
+
     return text
 
 
@@ -126,6 +148,16 @@ def generate_evaluation_report(
         raise ValueError(
             "result_df contains unsupported predictions: "
             f"{sorted(unsupported_predictions)}"
+        )
+
+    unsupported_labels = (
+        set(valid_df["label"].astype(str))
+        - {"normal", "phishing"}
+    )
+    if unsupported_labels:
+        raise ValueError(
+            "result_df contains unsupported labels: "
+            f"{sorted(unsupported_labels)}"
         )
 
     # 전체 혼동 행렬 (Confusion Matrix)
@@ -258,6 +290,7 @@ def generate_evaluation_report(
             subset="template_group_id",
             keep="first",
         )
+        unique_sample_count = len(unique_rows)
         unique_tp = int(
             (
                 (unique_rows["label"] == "phishing")
@@ -293,8 +326,14 @@ def generate_evaluation_report(
             else None
         )
         unique_template_metrics = {
-            "sample_count": len(unique_rows),
-            "accuracy": (unique_tp + unique_tn) / len(unique_rows),
+            "sample_count": unique_sample_count,
+            # 모든 예측이 실패하면 유효 행이 없으므로 overall_metrics와 동일하게
+            # accuracy를 None으로 둡니다.
+            "accuracy": (
+                (unique_tp + unique_tn) / unique_sample_count
+                if unique_sample_count > 0
+                else None
+            ),
             "precision": unique_precision,
             "recall": unique_recall,
             "f1_score": calculate_f_beta(
@@ -401,6 +440,17 @@ def save_stacking_test_report(
     result_df["latency_ms"] = latencies_ms
 
     report = generate_evaluation_report(result_df)
+
+    # 커밋되는 보고서에는 원문에서 파생된 문자열을 남기지 않고
+    # 재현 가능한 fingerprint만 유지합니다.
+    report["error_samples"] = {
+        category: [
+            {"text_fingerprint": sample.get("text_fingerprint", "")}
+            for sample in samples
+        ]
+        for category, samples in report["error_samples"].items()
+    }
+
     report.update(
         {
             "schema_version": 1,

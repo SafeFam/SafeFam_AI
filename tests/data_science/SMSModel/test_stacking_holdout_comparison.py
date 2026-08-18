@@ -206,3 +206,120 @@ def test_runs_comparison_end_to_end_and_generates_outputs(tmp_path: Path) -> Non
     assert json_file.exists()
     loaded_summary = json.loads(json_file.read_text(encoding="utf-8"))
     assert loaded_summary["sample_count"] == 4
+
+
+def test_rejects_model_with_mismatched_checksum(tmp_path: Path) -> None:
+    """metadata의 model_sha256과 파일 hash가 다르면 로드를 거부하는지 검증"""
+    model_dir = tmp_path / "artifacts"
+    model_dir.mkdir()
+    model_path = model_dir / "model.joblib"
+    joblib.dump(
+        {"classifier": DummyClassifier(["normal"], [0.1])},
+        model_path,
+    )
+    (model_dir / "metadata.json").write_text(
+        json.dumps({"model_sha256": "0" * 64}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="checksum"):
+        comparison.load_model(model_path)
+
+
+def test_accepts_model_with_matching_checksum(tmp_path: Path) -> None:
+    """checksum이 일치하면 정상적으로 로드되는지 검증"""
+    model_dir = tmp_path / "artifacts"
+    model_dir.mkdir()
+    model_path = model_dir / "model.joblib"
+    joblib.dump(
+        {"classifier": DummyClassifier(["normal"], [0.1])},
+        model_path,
+    )
+    (model_dir / "metadata.json").write_text(
+        json.dumps(
+            {"model_sha256": comparison.calculate_sha256(model_path)}
+        ),
+        encoding="utf-8",
+    )
+
+    assert isinstance(comparison.load_model(model_path), DummyClassifier)
+
+
+def test_requires_metadata_for_default_artifact_paths(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """운영 artifact 기본 경로는 metadata 없이 로드되지 않는지 검증"""
+    model_path = tmp_path / "model.joblib"
+    joblib.dump(
+        {"classifier": DummyClassifier(["normal"], [0.1])},
+        model_path,
+    )
+    monkeypatch.setattr(comparison, "DEFAULT_MODEL_PATHS", (model_path,))
+
+    with pytest.raises(ValueError, match="metadata.json is required"):
+        comparison.load_model(model_path)
+
+    # 테스트 fixture로 명시하면 permissive 경로가 유지됩니다.
+    loaded = comparison.load_model(model_path, require_metadata=False)
+    assert isinstance(loaded, DummyClassifier)
+
+
+def test_predict_model_applies_artifact_threshold_in_fallback() -> None:
+    """fallback 경로가 artifact threshold로 예측을 만드는지 검증"""
+    model = DummyClassifier(
+        predictions=["normal", "normal"],
+        probabilities=[0.1, 0.85],
+    )
+    # 요약에 기록되는 threshold와 동일한 값이 예측에 적용되어야 합니다.
+    model.threshold = 0.5
+
+    _, predictions = comparison.predict_model(
+        model, pd.Series(["정상 텍스트", "피싱 텍스트"])
+    )
+
+    assert list(predictions) == ["normal", "phishing"]
+
+
+def test_load_holdout_excludes_training_overlap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """학습 pool과 겹치는 표본을 제외하고 감사 내역을 기록하는지 검증"""
+    overlap_text = "겹치는 메시지"
+    holdout_df = pd.DataFrame(
+        [
+            {"text": "정상 메시지", "label": "normal", "type": "chat"},
+            {"text": "피싱 메시지", "label": "phishing", "type": "loan"},
+            {"text": overlap_text, "label": "normal", "type": "chat"},
+        ]
+    )
+    training_pool = pd.DataFrame(
+        [
+            {
+                "text": overlap_text,
+                "text_fingerprint": comparison.create_text_fingerprint(
+                    comparison.normalize_text(overlap_text)
+                ),
+            }
+        ]
+    )
+
+    monkeypatch.setattr(
+        comparison, "EXPECTED_HOLDOUT_COUNT", len(holdout_df)
+    )
+    monkeypatch.setattr(
+        comparison,
+        "load_data",
+        lambda path: (training_pool, holdout_df),
+    )
+
+    result = comparison.load_holdout()
+    audit = result.attrs["holdout_audit"]
+
+    assert len(result) == 2
+    assert overlap_text not in set(result["text"])
+    assert audit["source_row_count"] == 3
+    assert audit["evaluated_row_count"] == 2
+    assert audit["excluded_training_overlap_rows"] == 1
+    assert audit["excluded_training_overlap_fingerprints"] == 1
+

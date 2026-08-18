@@ -30,7 +30,19 @@ DEFAULT_V2_MODEL_PATH = (
 DEFAULT_OUTPUT_DIR = (
     SMS_MODEL_DIRECTORY / "reports" / "stacking_v2"
 )
+DEFAULT_MODEL_PATHS = (
+    DEFAULT_V1_MODEL_PATH,
+    DEFAULT_V2_MODEL_PATH,
+)
 EXPECTED_HOLDOUT_COUNT = 210
+
+
+def is_default_artifact_path(model_path: Path) -> bool:
+    """운영 artifact 기본 경로 여부를 반환합니다."""
+    resolved = model_path.resolve()
+    return any(
+        resolved == candidate.resolve() for candidate in DEFAULT_MODEL_PATHS
+    )
 
 
 def classify_pair(*, v1_correct: bool, v2_correct: bool) -> str:
@@ -61,18 +73,44 @@ def calculate_mcnemar_p_value(
     return float(result.pvalue)
 
 
-def load_model(model_path: Path) -> Any:
-    """로컬 artifact의 hash를 확인하고 분류기 객체를 로드합니다."""
+def load_model(
+    model_path: Path,
+    *,
+    require_metadata: bool | None = None,
+) -> Any:
+    """로컬 artifact의 hash를 확인하고 분류기 객체를 로드합니다.
+
+    joblib.load는 payload의 임의 코드를 실행하므로 운영 artifact 기본 경로는
+    metadata.json의 model_sha256 검증을 통과해야만 로드합니다. 검증을 생략하는
+    permissive 경로는 명시적으로 지정한 테스트 fixture에만 허용됩니다.
+    """
     if not model_path.exists():
         raise FileNotFoundError(f"Model file not found: {model_path}")
+
+    if require_metadata is None:
+        require_metadata = is_default_artifact_path(model_path)
+
     metadata_path = model_path.with_name("metadata.json")
-    if metadata_path.is_file():
+    if not metadata_path.is_file():
+        if require_metadata:
+            raise ValueError(
+                "metadata.json is required to verify this artifact: "
+                f"{metadata_path}"
+            )
+    else:
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         expected_sha256 = metadata.get("model_sha256")
-        if expected_sha256 and expected_sha256 != calculate_sha256(model_path):
+        if not expected_sha256:
+            if require_metadata:
+                raise ValueError(
+                    "metadata does not record model_sha256: "
+                    f"{metadata_path}"
+                )
+        elif expected_sha256 != calculate_sha256(model_path):
             raise ValueError(
                 f"model checksum does not match metadata: {model_path}"
             )
+
     payload = joblib.load(model_path)
     if isinstance(payload, dict) and "classifier" in payload:
         return payload["classifier"]
@@ -137,8 +175,22 @@ def predict_model(
             "classifier does not expose a supported probability API"
         )
 
-    predictions = classifier.predict(texts)
-    return np.asarray(probabilities), np.asarray(predictions)
+    probabilities = np.asarray(probabilities)
+
+    # 요약이 보고하는 threshold와 예측이 어긋나지 않도록, artifact가 threshold를
+    # 노출하면 확률에서 직접 예측을 만듭니다. threshold가 없는 분류기는 자체
+    # predict를 사용하고 요약에도 threshold가 null(=unknown)로 기록됩니다.
+    fallback_threshold = getattr(classifier, "threshold", None)
+    if fallback_threshold is not None:
+        predictions = np.where(
+            probabilities >= float(fallback_threshold),
+            "phishing",
+            "normal",
+        )
+    else:
+        predictions = np.asarray(classifier.predict(texts))
+
+    return probabilities, predictions
 
 
 def load_holdout(holdout_path: Path | None = None) -> pd.DataFrame:
@@ -236,7 +288,7 @@ def run_comparison(
     # 표본 단위 비교 분류 생성
     comparison_series = [
         classify_pair(v1_correct=c1, v2_correct=c2)
-        for c1, c2 in zip(v1_correct, v2_correct)
+        for c1, c2 in zip(v1_correct, v2_correct, strict=True)
     ]
 
     # 결과 DataFrame 생성

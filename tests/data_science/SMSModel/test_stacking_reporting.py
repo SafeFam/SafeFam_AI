@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from data_science.SMSModel.evaluation import (
     stacking_reporting as reporting,
+)
+from data_science.SMSModel.evaluation.metrics import (
+    calculate_classification_metrics,
 )
 
 
@@ -192,3 +198,124 @@ def test_handles_missing_predictions_and_failures() -> None:
     assert summary["failure_counts"]["engine_failure"] == 2
 
     assert report["overall_metrics"]["accuracy"] == pytest.approx(1.0)
+
+
+def test_masks_email_and_url_in_sensitive_text() -> None:
+    """이메일과 URL이 마스킹되는지 검증"""
+    masked = reporting.default_mask_sensitive_text(
+        "문의는 alice@example.com 또는 https://www.baemin.me/qGa29G 로 주세요"
+    )
+
+    assert "alice@example.com" not in masked
+    assert "[EMAIL]" in masked
+    assert "baemin.me" not in masked
+    assert "[URL]" in masked
+
+
+def test_masks_datetime_before_account_pattern() -> None:
+    """날짜/시각이 계좌번호로 오분류되지 않는지 검증"""
+    masked = reporting.default_mask_sensitive_text("- 일시: 2026-11-29 19:56")
+
+    assert "[DATETIME]" in masked
+    assert "[ACCOUNT/CARD]" not in masked
+
+
+def test_rejects_unsupported_labels() -> None:
+    """지원하지 않는 label이 있으면 지표 계산 전에 거부하는지 검증"""
+    df_with_unsupported_label = pd.DataFrame(
+        [
+            {"label": "spam", "prediction": "phishing", "type": "loan"},
+            {"label": "normal", "prediction": "normal", "type": "auth"},
+        ]
+    )
+
+    with pytest.raises(ValueError, match="unsupported labels"):
+        reporting.generate_evaluation_report(df_with_unsupported_label)
+
+
+def test_returns_empty_template_metrics_when_all_predictions_fail() -> None:
+    """전건 실패 + template_group_id 조합에서 0으로 나누지 않는지 검증"""
+    all_failed_df = pd.DataFrame(
+        [
+            {
+                "label": "phishing",
+                "prediction": None,
+                "type": "loan",
+                "template_group_id": "tg_1",
+            },
+            {
+                "label": "normal",
+                "prediction": "error",
+                "type": "auth",
+                "template_group_id": "tg_2",
+            },
+        ]
+    )
+
+    report = reporting.generate_evaluation_report(all_failed_df)
+    template_metrics = report["unique_template_metrics"]
+
+    assert report["sample_summary"]["successful_samples"] == 0
+    assert report["overall_metrics"]["accuracy"] is None
+    assert template_metrics["sample_count"] == 0
+    assert template_metrics["accuracy"] is None
+    assert template_metrics["precision"] is None
+    assert template_metrics["recall"] is None
+    assert template_metrics["f1_score"] is None
+    assert template_metrics["f2_score"] is None
+
+
+def test_saved_report_keeps_only_fingerprints(tmp_path: Path) -> None:
+    """저장되는 보고서에 원문 파생 텍스트가 남지 않는지 검증"""
+    test_df = pd.DataFrame(
+        [
+            {
+                "label": "phishing",
+                "type": "smishing_loan",
+                "text": "대출 안내 010-1234-5678",
+                "text_fingerprint": "fp_tp",
+            },
+            {
+                "label": "normal",
+                "type": "chat",
+                "text": "오늘 저녁에 보자",
+                "text_fingerprint": "fp_tn",
+            },
+            {
+                "label": "normal",
+                "type": "notice",
+                "text": "문의는 alice@example.com 으로 주세요",
+                "text_fingerprint": "fp_fp",
+            },
+        ]
+    )
+    predictions = np.asarray(["phishing", "normal", "phishing"])
+    metrics = calculate_classification_metrics(
+        test_df["label"].to_numpy(),
+        predictions,
+    )
+
+    report = reporting.save_stacking_test_report(
+        test_df=test_df,
+        probabilities=np.asarray([0.9, 0.1, 0.8]),
+        predictions=predictions,
+        latencies_ms=[1.0, 2.0, 3.0],
+        metrics=metrics,
+        threshold=0.5,
+        unavailable_models=(),
+        output_directory=tmp_path,
+    )
+
+    false_positives = report["error_samples"]["false_positives"]
+    assert len(false_positives) == 1
+    assert set(false_positives[0]) == {"text_fingerprint"}
+    assert false_positives[0]["text_fingerprint"] == "fp_fp"
+
+    raw_json = (tmp_path / "test_evaluation.json").read_text(encoding="utf-8")
+    saved = json.loads(raw_json)
+    for samples in saved["error_samples"].values():
+        for sample in samples:
+            assert set(sample) == {"text_fingerprint"}
+    assert "masked_text" not in raw_json
+    assert "alice@example.com" not in raw_json
+    assert "저녁" not in raw_json

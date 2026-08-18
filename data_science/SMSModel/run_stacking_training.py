@@ -64,6 +64,16 @@ EXPECTED_DATASET_FINGERPRINT = (
     "8706f682f9bf2b68c872567b7eb5256f2"
 )
 
+# 실행 가드와 metadata가 같은 값을 참조하도록 분할 크기를 한 곳에서 정의합니다.
+EXPECTED_TOTAL_CSV_ROWS = 3002
+EXPECTED_TRAINING_POOL_ROWS = 885
+EXPECTED_HOLDOUT_ROWS = 210
+EXPECTED_SPLIT_COUNTS = {
+    "train": 623,
+    "validation": 126,
+    "test": 136,
+}
+
 
 def collect_library_versions() -> dict[str, str]:
     """재현성 확인에 필요한 실행 환경과 라이브러리 버전을 반환합니다."""
@@ -295,31 +305,42 @@ def save_artifact(
                 "reloaded artifact has unavailable base models: "
                 f"{unavailable}"
             )
-        np.testing.assert_allclose(
-            reloaded_probabilities,
-            expected_probabilities,
+        reloaded_array = np.asarray(reloaded_probabilities, dtype=float)
+        expected_array = np.asarray(expected_probabilities, dtype=float)
+        if reloaded_array.shape != expected_array.shape:
+            raise RuntimeError(
+                "reloaded artifact returned a different probability shape: "
+                f"expected={expected_array.shape}, "
+                f"actual={reloaded_array.shape}"
+            )
+        if not np.allclose(
+            reloaded_array,
+            expected_array,
             rtol=0.0,
             atol=1e-12,
-        )
+        ):
+            max_absolute_difference = float(
+                np.max(np.abs(reloaded_array - expected_array))
+            )
+            raise RuntimeError(
+                "reloaded artifact probabilities differ from training output: "
+                f"max_abs_diff={max_absolute_difference}"
+            )
 
     model_configuration = classifier.get_metadata()
     metadata = {
         "schema_version": 2,
-        "artifact_version": "v2",
+        "artifact_version": STACKING_ARTIFACT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model": model_configuration,
         "validation": validation_metrics,
         "dataset": {
-            "total_csv_rows": 3002,
-            "training_pool_rows": 885,
-            "holdout_rows": 210,
+            "total_csv_rows": EXPECTED_TOTAL_CSV_ROWS,
+            "training_pool_rows": EXPECTED_TRAINING_POOL_ROWS,
+            "holdout_rows": EXPECTED_HOLDOUT_ROWS,
             "dataset_fingerprint": EXPECTED_DATASET_FINGERPRINT,
         },
-        "splits": {
-            "train": 623,
-            "validation": 126,
-            "test": 136,
-        },
+        "splits": dict(EXPECTED_SPLIT_COUNTS),
         "training_policy": {
             "training_split": "train",
             "threshold_selection_split": "validation",
@@ -369,23 +390,26 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
 
     # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리
     total_csv_rows = len(pd.read_csv(DATA_PATH))
-    if total_csv_rows != 3002:
+    if total_csv_rows != EXPECTED_TOTAL_CSV_ROWS:
         raise ValueError(
-            f"expected 3002 source rows, got {total_csv_rows}"
+            f"expected {EXPECTED_TOTAL_CSV_ROWS} source rows, "
+            f"got {total_csv_rows}"
         )
 
     validate_dataset_fingerprint()
 
     dataset, holdout = load_data(DATA_PATH)
 
-    if len(dataset) != 885:
+    if len(dataset) != EXPECTED_TRAINING_POOL_ROWS:
         raise ValueError(
-            f"expected 885 training-pool rows, got {len(dataset)}"
+            f"expected {EXPECTED_TRAINING_POOL_ROWS} training-pool rows, "
+            f"got {len(dataset)}"
         )
 
-    if len(holdout) != 210:
+    if len(holdout) != EXPECTED_HOLDOUT_ROWS:
         raise ValueError(
-            f"expected 210 holdout rows, got {len(holdout)}"
+            f"expected {EXPECTED_HOLDOUT_ROWS} holdout rows, "
+            f"got {len(holdout)}"
         )
 
     # 기존 committed manifest만 적용
@@ -394,21 +418,20 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         create_manifest=False,
     )
 
-    expected_counts = {
-        "train": 623,
-        "validation": 126,
-        "test": 136,
-    }
+    # split_data가 split 보고서를 다시 생성하므로, artifact에 기록할 fingerprint가
+    # 이번 실행 결과와 일치하는지 저장 직전에 한 번 더 확인합니다.
+    validate_dataset_fingerprint()
+
     actual_counts = {
         "train": len(splits.train),
         "validation": len(splits.validation),
         "test": len(splits.test),
     }
 
-    if actual_counts != expected_counts:
+    if actual_counts != EXPECTED_SPLIT_COUNTS:
         raise ValueError(
             "unexpected split counts: "
-            f"expected={expected_counts}, actual={actual_counts}"
+            f"expected={EXPECTED_SPLIT_COUNTS}, actual={actual_counts}"
         )
 
     # train 623건만 사용해 모델 학습
