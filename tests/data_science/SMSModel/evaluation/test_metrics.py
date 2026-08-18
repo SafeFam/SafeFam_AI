@@ -1,5 +1,4 @@
-"""분류 성능 및 혼동행렬 테스트."""
-
+"""분류 성능 및 혼동행렬 테스트"""
 import pytest
 
 from data_science.SMSModel.evaluation.metrics import (
