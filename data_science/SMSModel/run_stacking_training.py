@@ -24,11 +24,29 @@ from data_science.SMSModel.train_sms import (
 
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
+
+STACKING_ARTIFACT_VERSION = "v2"
+
 STACKING_ARTIFACT_DIRECTORY = (
-    SMS_MODEL_DIRECTORY / "artifacts" / "stacking"
+    SMS_MODEL_DIRECTORY
+    / "artifacts"
+    / "stacking"
+    / STACKING_ARTIFACT_VERSION
 )
-STACKING_MODEL_PATH = STACKING_ARTIFACT_DIRECTORY / "model.joblib"
-STACKING_METADATA_PATH = STACKING_ARTIFACT_DIRECTORY / "metadata.json"
+
+STACKING_MODEL_PATH = (
+    STACKING_ARTIFACT_DIRECTORY / "model.joblib"
+)
+
+STACKING_METADATA_PATH = (
+    STACKING_ARTIFACT_DIRECTORY / "metadata.json"
+)
+
+STACKING_REPORT_DIRECTORY = (
+    SMS_MODEL_DIRECTORY
+    / "reports"
+    / "stacking_v2"
+)
 
 TARGET_RECALL = 0.95
 
@@ -192,17 +210,40 @@ def save_artifact(
         raise RuntimeError("invalid stacking classifier artifact")
 
     metadata = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "artifact_version": "v2",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model": classifier.get_metadata(),
         "validation": validation_metrics,
-        "dataset_path": DATA_PATH.relative_to(
-            SMS_MODEL_DIRECTORY.parent
-        ).as_posix(),
-        "split_manifest": SPLIT_MANIFEST_PATH.name,
-        "model_sha256": calculate_sha256(STACKING_MODEL_PATH),
-        # 원문 데이터, API Key 및 환경변수는 기록하지 않습니다.
+        "dataset": {
+            "total_csv_rows": 3002,
+            "training_pool_rows": 885,
+            "holdout_rows": 210,
+            "dataset_fingerprint": (
+                "46c1c9393d30f25ab03f0f7b6e85e5a"
+                "8706f682f9bf2b68c872567b7eb5256f2"
+            ),
+        },
+        "splits": {
+            "train": 623,
+            "validation": 126,
+            "test": 136,
+        },
+        "training_policy": {
+            "training_split": "train",
+            "threshold_selection_split": "validation",
+            "final_evaluation_split": "test",
+            "holdout_used_during_training": False,
+            "test_used_for_tuning": False,
+            "random_state": 42,
+        },
+        "split_manifest": "sms_split_v2.csv",
+        "model_sha256": calculate_sha256(
+            STACKING_MODEL_PATH
+        ),
+        "library_versions": collect_library_versions(),
     }
+    
 
     STACKING_METADATA_PATH.write_text(
         json.dumps(
@@ -216,48 +257,129 @@ def save_artifact(
     )
 
 def train_stacking(*, overwrite_artifacts: bool) -> None:
-    """train으로 학습하고 validation으로 임계값을 선택"""
+    """Stacking v2를 학습하고 고정된 test split을 한 번 평가"""
 
+    # committed v2 manifest가 없으면 실행 중단
     if not SPLIT_MANIFEST_PATH.is_file():
         raise FileNotFoundError(
             f"split manifest is required: {SPLIT_MANIFEST_PATH}"
         )
 
-    dataset, _unused_holdout = load_data(DATA_PATH)
-    splits = split_data(dataset, create_manifest=False)
+    if SPLIT_MANIFEST_PATH.name != "sms_split_v2.csv":
+        raise ValueError(
+            "Stacking v2 must use sms_split_v2.csv"
+        )
 
+    # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리
+    dataset, holdout = load_data(DATA_PATH)
+
+    if len(dataset) != 885:
+        raise ValueError(
+            f"expected 885 training-pool rows, got {len(dataset)}"
+        )
+
+    if len(holdout) != 210:
+        raise ValueError(
+            f"expected 210 holdout rows, got {len(holdout)}"
+        )
+
+    # 기존 committed manifest만 적용
+    splits = split_data(
+        dataset,
+        create_manifest=False,
+    )
+
+    expected_counts = {
+        "train": 623,
+        "validation": 126,
+        "test": 136,
+    }
+    actual_counts = {
+        "train": len(splits.train),
+        "validation": len(splits.validation),
+        "test": len(splits.test),
+    }
+
+    if actual_counts != expected_counts:
+        raise ValueError(
+            "unexpected split counts: "
+            f"expected={expected_counts}, actual={actual_counts}"
+        )
+
+    # train 623건만 사용해 모델 학습
     classifier = StackingPhishingClassifier(
         n_splits=5,
         random_state=42,
     )
     classifier.fit(splits.train)
 
+    # validation 126건으로만 threshold 선정
     validation_probabilities, unavailable = (
-        classifier.predict_probabilities(splits.validation)
+        classifier.predict_probabilities(
+            splits.validation
+        )
     )
 
     if unavailable:
         raise RuntimeError(
-            "all base models must be available during threshold selection: "
+            "base models unavailable during validation: "
             f"{unavailable}"
         )
 
-    threshold, metrics = select_validation_threshold(
-        validation_probabilities,
-        splits.validation["label"],
+    threshold, validation_metrics = (
+        select_validation_threshold(
+            validation_probabilities,
+            splits.validation["label"],
+            target_recall=TARGET_RECALL,
+        )
     )
+
+    # 이 시점부터 threshold는 변경하면 안 됨
     classifier.set_threshold(threshold)
 
+    # 고정된 threshold로 test 136건을 단 한 번 평가
+    test_probabilities, test_unavailable = (
+        classifier.predict_probabilities(splits.test)
+    )
+
+    test_predictions = np.where(
+        test_probabilities >= threshold,
+        "phishing",
+        "normal",
+    )
+
+    test_metrics = calculate_classification_metrics(
+        splits.test["label"].to_numpy(),
+        test_predictions,
+    )
+
+    # v2 전용 경로에 artifact 저장
     save_artifact(
         classifier,
-        validation_metrics=metrics,
+        validation_metrics=validation_metrics,
         overwrite=overwrite_artifacts,
     )
 
-    print("[Stacking] training completed")
+    # 보고서 저장
+    save_stacking_test_report(
+        test_df=splits.test,
+        probabilities=test_probabilities,
+        predictions=test_predictions,
+        metrics=test_metrics,
+        threshold=threshold,
+        unavailable_models=test_unavailable,
+        output_directory=STACKING_REPORT_DIRECTORY,
+    )
+
+    print("[Stacking v2] training completed")
+    print(f"  train={len(splits.train)}")
+    print(f"  validation={len(splits.validation)}")
+    print(f"  test={len(splits.test)}")
+    print(f"  holdout={len(holdout)}")
     print(f"  threshold={threshold:.6f}")
-    print(f"  validation_recall={metrics['recall']:.4f}")
-    print(f"  validation_f2={metrics['f2']:.4f}")
+    print(f"  test_accuracy={test_metrics.accuracy:.4f}")
+    print(f"  test_recall={test_metrics.recall:.4f}")
+    print(f"  test_f2={test_metrics.f2:.4f}")
     print(f"  artifact={STACKING_MODEL_PATH}")
 
 def main() -> None:
@@ -273,7 +395,6 @@ def main() -> None:
     train_stacking(
         overwrite_artifacts=arguments.overwrite_artifacts
     )
-
 
 if __name__ == "__main__":
     main()
