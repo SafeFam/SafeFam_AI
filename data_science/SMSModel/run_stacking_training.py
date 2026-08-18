@@ -253,10 +253,32 @@ def save_artifact(
     *,
     validation_metrics: dict[str, float],
     overwrite: bool,
+    dataset_counts: dict[str, int],
+    split_counts: dict[str, int],
     verification_df: pd.DataFrame | None = None,
     expected_probabilities: np.ndarray | None = None,
 ) -> None:
-    """모델과 비민감 metadata를 저장하고 재로드 검증"""
+    """모델과 비민감 metadata를 저장하고 재로드 검증
+
+    dataset_counts와 split_counts는 이번 실행에서 실제로 관측한 행 수여야 합니다.
+    상수를 그대로 기록하면 검증되지 않은 값이 metadata에 남을 수 있습니다.
+    """
+
+    missing_dataset_keys = {
+        "total_csv_rows",
+        "training_pool_rows",
+        "holdout_rows",
+    } - set(dataset_counts)
+    if missing_dataset_keys:
+        raise ValueError(
+            f"dataset_counts is missing keys: {sorted(missing_dataset_keys)}"
+        )
+
+    missing_split_keys = set(EXPECTED_SPLIT_COUNTS) - set(split_counts)
+    if missing_split_keys:
+        raise ValueError(
+            f"split_counts is missing keys: {sorted(missing_split_keys)}"
+        )
 
     if (
         STACKING_MODEL_PATH.exists()
@@ -335,12 +357,12 @@ def save_artifact(
         "model": model_configuration,
         "validation": validation_metrics,
         "dataset": {
-            "total_csv_rows": EXPECTED_TOTAL_CSV_ROWS,
-            "training_pool_rows": EXPECTED_TRAINING_POOL_ROWS,
-            "holdout_rows": EXPECTED_HOLDOUT_ROWS,
+            "total_csv_rows": dataset_counts["total_csv_rows"],
+            "training_pool_rows": dataset_counts["training_pool_rows"],
+            "holdout_rows": dataset_counts["holdout_rows"],
             "dataset_fingerprint": EXPECTED_DATASET_FINGERPRINT,
         },
-        "splits": dict(EXPECTED_SPLIT_COUNTS),
+        "splits": dict(split_counts),
         "training_policy": {
             "training_split": "train",
             "threshold_selection_split": "validation",
@@ -422,6 +444,12 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
     # 이번 실행 결과와 일치하는지 저장 직전에 한 번 더 확인합니다.
     validate_dataset_fingerprint()
 
+    dataset_counts = {
+        "total_csv_rows": total_csv_rows,
+        "training_pool_rows": len(dataset),
+        "holdout_rows": len(holdout),
+    }
+
     actual_counts = {
         "train": len(splits.train),
         "validation": len(splits.validation),
@@ -489,6 +517,8 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         classifier,
         validation_metrics=validation_metrics,
         overwrite=overwrite_artifacts,
+        dataset_counts=dataset_counts,
+        split_counts=actual_counts,
         verification_df=splits.test,
         expected_probabilities=test_probabilities,
     )

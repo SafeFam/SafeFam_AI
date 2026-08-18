@@ -257,7 +257,7 @@ def test_requires_metadata_for_default_artifact_paths(
     )
     monkeypatch.setattr(comparison, "DEFAULT_MODEL_PATHS", (model_path,))
 
-    with pytest.raises(ValueError, match="metadata.json is required"):
+    with pytest.raises(ValueError, match=r"metadata\.json is required"):
         comparison.load_model(model_path)
 
     # 테스트 fixture로 명시하면 permissive 경로가 유지됩니다.

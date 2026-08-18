@@ -97,6 +97,12 @@ def test_saves_and_reloads_model_artifact(
             "target_recall_met": True,
         },
         overwrite=False,
+        dataset_counts={
+            "total_csv_rows": 3002,
+            "training_pool_rows": 885,
+            "holdout_rows": 210,
+        },
+        split_counts={"train": 623, "validation": 126, "test": 136},
     )
 
     payload = joblib.load(model_path)
@@ -133,4 +139,86 @@ def test_does_not_overwrite_existing_artifact_without_permission(
             classifier,
             validation_metrics={},
             overwrite=False,
+            dataset_counts={
+                "total_csv_rows": 3002,
+                "training_pool_rows": 885,
+                "holdout_rows": 210,
+            },
+            split_counts={"train": 623, "validation": 126, "test": 136},
+        )
+
+
+def test_metadata_records_measured_counts(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """metadata가 상수 대신 실행 중 관측한 행 수를 기록하는지 검증"""
+    artifact_directory = tmp_path / "stacking"
+    model_path = artifact_directory / "model.joblib"
+    metadata_path = artifact_directory / "metadata.json"
+
+    monkeypatch.setattr(
+        training,
+        "STACKING_ARTIFACT_DIRECTORY",
+        artifact_directory,
+    )
+    monkeypatch.setattr(training, "STACKING_MODEL_PATH", model_path)
+    monkeypatch.setattr(training, "STACKING_METADATA_PATH", metadata_path)
+    monkeypatch.setattr(
+        StackingPhishingClassifier,
+        "get_metadata",
+        lambda self: {"model_name": "stacking_phishing_classifier"},
+    )
+
+    measured_dataset_counts = {
+        "total_csv_rows": 3100,
+        "training_pool_rows": 900,
+        "holdout_rows": 215,
+    }
+    measured_split_counts = {"train": 630, "validation": 130, "test": 140}
+
+    training.save_artifact(
+        StackingPhishingClassifier(n_splits=2),
+        validation_metrics={},
+        overwrite=False,
+        dataset_counts=measured_dataset_counts,
+        split_counts=measured_split_counts,
+    )
+
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+    assert metadata["artifact_version"] == training.STACKING_ARTIFACT_VERSION
+    assert metadata["dataset"]["total_csv_rows"] == 3100
+    assert metadata["dataset"]["training_pool_rows"] == 900
+    assert metadata["dataset"]["holdout_rows"] == 215
+    assert metadata["splits"] == measured_split_counts
+
+
+def test_rejects_incomplete_counts(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """관측 행 수가 누락되면 artifact를 저장하지 않는지 검증"""
+    artifact_directory = tmp_path / "stacking"
+    monkeypatch.setattr(
+        training,
+        "STACKING_ARTIFACT_DIRECTORY",
+        artifact_directory,
+    )
+    monkeypatch.setattr(
+        training, "STACKING_MODEL_PATH", artifact_directory / "model.joblib"
+    )
+    monkeypatch.setattr(
+        training,
+        "STACKING_METADATA_PATH",
+        artifact_directory / "metadata.json",
+    )
+
+    with pytest.raises(ValueError, match="dataset_counts is missing keys"):
+        training.save_artifact(
+            StackingPhishingClassifier(n_splits=2),
+            validation_metrics={},
+            overwrite=False,
+            dataset_counts={"total_csv_rows": 3002},
+            split_counts={"train": 623, "validation": 126, "test": 136},
         )
