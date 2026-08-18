@@ -1,0 +1,417 @@
+{
+  "error_samples": {
+    "false_negatives": [],
+    "false_positives": [
+      {
+        "masked_text": "[천안서울안과] [Web발신] 000님의 생일을 진심으로 축하드립니다. 항상 즐겁고 행복한 시간 보내시긴 바랍니다. 천안서울안과",
+        "text_fingerprint": "6b818d1bcc889de492158cbb27cc6fead5196d4d92e194550c0617b9ea94c9ce"
+      },
+      {
+        "masked_text": "[Web발신] [*반 프로젝트 최종발표 일정 링크] 클릭해서 신청하세요~ https://www.baemin.me/qGa29G",
+        "text_fingerprint": "af129827c3283f2218baef8752bf17dc48159f820b6793985bfcd7c83213f83b"
+      },
+      {
+        "masked_text": "[CJ대한통운] [Web발신][CJ대한통운_배송완료] 일요일에도 신속하게!! 모두를 위한 매일매일 배송 CJ대한통운 매일오네(O-NE) 고객님의 상품이 배송 완료되었습니다.ㆍ보내는분 : 엠퍼러웍스 ㆍ상품명 : 플레임 아플리케 피그먼트 후드집업 브라운M ㆍ인수자(위탁장소) : 문앞 ㆍ운송장번호 : 693904*** 모두를 위한 단 하나의 배송! CJ대한통운 ",
+        "text_fingerprint": "a8eea65ccc27637fe47071d1d32ffa49d7c3aa0dc00d7d7c6f339435979650c6"
+      },
+      {
+        "masked_text": "[Web발신] [우리은행] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 94만 원 잔여 740원",
+        "text_fingerprint": "78690649e236da13080f383a4fd0f81b4fbeabb9e9a2684e751679c854473a20"
+      },
+      {
+        "masked_text": "맞아. 1990년 한-몽 양국 수교 이후 한국 드라마가 방영되면서 엄청난 인기를 끌게 되었대.",
+        "text_fingerprint": "40effa08f76d5f67a25a0c0369c47e88bc4358eafe60b72c8314f986459ecb8d"
+      },
+      {
+        "masked_text": "거의 그 정도 하더라ㅋㅋ. 내가 말한 샌드커피 논탄토도 카이막, 토스트빵 세트가 7,500원임!",
+        "text_fingerprint": "f3162cc2b253bc20515e6f75b914ce103f69f9ed6dd5b2cf7aecbc8965368de7"
+      },
+      {
+        "masked_text": "그리고 그릭요거트 처럼 질감이 꾸덕해서 빵이나 크래커랑 같이 먹으면 잘 어울려ㅋㅋ.",
+        "text_fingerprint": "60aced738636c31917e9dc613957ed3c0d5963a2aa417b94ab6cf430610891b1"
+      },
+      {
+        "masked_text": "회원님 새마을금고가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "c2cfdee4aca9f5222c5fea8cd933dd08fa4033d474d81a662e3c4d9c6d3e1a10"
+      },
+      {
+        "masked_text": "그럼 금요일은 그시간대말고 다른가능한시간대없나요 고객님없는시간대라서요",
+        "text_fingerprint": "c54dfa3b24a493b38a0758d1e2081e0113661d38f18c2a361e86c4cc908e708d"
+      },
+      {
+        "masked_text": "[Web발신] [하나은행] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 164만 원 잔여 740원",
+        "text_fingerprint": "1c63e295924146345469a5bdb7bea4e2c651e4be050af1f4ee241fc2b71436c2"
+      },
+      {
+        "masked_text": "민*님 주의사항 보내드려요! 불편한 점 있으면 언제든 연락주세요~!",
+        "text_fingerprint": "340643ac085f401dad843c15572b1f5e9d150c89a13a0c90a4002bd8437eb127"
+      },
+      {
+        "masked_text": "안녕하세요 이용해주셔서 감사합니다~ 1층 주출입구 자동문은 아래 시간 외에는 잠가서 외부인 출입을 차단합니다 외부인에게 비밀번호가 노출되지 않도록 협조부탁드립니다 ~^^ 개방시간:  오전 9시~저녁 8시 잠겼을 경우 다음 방법으로 열어주세요 <우측 상단의 불빛 LOCK을 누른다음 비번  7575#을 누른다> -뉴A+독서실.리빙텔-",
+        "text_fingerprint": "c2c90aec6b8691fa77c0cd637c92c75fc4023ce987e471fbded32df5a8e1dcd4"
+      },
+      {
+        "masked_text": "[Web발신] [우리은행] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 40,416원 잔여 740원",
+        "text_fingerprint": "fded9f3fbe3d5f29002813c835ac6a0e6a88033e9785cf5ac7424f4df3eb0711"
+      },
+      {
+        "masked_text": "그러게. 다음에 만들어서 먹거나 사서 먹어봐!",
+        "text_fingerprint": "740f666aa55ba32be0a4497f55b68d7252b36af6a7f6b007a5dba150c343a141"
+      },
+      {
+        "masked_text": "회원님 신한카드가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "375356d6803c13f4be91908f8220b7f56b370ead5a04b446d0ef0e1c3945fc3f"
+      },
+      {
+        "masked_text": "회원님 하나은행가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "a5d44e0c58b8a7405592371d3269b95bcccbaafb9bd7a010294c4561f14867c8"
+      },
+      {
+        "masked_text": "[토스] 로그인 안내 [Web발신] 이*연님의 토스 계정이 새로운 기기에서 로그인됐어요. - 일시: [ACCOUNT/CARD]:56 - 직접 로그인하지 않았다면, 토스 고객센터(02-1599-****)로 문의해주세요.",
+        "text_fingerprint": "49225758d75143d92c6efaa5acf0b58588bf8ae9fb51d7804b4f299f4ea7f9f7"
+      },
+      {
+        "masked_text": "아..그렇구낭. 어쨌든 이강인 선수가 황선홍호에 합류해서 너무 다행이다ㅠㅠ.",
+        "text_fingerprint": "77278a2e5683eafd5419c0275eb61bd2678328fca4fd4d5934aed15d50930fca"
+      },
+      {
+        "masked_text": "회원님 롯데카드가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "9e7f78fa2d245016e03d4b9c2736cced573cd253da46f1a57aee500b9218b419"
+      },
+      {
+        "masked_text": "알겠어. 여러 가지 다양한 콘서트가 있어서 좋네. 뭐가 또 있을까 궁금해.",
+        "text_fingerprint": "46c8caa872762ad9a7ed9a0205217fe0744867fc655e350a89a1d1e3935983eb"
+      },
+      {
+        "masked_text": "흠...조금 아쉽긴 하지만 어쨌든 가격 인하는 했으니까...오뚜기도 역시 가격 인하 대열에 동참했으려나?",
+        "text_fingerprint": "c93f5a36821c5c2b8da55869897655034cdcf78c17cb2d7a4a935933f67214a3"
+      },
+      {
+        "masked_text": "[Web발신] [하나은행] 개인뱅킹 서비스 신규 가입 안내 [윤*우]님, 하나은행 개인뱅킹 서비스에 가입해 주셔서 감사합니다. 언제 어디서나 편리하게 인터넷뱅킹과 스마트폰뱅킹을 이용해 보세요. ▶ 하나원큐 바로가기 : https://www.naver.me/Vvk3uO ※ 본인이 가입하지 않은 경우, 하나은행 고객센터(1**9-1111)로 연락해주시기 바랍니",
+        "text_fingerprint": "6ad99290e53acba1f66ae22a8ebe5fc9f585d25f892bf4aea5d7e88c372d656d"
+      },
+      {
+        "masked_text": "[Web발신] [우리은행] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 59만 원 잔여 740원",
+        "text_fingerprint": "8c30ccaf935e05203e168e08ed304704a908a7f91e5a6217d1596e6ccaa91ed1"
+      },
+      {
+        "masked_text": "[국제발신] G-248*** - Google 인증 코드입니다. 타인과 공유하지 마세요.",
+        "text_fingerprint": "a7fecec3955d55a85934f68d4184eec4933040aa80d8e9b9075653c307f7cbe6"
+      },
+      {
+        "masked_text": "[Web발신] [전자투표] 인증번호 755***로 인증 후 투표 참여바랍니다.",
+        "text_fingerprint": "03d59bf1111617477a3cd283de6c9340b5358b90a6e6b95cebe01a106157b724"
+      },
+      {
+        "masked_text": "안녕하세요 엽떡입니다 😊 비할증으로 추가배달비 500원 발생해서 총 18500원입니다 번거롭게 해드려 죄송합니다 ㅜㅜ",
+        "text_fingerprint": "4179f54dfe26365994664664a8621684d1b47818b3588d81bd890449acf218ee"
+      },
+      {
+        "masked_text": "11월에는 재패니메이션 OST 콘서트가 열려. 애니메이션 음악 좋아하는 사람에게는 참 좋은 기회일 거야.",
+        "text_fingerprint": "67d4419ebf73e190f9269eba71b37e3c3fba296655405d8c0b0cb44facc2f37e"
+      },
+      {
+        "masked_text": "[Web발신] [우리카드] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 70만 원 잔여 740원",
+        "text_fingerprint": "5807b7d3d2784730e3fa2498d6a5602c9d394b091d0a0aa1df3c5e9323906236"
+      },
+      {
+        "masked_text": "[Web발신] [디딤코딩_AI 어플리케이션 활용과 데이터 다루기] 단체문자 안녕하세요모두 새해 복 많이 받으세요! 여러분이 신청하신 비교과 프로그램이 내일부터 진행됩니다. - 아래 - 기간: 1/3(수) 10:00~1/5(금) 12:50 (3일간) 장소: 상상관 305호 잊지 말고 참여해주시고요 수업에서 뵐께요~^^ 홍*경 드림",
+        "text_fingerprint": "fe00ed6c2ed234e40809cba49171dea1633ec3f89d7ac15244c5d481c6e52c0a"
+      },
+      {
+        "masked_text": "[주문완료] 스탬프 적립하세요♥ ★ 스탬프 적립 안내 ★ 스탬프 +1개가 적립되었습니다. ■ 스탬프 확인하기 spge.kr/Swq7sr2 스탬프 유효기간은 적립일 기준 1년 입니다. ■ 쿠폰 정보 음료수 사이즈업 1.25L 쿠폰 등 2개의 쿠폰을 교환하실 수 있습니다. □ 매장 : 마왕족발 천**부점 □ 일시 : 2024년 09월 25일 17:43 ■ 스탬",
+        "text_fingerprint": "534c8fd679825d3fe1f006f271adb420465ef772ba31a9bcb5d8d10f0c8a2db7"
+      },
+      {
+        "masked_text": "회원님 토스뱅크가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "68b556611de433b70c7d30e8a151ed623193f44774a6a3493e14ec8333c0cd91"
+      },
+      {
+        "masked_text": "오... 꿀맛이겠다ㅠㅠ. 나 그릭요거트도 엄청 좋아하는데!",
+        "text_fingerprint": "70fc743b6c40fb7f712a1b968a2aed72b0b2086796ed236f2b955dce428807e0"
+      },
+      {
+        "masked_text": "별다줄 ㅋㅋ. 왜 몽탄신도시라고 부르는 거야?",
+        "text_fingerprint": "e6cd21c9e01cb99e84865edc5b5bab1377bb48a1feb147298d81fae4c750e12c"
+      },
+      {
+        "masked_text": "그래? 어떤 인적 교류를 말하는 거야?",
+        "text_fingerprint": "ce40e5bed2be31fba6fb7e7513151e28f23bb6e0ca951b9844d4e5247c25c083"
+      },
+      {
+        "masked_text": "[Web발신] 튜톡잉글리쉬: 환불 처리 도와드렸습니다.",
+        "text_fingerprint": "956f6a3f1e97884c8ba70f0a41b6dc23cc8505b5d5a6c9fe8fbf50b55938194c"
+      },
+      {
+        "masked_text": "너 몽탄신도시라고 들어봤어?ㅋㅋ 나는 처음에 뭔 말인지 몰랐거든.",
+        "text_fingerprint": "dc54db46b6aaee174c4010a54d14d160df29dae43373528c18d19f0636d7aefc"
+      },
+      {
+        "masked_text": "치과병원 [Web발신] 안녕하세요. 신*진님께 진심을 다하는 문치과병원입니다. 진료 예약 내역을 안내드립니다. ■ 진료 예약일 : 6월13일 오후 4시 ■ 진료 층 : 10층 이** 원장님 혹시 내원이 어려우실 경우, 예약 변경 전화를 꼭 부탁드립니다. 항상 최선을 다하는 문치과병원이 되겠습니다. 감사합니다^^ ★2024년 5월 20일부터 본인 확인 절차가",
+        "text_fingerprint": "fca1b9cc71bff612b9877ae03e79de1cfa22ab88fd8ab3958d9f2daac22e5cae"
+      },
+      {
+        "masked_text": "회원님 KB국민은행가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "e72457ee803b744d5a6495adf968ad93ff7276649b8271ac5e6d2fcd8fff2641"
+      },
+      {
+        "masked_text": "이욜 ㅎㅎ. 그럼 제임스 웹 우주망원경이 우주에서 주로 하는 임무는 뭐야?",
+        "text_fingerprint": "c1815dc3d94d6cef446b868eb215dbbad095704e7ac9af4d852b0e1a32ee36d4"
+      },
+      {
+        "masked_text": "시간은 9시 10분으로 저녁에 가족끼리 보기 아주 좋지ㅋㅋ.",
+        "text_fingerprint": "fa9a518b8e529a6cf3ba22c869764ace7ba493fe109251e79b61ced209c73e52"
+      },
+      {
+        "masked_text": "이강인 선수는 2019년 국제축구연맹 20세 이하 월드컵 준우승을 이끌며 대회 최우수선수에게 주는 골든볼을 수상한 전적이 있어. 그만큼 실력이 뛰어난 선수임.",
+        "text_fingerprint": "5f3a11655d8186c91d23c63b75028732eae5a0a84079196553c3050b3f5d713f"
+      },
+      {
+        "masked_text": "회원님 우리은행가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "0a3f686bd31714f7740c7f91e4761024e351d600bb4fb125251ded429f08ddd2"
+      },
+      {
+        "masked_text": "[Web발신] [우리카드] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 56,139원 잔여 740원",
+        "text_fingerprint": "426bf67c21cfb764413d9498ec94efe6f94c07c4999a4c5bd9591e63f5b263c4"
+      },
+      {
+        "masked_text": "[Web발신] [위에트 혜화점] 혜화 14:30 1일(2024년 12월 08일) 예약 완료 **241*****65946",
+        "text_fingerprint": "c452cc059cd868f8971aae413710acde6b4c8177767bb8496694174d800d8d02"
+      },
+      {
+        "masked_text": "회원님 신한은행가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "5c592f4b179588f01e19e4d2f9abf254bd4367fd16279f0d30d85082ada24294"
+      },
+      {
+        "masked_text": "회원님 카카오뱅크가 대리인 배*신님께 배송되었습니다. 배송만족도 평가시 5점 부탁드립니다. 문의,불편접수 02-***-***",
+        "text_fingerprint": "18d20d2efa8df4580a1cc07cc785ed24ce1ca69d60f38575927c95940e05006f"
+      },
+      {
+        "masked_text": "그래, 인생 뭐 있냐. 복세편살하는거지.",
+        "text_fingerprint": "14084b8ddfb7377e940b580b01b54edb58c92d0c8e7d1e19d5f671affde41a79"
+      },
+      {
+        "masked_text": "롯데택배 딩동♬ 진심을 다하는 롯데택배입니다. 고객님의 소중한 상품이 도착되었다는 소식을 알려드립니다. 불편사항 있으시면 언제든지 연락바라며, 항상 최고의 서비스를 위해 노력하겠습니다. 송장번호 : 2**4-75*4-16** ■ 보내는분 : 주식회사 건어맨 ■ 상품명 : 맥반석오징어채 파지 1kg(찡어) ■ 위탁장소 : 문앞 ■ 배송일자 : 01월17일",
+        "text_fingerprint": "f5632aa15a179afb0a9bda37a4f4872d0507a8d1cb5b9b194313f5b0e4164453"
+      },
+      {
+        "masked_text": "[Web발신] [하나은행] 2차 소비쿠폰 11/29 19:28 쌍용스토아신부점 사용 31,103원 잔여 740원",
+        "text_fingerprint": "061121ea6e5a60f9512b6ff0fee3292a4adf8ed5bf1e7c3b9edd4aec854eee0c"
+      },
+      {
+        "masked_text": "홀리몰리 과카몰리! 진짜 멀리 떨어져 있다 ㅋㅋ. 허블 망원경보다는 기술적으로 어떤 면이 좋음?",
+        "text_fingerprint": "cfca46486c6a987552b9660e08f053a59082144d93d29e50375917b7f633c3d9"
+      }
+    ]
+  },
+  "latency_stats": {
+    "mean": 7.676674264705883,
+    "p50": 6.8557,
+    "p95": 11.998525,
+    "sample_count": 136
+  },
+  "normal_by_type": {
+    "기타정상": {
+      "false_positive": 35,
+      "false_positive_rate": 0.9722222222222222,
+      "false_positive_rate_95_ci": {
+        "lower": 0.8582996626496918,
+        "upper": 0.9950797197044302
+      },
+      "sample_count": 36,
+      "true_negative": 1
+    },
+    "일상대화": {
+      "false_positive": 22,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.8513404742740388,
+        "upper": 1.0
+      },
+      "sample_count": 22,
+      "true_negative": 0
+    },
+    "정상공공기관알림": {
+      "false_positive": 1,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_negative": 0
+    },
+    "정상포인트소멸알림": {
+      "false_positive": 1,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_negative": 0
+    }
+  },
+  "overall_metrics": {
+    "accuracy": 0.5661764705882353,
+    "confusion_matrix": {
+      "false_negative": 0,
+      "false_positive": 59,
+      "true_negative": 1,
+      "true_positive": 76
+    },
+    "f1_score": 0.7203791469194314,
+    "f2_score": 0.8656036446469249,
+    "precision": 0.562962962962963,
+    "recall": 1.0
+  },
+  "phishing_by_type": {
+    "경조사사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.7008472464490407,
+        "upper": 1.0
+      },
+      "sample_count": 9,
+      "true_positive": 9
+    },
+    "계정정지본인인증유도": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "금융기관사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.8241154494176252,
+        "upper": 1.0
+      },
+      "sample_count": 18,
+      "true_positive": 18
+    },
+    "대출사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "악성링크앱설치유도": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "이벤트당첨사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.8241154494176252,
+        "upper": 1.0
+      },
+      "sample_count": 18,
+      "true_positive": 18
+    },
+    "정부공공기관사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.43849391955098227,
+        "upper": 1.0
+      },
+      "sample_count": 3,
+      "true_positive": 3
+    },
+    "중고거래사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "채용부업사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.7961107336956521,
+        "upper": 1.0
+      },
+      "sample_count": 15,
+      "true_positive": 15
+    },
+    "택배배송사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.6755843804891231,
+        "upper": 1.0
+      },
+      "sample_count": 8,
+      "true_positive": 8
+    },
+    "투자리딩방사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    }
+  },
+  "sample_summary": {
+    "failure_counts": {
+      "engine_failure": 0,
+      "exception": 0,
+      "missing_result": 0
+    },
+    "successful_samples": 136,
+    "total_samples": 136
+  },
+  "schema_version": 1,
+  "shared_metrics": {
+    "accuracy": 0.5661764705882353,
+    "f1": 0.7203791469194313,
+    "f2": 0.8656036446469249,
+    "false_negative": 0,
+    "false_positive": 59,
+    "precision": 0.562962962962963,
+    "recall": 1.0,
+    "sample_count": 136,
+    "true_negative": 1,
+    "true_positive": 76
+  },
+  "split": "test",
+  "threshold": 0.014429172671629664,
+  "unavailable_models": [],
+  "unique_template_metrics": {
+    "accuracy": 0.4888888888888889,
+    "f1_score": 0.6515151515151515,
+    "f2_score": 0.8237547892720305,
+    "false_negative": 0,
+    "false_positive": 46,
+    "precision": 0.48314606741573035,
+    "recall": 1.0,
+    "sample_count": 90,
+    "true_negative": 1,
+    "true_positive": 43
+  }
+}

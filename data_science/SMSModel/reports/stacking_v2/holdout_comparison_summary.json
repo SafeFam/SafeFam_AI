@@ -1,0 +1,64 @@
+{
+  "sample_count": 190,
+  "holdout_audit": {
+    "source_row_count": 210,
+    "evaluated_row_count": 190,
+    "excluded_training_overlap_rows": 20,
+    "excluded_training_overlap_fingerprints": 1
+  },
+  "evaluation_policy": {
+    "dataset": "shared_holdout",
+    "used_for_training": false,
+    "used_for_threshold_selection": false,
+    "thresholds_changed_after_evaluation": false
+  },
+  "artifacts": {
+    "v1": {
+      "path": "artifacts/stacking/model.joblib",
+      "sha256": "fa99576f1d655625410ddb3b6b36ab55faca5a780f296dae9041e37593c063fe",
+      "threshold": 0.08844759684377157
+    },
+    "v2": {
+      "path": "artifacts/stacking/v2/model.joblib",
+      "sha256": "b13c6f9df63a2e2229e6db79b5d854ee07621970053b2bc0824d4e80480c48ba",
+      "threshold": 0.014429172671629664
+    }
+  },
+  "v1_metrics": {
+    "sample_count": 190,
+    "accuracy": 0.5526315789473685,
+    "precision": 0.5526315789473685,
+    "recall": 1.0,
+    "f1": 0.711864406779661,
+    "f2": 0.860655737704918,
+    "true_negative": 0,
+    "false_positive": 85,
+    "false_negative": 0,
+    "true_positive": 105
+  },
+  "v2_metrics": {
+    "sample_count": 190,
+    "accuracy": 0.5578947368421052,
+    "precision": 0.5555555555555556,
+    "recall": 1.0,
+    "f1": 0.7142857142857143,
+    "f2": 0.8620689655172413,
+    "true_negative": 1,
+    "false_positive": 84,
+    "false_negative": 0,
+    "true_positive": 105
+  },
+  "v1_accuracy": 0.5526315789473685,
+  "v2_accuracy": 0.5578947368421052,
+  "contingency_table": {
+    "both_correct": 105,
+    "both_wrong": 84,
+    "v1_only_correct": 0,
+    "v2_only_correct": 1
+  },
+  "mcnemar_test": {
+    "discordant_count": 1,
+    "p_value": 1.0,
+    "is_significant_at_0_05": false
+  }
+}

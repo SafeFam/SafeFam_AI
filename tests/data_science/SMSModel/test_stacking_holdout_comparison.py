@@ -100,7 +100,7 @@ def test_predict_model_extracts_phishing_probability() -> None:
 
 def test_runs_comparison_end_to_end_and_generates_outputs(tmp_path: Path) -> None:
     """Holdout 비교 실행, CSV/JSON 산출물 생성 및 내용 검증"""
-    # 테스트용 Holdout 데이터 준비 
+    # 테스트용 Holdout 데이터 준비
     holdout_path = tmp_path / "holdout_test.csv"
     holdout_df = pd.DataFrame(
         [

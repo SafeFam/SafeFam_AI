@@ -1,22 +1,32 @@
 """Stacking v2 종합 평가 보고서 생성 모듈"""
+
+from __future__ import annotations
+
+import json
 import re
+from pathlib import Path
+from time import perf_counter_ns
 from typing import Any, Callable, Dict, List, Optional
+
 import numpy as np
 import pandas as pd
+
+from data_science.SMSModel.evaluation.metrics import ClassificationMetrics
+from data_science.SMSModel.modeling.stacking import StackingPhishingClassifier
 
 
 def default_mask_sensitive_text(text: str) -> str:
     """전화번호, 주민번호, 계좌번호 등 민감정보 마스킹"""
     if not isinstance(text, str):
         return ""
-    
-    # 주민등록번호 
+
+    # 주민등록번호
     text = re.sub(r"\b\d{6}[-.\s]?[1-4]\d{6}\b", "[RRN]", text)
-    
+
     # 전화번호
     text = re.sub(r"\b\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{4}\b", "[PHONE]", text)
-    
-    # 계좌번호/카드번호 
+
+    # 계좌번호/카드번호
     text = re.sub(r"\b(?:\d[-.\s]?){10,16}\b", "[ACCOUNT/CARD]", text)
     
     return text
@@ -26,10 +36,45 @@ def calculate_f_beta(
     precision: Optional[float], recall: Optional[float], beta: float = 1.0
 ) -> Optional[float]:
     """F-beta score 계산 (F1: beta=1.0, F2: beta=2.0)"""
-    if precision is None or recall is None or (precision + recall) == 0:
+    if beta <= 0:
+        raise ValueError("beta must be greater than zero")
+    if precision is None or recall is None:
         return None
     beta_sq = beta**2
-    return (1 + beta_sq) * (precision * recall) / ((beta_sq * precision) + recall)
+    denominator = (beta_sq * precision) + recall
+    if denominator == 0:
+        return 0.0
+    return (1 + beta_sq) * (precision * recall) / denominator
+
+
+def calculate_wilson_interval(
+    successes: int,
+    sample_count: int,
+    *,
+    z_score: float = 1.96,
+) -> dict[str, float] | None:
+    """이항 비율의 Wilson 95% 신뢰구간을 반환합니다."""
+    if sample_count == 0:
+        return None
+    if successes < 0 or successes > sample_count:
+        raise ValueError("successes must be between zero and sample_count")
+    proportion = successes / sample_count
+    denominator = 1 + z_score**2 / sample_count
+    center = (
+        proportion + z_score**2 / (2 * sample_count)
+    ) / denominator
+    margin = (
+        z_score
+        * np.sqrt(
+            proportion * (1 - proportion) / sample_count
+            + z_score**2 / (4 * sample_count**2)
+        )
+        / denominator
+    )
+    return {
+        "lower": max(0.0, float(center - margin)),
+        "upper": min(1.0, float(center + margin)),
+    }
 
 
 def generate_evaluation_report(
@@ -38,6 +83,17 @@ def generate_evaluation_report(
     max_error_samples: int = 50,
 ) -> Dict[str, Any]:
     """모델 평가 보고서 생성"""
+    required_columns = {"label", "prediction", "type"}
+    missing_columns = required_columns - set(result_df.columns)
+    if missing_columns:
+        raise ValueError(
+            f"result_df is missing columns: {sorted(missing_columns)}"
+        )
+    if result_df.empty:
+        raise ValueError("result_df must not be empty")
+    if max_error_samples < 0:
+        raise ValueError("max_error_samples must not be negative")
+
     if mask_func is None:
         mask_func = default_mask_sensitive_text
 
@@ -61,6 +117,16 @@ def generate_evaluation_report(
     # 유효한 평가 대상 데이터셋
     valid_df = result_df[~failed_mask].copy()
     successful_samples = len(valid_df)
+
+    unsupported_predictions = (
+        set(valid_df["prediction"].astype(str))
+        - {"normal", "phishing"}
+    )
+    if unsupported_predictions:
+        raise ValueError(
+            "result_df contains unsupported predictions: "
+            f"{sorted(unsupported_predictions)}"
+        )
 
     # 전체 혼동 행렬 (Confusion Matrix)
     tp = int(
@@ -95,7 +161,7 @@ def generate_evaluation_report(
     f1 = calculate_f_beta(precision, recall, beta=1.0)
     f2 = calculate_f_beta(precision, recall, beta=2.0)
 
-    # 유형별 피싱 집계 
+    # 유형별 피싱 집계
     phishing_rows = valid_df[valid_df["label"] == "phishing"]
     phishing_by_type = {}
 
@@ -110,6 +176,10 @@ def generate_evaluation_report(
             "true_positive": t_tp,
             "false_negative": t_fn,
             "recall": t_tp / sample_count if sample_count > 0 else None,
+            "recall_95_ci": calculate_wilson_interval(
+                t_tp,
+                sample_count,
+            ),
         }
 
     # 유형별 정상 집계
@@ -128,6 +198,10 @@ def generate_evaluation_report(
             "false_positive": t_fp,
             "false_positive_rate": (
                 t_fp / sample_count if sample_count > 0 else None
+            ),
+            "false_positive_rate_95_ci": calculate_wilson_interval(
+                t_fp,
+                sample_count,
             ),
         }
 
@@ -157,15 +231,86 @@ def generate_evaluation_report(
     }
 
     # Latency 지표 (평균, P50, P95)
-    latency_stats = {"mean": None, "p50": None, "p95": None}
-    if "latency" in result_df.columns:
-        latencies = result_df["latency"].dropna()
+    latency_stats = {
+        "sample_count": 0,
+        "mean": None,
+        "p50": None,
+        "p95": None,
+    }
+    latency_column = (
+        "latency_ms" if "latency_ms" in result_df.columns else "latency"
+    )
+    if latency_column in result_df.columns:
+        latencies = pd.to_numeric(
+            result_df[latency_column], errors="coerce"
+        ).dropna()
         if not latencies.empty:
             latency_stats = {
+                "sample_count": len(latencies),
                 "mean": float(latencies.mean()),
                 "p50": float(np.percentile(latencies, 50)),
                 "p95": float(np.percentile(latencies, 95)),
             }
+
+    unique_template_metrics = None
+    if "template_group_id" in valid_df.columns:
+        unique_rows = valid_df.drop_duplicates(
+            subset="template_group_id",
+            keep="first",
+        )
+        unique_tp = int(
+            (
+                (unique_rows["label"] == "phishing")
+                & (unique_rows["prediction"] == "phishing")
+            ).sum()
+        )
+        unique_fn = int(
+            (
+                (unique_rows["label"] == "phishing")
+                & (unique_rows["prediction"] == "normal")
+            ).sum()
+        )
+        unique_tn = int(
+            (
+                (unique_rows["label"] == "normal")
+                & (unique_rows["prediction"] == "normal")
+            ).sum()
+        )
+        unique_fp = int(
+            (
+                (unique_rows["label"] == "normal")
+                & (unique_rows["prediction"] == "phishing")
+            ).sum()
+        )
+        unique_precision = (
+            unique_tp / (unique_tp + unique_fp)
+            if unique_tp + unique_fp
+            else None
+        )
+        unique_recall = (
+            unique_tp / (unique_tp + unique_fn)
+            if unique_tp + unique_fn
+            else None
+        )
+        unique_template_metrics = {
+            "sample_count": len(unique_rows),
+            "accuracy": (unique_tp + unique_tn) / len(unique_rows),
+            "precision": unique_precision,
+            "recall": unique_recall,
+            "f1_score": calculate_f_beta(
+                unique_precision,
+                unique_recall,
+            ),
+            "f2_score": calculate_f_beta(
+                unique_precision,
+                unique_recall,
+                beta=2.0,
+            ),
+            "true_positive": unique_tp,
+            "false_negative": unique_fn,
+            "true_negative": unique_tn,
+            "false_positive": unique_fp,
+        }
 
     # 최종 보고서 객체 조합
     return {
@@ -193,6 +338,120 @@ def generate_evaluation_report(
         },
         "phishing_by_type": phishing_by_type,
         "normal_by_type": normal_by_type,
+        "unique_template_metrics": unique_template_metrics,
         "error_samples": error_samples,
         "latency_stats": latency_stats,
     }
+
+
+def predict_probabilities_with_latency(
+    classifier: StackingPhishingClassifier,
+    evaluation_df: pd.DataFrame,
+) -> tuple[np.ndarray, tuple[str, ...], list[float]]:
+    """한 번의 표본 순회로 확률, 가용성 및 단건 지연시간을 수집합니다."""
+    probabilities: list[float] = []
+    unavailable_models: set[str] = set()
+    durations_ms: list[float] = []
+    for row_index in range(len(evaluation_df)):
+        row = evaluation_df.iloc[row_index : row_index + 1]
+        started_at = perf_counter_ns()
+        row_probabilities, row_unavailable = (
+            classifier.predict_probabilities(row)
+        )
+        durations_ms.append(
+            (perf_counter_ns() - started_at) / 1_000_000
+        )
+        if len(row_probabilities) != 1:
+            raise ValueError("single-row inference must return one probability")
+        probabilities.append(float(row_probabilities[0]))
+        unavailable_models.update(row_unavailable)
+
+    return (
+        np.asarray(probabilities, dtype=float),
+        tuple(sorted(unavailable_models)),
+        durations_ms,
+    )
+
+
+def save_stacking_test_report(
+    *,
+    test_df: pd.DataFrame,
+    probabilities: np.ndarray,
+    predictions: np.ndarray,
+    latencies_ms: list[float],
+    metrics: ClassificationMetrics,
+    threshold: float,
+    unavailable_models: tuple[str, ...],
+    output_directory: Path,
+) -> Dict[str, Any]:
+    """개인정보를 제거한 test 평가 JSON과 Markdown을 저장합니다."""
+    if not (
+        len(test_df)
+        == len(probabilities)
+        == len(predictions)
+        == len(latencies_ms)
+    ):
+        raise ValueError(
+            "test rows, probabilities, and predictions must align"
+        )
+
+    result_df = test_df.copy()
+    result_df["probability"] = np.asarray(probabilities, dtype=float)
+    result_df["prediction"] = np.asarray(predictions, dtype=str)
+    result_df["latency_ms"] = latencies_ms
+
+    report = generate_evaluation_report(result_df)
+    report.update(
+        {
+            "schema_version": 1,
+            "split": "test",
+            "threshold": float(threshold),
+            "unavailable_models": list(unavailable_models),
+            "shared_metrics": metrics.to_dict(),
+        }
+    )
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+    (output_directory / "test_evaluation.json").write_text(
+        json.dumps(
+            report,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    overall = report["overall_metrics"]
+    confusion = overall["confusion_matrix"]
+    latency = report["latency_stats"]
+    markdown = "\n".join(
+        [
+            "# Stacking v2 Test Evaluation",
+            "",
+            "Threshold selection: validation only; final metrics: test only.",
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            f"| Samples | {report['sample_summary']['total_samples']} |",
+            f"| Accuracy | {overall['accuracy']:.6f} |",
+            f"| Precision | {overall['precision']:.6f} |",
+            f"| Recall | {overall['recall']:.6f} |",
+            f"| F1 | {overall['f1_score']:.6f} |",
+            f"| F2 | {overall['f2_score']:.6f} |",
+            f"| TN | {confusion['true_negative']} |",
+            f"| FP | {confusion['false_positive']} |",
+            f"| FN | {confusion['false_negative']} |",
+            f"| TP | {confusion['true_positive']} |",
+            f"| Mean latency (ms) | {latency['mean']:.3f} |",
+            f"| P50 latency (ms) | {latency['p50']:.3f} |",
+            f"| P95 latency (ms) | {latency['p95']:.3f} |",
+            "",
+        ]
+    )
+    (output_directory / "test_evaluation.md").write_text(
+        markdown,
+        encoding="utf-8",
+    )
+    return report

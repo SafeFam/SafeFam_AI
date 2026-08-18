@@ -4,7 +4,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import platform
 from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import joblib
@@ -12,11 +14,19 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import fbeta_score, recall_score
 
+from data_science.SMSModel.evaluation.metrics import (
+    calculate_classification_metrics,
+)
+from data_science.SMSModel.evaluation.stacking_reporting import (
+    predict_probabilities_with_latency,
+    save_stacking_test_report,
+)
 from data_science.SMSModel.modeling.stacking import (
     StackingPhishingClassifier,
 )
 from data_science.SMSModel.train_sms import (
     DATA_PATH,
+    DATASET_SPLIT_JSON_REPORT_PATH,
     SPLIT_MANIFEST_PATH,
     load_data,
     split_data,
@@ -49,6 +59,32 @@ STACKING_REPORT_DIRECTORY = (
 )
 
 TARGET_RECALL = 0.95
+EXPECTED_DATASET_FINGERPRINT = (
+    "46c1c9393d30f25ab03f0f7b6e85e5a"
+    "8706f682f9bf2b68c872567b7eb5256f2"
+)
+
+
+def collect_library_versions() -> dict[str, str]:
+    """재현성 확인에 필요한 실행 환경과 라이브러리 버전을 반환합니다."""
+    packages = {
+        "joblib": "joblib",
+        "numpy": "numpy",
+        "pandas": "pandas",
+        "scikit_learn": "scikit-learn",
+        "scipy": "scipy",
+    }
+    versions: dict[str, str] = {
+        "python": platform.python_version(),
+    }
+
+    for key, package_name in packages.items():
+        try:
+            versions[key] = version(package_name)
+        except PackageNotFoundError:
+            versions[key] = "not-installed"
+
+    return versions
 
 def calculate_sha256(path: Path) -> str:
     """artifact 무결성 확인용 SHA-256 계산"""
@@ -60,6 +96,38 @@ def calculate_sha256(path: Path) -> str:
             digest.update(chunk)
 
     return digest.hexdigest()
+
+
+def calculate_json_sha256(value: dict[str, object]) -> str:
+    """정렬된 JSON 설정의 결정적인 SHA-256을 반환합니다."""
+    serialized = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def validate_dataset_fingerprint() -> str:
+    """#77에서 확정한 데이터 fingerprint와 split 검증 상태를 확인합니다."""
+    if not DATASET_SPLIT_JSON_REPORT_PATH.is_file():
+        raise FileNotFoundError(
+            "dataset split summary is required: "
+            f"{DATASET_SPLIT_JSON_REPORT_PATH}"
+        )
+    report = json.loads(
+        DATASET_SPLIT_JSON_REPORT_PATH.read_text(encoding="utf-8")
+    )
+    if report.get("validation", {}).get("passed") is not True:
+        raise ValueError("dataset split validation did not pass")
+    actual = report.get("dataset_fingerprint")
+    if actual != EXPECTED_DATASET_FINGERPRINT:
+        raise ValueError(
+            "dataset fingerprint does not match #77: "
+            f"expected={EXPECTED_DATASET_FINGERPRINT}, actual={actual}"
+        )
+    return str(actual)
 
 def select_validation_threshold(
     probabilities: np.ndarray,
@@ -175,10 +243,15 @@ def save_artifact(
     *,
     validation_metrics: dict[str, float],
     overwrite: bool,
+    verification_df: pd.DataFrame | None = None,
+    expected_probabilities: np.ndarray | None = None,
 ) -> None:
     """모델과 비민감 metadata를 저장하고 재로드 검증"""
 
-    if STACKING_MODEL_PATH.is_file() and not overwrite:
+    if (
+        STACKING_MODEL_PATH.exists()
+        or STACKING_METADATA_PATH.exists()
+    ) and not overwrite:
         raise FileExistsError(
             "stacking artifact already exists; "
             "use --overwrite-artifacts to replace it"
@@ -209,20 +282,38 @@ def save_artifact(
     ):
         raise RuntimeError("invalid stacking classifier artifact")
 
+    if verification_df is not None:
+        if expected_probabilities is None:
+            raise ValueError(
+                "expected_probabilities are required with verification_df"
+            )
+        reloaded_probabilities, unavailable = (
+            loaded_classifier.predict_probabilities(verification_df)
+        )
+        if unavailable:
+            raise RuntimeError(
+                "reloaded artifact has unavailable base models: "
+                f"{unavailable}"
+            )
+        np.testing.assert_allclose(
+            reloaded_probabilities,
+            expected_probabilities,
+            rtol=0.0,
+            atol=1e-12,
+        )
+
+    model_configuration = classifier.get_metadata()
     metadata = {
         "schema_version": 2,
         "artifact_version": "v2",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "model": classifier.get_metadata(),
+        "model": model_configuration,
         "validation": validation_metrics,
         "dataset": {
             "total_csv_rows": 3002,
             "training_pool_rows": 885,
             "holdout_rows": 210,
-            "dataset_fingerprint": (
-                "46c1c9393d30f25ab03f0f7b6e85e5a"
-                "8706f682f9bf2b68c872567b7eb5256f2"
-            ),
+            "dataset_fingerprint": EXPECTED_DATASET_FINGERPRINT,
         },
         "splits": {
             "train": 623,
@@ -238,12 +329,18 @@ def save_artifact(
             "random_state": 42,
         },
         "split_manifest": "sms_split_v2.csv",
+        "split_manifest_sha256": calculate_sha256(SPLIT_MANIFEST_PATH),
         "model_sha256": calculate_sha256(
             STACKING_MODEL_PATH
         ),
+        "model_configuration_sha256": calculate_json_sha256(
+            model_configuration
+        ),
         "library_versions": collect_library_versions(),
+        "dataset_path": DATA_PATH.relative_to(
+            SMS_MODEL_DIRECTORY.parent
+        ).as_posix(),
     }
-    
 
     STACKING_METADATA_PATH.write_text(
         json.dumps(
@@ -271,6 +368,14 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         )
 
     # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리
+    total_csv_rows = len(pd.read_csv(DATA_PATH))
+    if total_csv_rows != 3002:
+        raise ValueError(
+            f"expected 3002 source rows, got {total_csv_rows}"
+        )
+
+    validate_dataset_fingerprint()
+
     dataset, holdout = load_data(DATA_PATH)
 
     if len(dataset) != 885:
@@ -338,8 +443,11 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
     classifier.set_threshold(threshold)
 
     # 고정된 threshold로 test 136건을 단 한 번 평가
-    test_probabilities, test_unavailable = (
-        classifier.predict_probabilities(splits.test)
+    test_probabilities, test_unavailable, test_latencies_ms = (
+        predict_probabilities_with_latency(
+            classifier,
+            splits.test,
+        )
     )
 
     test_predictions = np.where(
@@ -358,6 +466,8 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         classifier,
         validation_metrics=validation_metrics,
         overwrite=overwrite_artifacts,
+        verification_df=splits.test,
+        expected_probabilities=test_probabilities,
     )
 
     # 보고서 저장
@@ -365,6 +475,7 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         test_df=splits.test,
         probabilities=test_probabilities,
         predictions=test_predictions,
+        latencies_ms=test_latencies_ms,
         metrics=test_metrics,
         threshold=threshold,
         unavailable_models=test_unavailable,
