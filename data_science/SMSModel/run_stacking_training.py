@@ -60,18 +60,18 @@ STACKING_REPORT_DIRECTORY = (
 
 TARGET_RECALL = 0.95
 EXPECTED_DATASET_FINGERPRINT = (
-    "46c1c9393d30f25ab03f0f7b6e85e5a"
-    "8706f682f9bf2b68c872567b7eb5256f2"
+    "56d2d8863a43a150097c273b0d9e942"
+    "44991a2aff533251ee01690335b5d9ad6"
 )
 
 # 실행 가드와 metadata가 같은 값을 참조하도록 분할 크기를 한 곳에서 정의합니다.
-EXPECTED_TOTAL_CSV_ROWS = 3002
-EXPECTED_TRAINING_POOL_ROWS = 885
+EXPECTED_TOTAL_CSV_ROWS = 3078
+EXPECTED_TRAINING_POOL_ROWS = 961
 EXPECTED_HOLDOUT_ROWS = 210
 EXPECTED_SPLIT_COUNTS = {
-    "train": 623,
-    "validation": 126,
-    "test": 136,
+    "train": 674,
+    "validation": 147,
+    "test": 140,
 }
 
 
@@ -371,7 +371,7 @@ def save_artifact(
             "test_used_for_tuning": False,
             "random_state": 42,
         },
-        "split_manifest": "sms_split_v2.csv",
+        "split_manifest": "sms_split_v3.csv",
         "split_manifest_sha256": calculate_sha256(SPLIT_MANIFEST_PATH),
         "model_sha256": calculate_sha256(
             STACKING_MODEL_PATH
@@ -405,9 +405,9 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
             f"split manifest is required: {SPLIT_MANIFEST_PATH}"
         )
 
-    if SPLIT_MANIFEST_PATH.name != "sms_split_v2.csv":
+    if SPLIT_MANIFEST_PATH.name != "sms_split_v3.csv":
         raise ValueError(
-            "Stacking v2 must use sms_split_v2.csv"
+            "Stacking must use sms_split_v3.csv"
         )
 
     # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리

@@ -48,6 +48,8 @@ ALLOWED_DATA_SOURCES = {
     "public_phishing_v2",
     "synthetic_diversity_v2",
     "synthetic_hard_negative_v2",
+    # #83에서 보강한 정상 알림 hard negative (학습 전용, 평가셋 사용 금지)
+    "synthetic_normal_v3",
 }
 
 
@@ -62,7 +64,7 @@ DATA_PATH = (
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v2.csv"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v3.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"

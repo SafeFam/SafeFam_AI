@@ -1,0 +1,77 @@
+﻿text,label,type,has_url,source,review_status,reviewer,review_note
+"[신한은행] 03/12 14:20 이체 350,000원 출금 잔액 1,204,300원",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[카카오뱅크] 세이프박스에서 500,000원을 옮겼어요. 현재 잔액은 2,310,000원이에요.",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[NH농협] 김*민님 자동이체 신청이 정상 등록되었습니다. 출금일은 매월 25일입니다.,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[우리은행] 예금주 확인 요청이 접수되었습니다. 처리 결과는 영업일 기준 1일 내 안내드립니다.,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[IBK기업은행] 03/20 급여 2,840,000원이 입금되었습니다.",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[하나은행] 고객님의 대출 이자 납입일이 3일 남았습니다. 잔액을 확인해 주세요.,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[토스] 3월 이체 한도가 초기화되었어요. 이번 달에도 편하게 사용하세요.,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[케이뱅크] 정기예금 만기가 도래했습니다. 만기일 2026-04-02, 원금 5,000,000원",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[새마을금고] 통장 재발급 신청이 접수되었습니다. 영업점 방문 시 신분증을 지참해 주세요.,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[부산은행] 04/01 09:15 체크카드 결제 12,900원 잔액 883,400원",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[신한은행] 해외송금 접수가 완료되었습니다. 접수번호 SW-****3821,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[SC제일은행] 비대면 계좌개설이 완료되었습니다. 계좌번호 뒷 4자리 ****7213,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[카카오뱅크] 모임통장에 이*진님이 입금했어요. 120,000원",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[농협] 04/05 자동이체가 잔액 부족으로 처리되지 않았습니다.,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[현대카드] 4월 청구금액은 412,800원입니다. 결제일은 4월 25일입니다.",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[KB국민은행] 예약이체가 정상 취소되었습니다. 취소일시 04/08 16:44,normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+"[토스증권] 배당금 8,320원이 입금되었어요.",normal,정상금융알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 은행·계좌 알림 hard negative
+[롯데택배] 고객님의 상품이 배송 준비 중입니다. 송장번호 6****8213,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[한진택배] 오늘 오후 배송 예정입니다. 부재 시 문 앞에 놓아드립니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[우체국] 등기우편이 도착했습니다. 수령 시 신분증을 준비해 주세요. https://www.epost.go.kr,normal,정상택배배송안내,True,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[CJ대한통운] 배송 기사 박*수입니다. 30분 내 도착 예정입니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[쿠팡] 새벽배송 상품이 문 앞에 도착했습니다. 신선식품은 바로 냉장 보관해 주세요.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[로젠택배] 고객님 부재로 상품을 경비실에 맡겼습니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[GS25] 편의점 택배가 도착했습니다. 3일 이내 수령 부탁드립니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[컬리] 주문하신 상품이 출고되었습니다. 내일 오전 7시 전 도착 예정입니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[SSG닷컴] 배송이 완료되었습니다. 상품에 문제가 있으면 앱에서 문의해 주세요.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[올리브영] 오늘드림 상품이 배달 중입니다. 예상 도착까지 20분 남았습니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[대신택배] 반품 상품이 정상 수거되었습니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[무신사] 교환 요청하신 상품이 발송되었습니다. 송장번호 5****1092,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[CU] 편의점 택배 접수가 완료되었습니다. 접수번호 ****7734,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[경동택배] 대형 화물 배송 일정을 안내드립니다. 04/12 오전 방문 예정,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[한진택배] 주소지 정보가 정확하지 않아 배송이 지연되고 있습니다. 앱에서 확인해 주세요.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[이마트] 장보기 상품 배송이 시작되었습니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[우체국택배] 방문 수거 신청이 접수되었습니다. 수거 예정일은 04/15입니다.,normal,정상택배배송안내,False,synthetic_normal_v3,APPROVED,pearseona,정상 배송 안내 hard negative
+[행정안전부] 주민등록증 갱신 대상자 안내입니다. 가까운 주민센터를 방문해 주세요.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[국민건강보험공단] 올해 건강검진 대상자이십니다. 12월까지 검진을 받으세요. https://www.nhis.or.kr,normal,정상공공기관알림,True,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[국세청] 종합소득세 신고 기간은 5월 1일부터 5월 31일까지입니다. https://www.hometax.go.kr,normal,정상공공기관알림,True,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[병무청] 예비군 훈련 일정이 확정되었습니다. 훈련일은 06/12입니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[질병관리청] 인플루엔자 예방접종 무료 대상자 안내드립니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[교육부] 국가장학금 2차 신청이 시작되었습니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[기상청] 오늘 오후 호우주의보가 발효되었습니다. 외출 시 주의하시기 바랍니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[도로교통공단] 운전면허 적성검사 기간이 3개월 남았습니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[근로복지공단] 실업급여 지급이 완료되었습니다. 지급일 04/10,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[주민센터] 전입신고 처리가 완료되었습니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[국민연금공단] 납부 내역서가 발급되었습니다. 우편으로 발송될 예정입니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[법원] 전자소송 서류가 송달되었습니다. 전자소송 홈페이지에서 확인하시기 바랍니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[소방서] 주택용 소방시설 설치 안내입니다. 화재 예방에 협조 부탁드립니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[시청] 재산세 납부 기간은 7월 16일부터 7월 31일까지입니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[한국장학재단] 학자금 대출 상환 예정일이 다가옵니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[고용노동부] 청년내일채움공제 만기를 안내드립니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[보건소] 결핵 검진 결과가 정상으로 확인되었습니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[선거관리위원회] 사전투표 기간은 4월 5일부터 4월 6일까지입니다.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[국토교통부] 자동차 정기검사 만료일이 15일 남았습니다. https://www.gov.kr,normal,정상공공기관알림,True,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[구청] 신청하신 여권이 발급 완료되었습니다. 수령 시 신분증을 지참해 주세요.,normal,정상공공기관알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 공공기관 안내 hard negative
+[네이버] 인증번호 [482913]입니다. 타인에게 알려주지 마세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+인증번호 739204를 입력해 주세요. 유효시간은 3분입니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[카카오] 새로운 기기에서 로그인되었습니다. 본인이 아니라면 비밀번호를 변경해 주세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[PASS] 본인확인 절차가 완료되었습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+회원가입 인증코드 118273 (5분 이내 입력),normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[쿠팡] 로그인 알림 04/02 21:14 서울 iPhone,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[Apple] Apple ID 코드는 449182입니다. 이 코드를 공유하지 마세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[당근] 휴대폰 번호 변경이 완료되었습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[배달의민족] 비밀번호가 재설정되었습니다. 직접 하지 않았다면 고객센터로 연락 주세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[삼성패스] 새 기기 등록이 완료되었습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[스타벅스] 인증번호 908341. 3분 이내에 입력해 주세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[넷플릭스] 로그인 코드는 205817입니다. 요청하지 않았다면 무시하세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[11번가] 휴대폰 본인인증이 완료되었습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[토스뱅크] 김*연님 계정에 새 기기가 등록되었어요. 04/14 09:22,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[Discord] 인증 코드: 552108,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[G마켓] 아이디 찾기 인증번호 463127,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[현대카드] 앱 재설치 본인확인이 완료되었습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[무신사] 인증번호 239605. 타인에게 공유하면 피해가 발생할 수 있습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[야놀자] 예약 확인 코드 604318,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[KB스타뱅킹] 공동인증서가 정상 재발급되었습니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+[Google] 계정 복구 코드는 826140입니다. 요청한 적 없으면 비밀번호를 바꾸세요.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
+2단계 인증이 활성화되었습니다. 다음 로그인부터 적용됩니다.,normal,정상인증알림,False,synthetic_normal_v3,APPROVED,pearseona,정상 인증·로그인 알림 hard negative
