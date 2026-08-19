@@ -1,37 +1,37 @@
 {
-  "artifact_threshold": 0.3038914498086088,
+  "artifact_threshold": 0.59371147605698,
   "edge_transfer": [
     {
       "alert_false_positive_rate": 0.0,
       "alert_false_positive_rate_drift": 0.0,
-      "coverage_recall": 0.9655172413793104,
+      "coverage_recall": 0.95,
       "coverage_recall_drift": 0.0,
       "is_selection_split": true,
       "split": "validation",
-      "uncertain_share": 0.22950819672131148
+      "uncertain_share": 0.10273972602739725
     },
     {
-      "alert_false_positive_rate": 0.017241379310344827,
-      "alert_false_positive_rate_drift": 0.017241379310344827,
-      "coverage_recall": 0.9322033898305084,
-      "coverage_recall_drift": -0.033313851548801954,
+      "alert_false_positive_rate": 0.10714285714285714,
+      "alert_false_positive_rate_drift": 0.10714285714285714,
+      "coverage_recall": 0.7272727272727273,
+      "coverage_recall_drift": -0.22272727272727266,
       "is_selection_split": false,
       "split": "test",
-      "uncertain_share": 0.19658119658119658
+      "uncertain_share": 0.05755395683453238
     },
     {
-      "alert_false_positive_rate": 0.05405405405405406,
-      "alert_false_positive_rate_drift": 0.05405405405405406,
-      "coverage_recall": 0.891566265060241,
-      "coverage_recall_drift": -0.07395097631906944,
+      "alert_false_positive_rate": 0.013513513513513514,
+      "alert_false_positive_rate_drift": 0.013513513513513514,
+      "coverage_recall": 0.7831325301204819,
+      "coverage_recall_drift": -0.16686746987951806,
       "is_selection_split": false,
       "split": "real_holdout",
-      "uncertain_share": 0.12738853503184713
+      "uncertain_share": 0.16560509554140126
     }
   ],
   "reference_edges": {
-    "normal_max": 0.30389144980860877,
-    "phishing_min": 0.6386041598664512
+    "normal_max": 0.5980688625214919,
+    "phishing_min": 0.8837296716901334
   },
   "selection_split": "validation",
   "splits": [
@@ -41,40 +41,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
+            "alert_recall": 0.75,
             "by_band": {
               "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
+                "normal_count": 83,
+                "normal_share": 0.9651162790697675,
                 "phishing_count": 5,
-                "phishing_share": 0.08620689655172414,
-                "sample_count": 60
+                "phishing_share": 0.08333333333333333,
+                "sample_count": 88
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
               },
               "uncertain": {
-                "normal_count": 9,
-                "normal_share": 0.140625,
-                "phishing_count": 16,
-                "phishing_share": 0.27586206896551724,
-                "sample_count": 25
+                "normal_count": 3,
+                "normal_share": 0.03488372093023256,
+                "phishing_count": 10,
+                "phishing_share": 0.16666666666666666,
+                "sample_count": 13
               }
             },
-            "coverage_recall": 0.9137931034482758,
+            "coverage_recall": 0.9166666666666666,
             "edges": {
-              "normal_max": 0.3119168630791404,
-              "phishing_min": 0.6386041598664512
+              "normal_max": 0.6182662659168235,
+              "phishing_min": 0.8837296716901334
             },
-            "missed_phishing_rate": 0.08620689655172414,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.20491803278688525
+            "missed_phishing_rate": 0.08333333333333333,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.08904109589041095
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 0.9
@@ -83,40 +83,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
+            "alert_recall": 0.75,
             "by_band": {
               "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
-                "phishing_count": 2,
-                "phishing_share": 0.034482758620689655,
-                "sample_count": 57
+                "normal_count": 83,
+                "normal_share": 0.9651162790697675,
+                "phishing_count": 3,
+                "phishing_share": 0.05,
+                "sample_count": 86
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
               },
               "uncertain": {
-                "normal_count": 9,
-                "normal_share": 0.140625,
-                "phishing_count": 19,
-                "phishing_share": 0.3275862068965517,
-                "sample_count": 28
+                "normal_count": 3,
+                "normal_share": 0.03488372093023256,
+                "phishing_count": 12,
+                "phishing_share": 0.2,
+                "sample_count": 15
               }
             },
-            "coverage_recall": 0.9655172413793104,
+            "coverage_recall": 0.95,
             "edges": {
-              "normal_max": 0.30389144980860877,
-              "phishing_min": 0.6386041598664512
+              "normal_max": 0.5980688625214919,
+              "phishing_min": 0.8837296716901334
             },
-            "missed_phishing_rate": 0.034482758620689655,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.22950819672131148
+            "missed_phishing_rate": 0.05,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.10273972602739725
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 0.95
@@ -125,40 +125,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
+            "alert_recall": 0.75,
             "by_band": {
               "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.5625,
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
                 "phishing_count": 1,
-                "phishing_share": 0.017241379310344827,
-                "sample_count": 37
+                "phishing_share": 0.016666666666666666,
+                "sample_count": 67
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
               },
               "uncertain": {
-                "normal_count": 28,
-                "normal_share": 0.4375,
-                "phishing_count": 20,
-                "phishing_share": 0.3448275862068966,
-                "sample_count": 48
+                "normal_count": 20,
+                "normal_share": 0.23255813953488372,
+                "phishing_count": 14,
+                "phishing_share": 0.23333333333333334,
+                "sample_count": 34
               }
             },
-            "coverage_recall": 0.9827586206896551,
+            "coverage_recall": 0.9833333333333333,
             "edges": {
-              "normal_max": 0.1976647807177871,
-              "phishing_min": 0.6386041598664512
+              "normal_max": 0.32075081498279706,
+              "phishing_min": 0.8837296716901334
             },
-            "missed_phishing_rate": 0.017241379310344827,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.39344262295081966
+            "missed_phishing_rate": 0.016666666666666666,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.2328767123287671
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 0.98
@@ -167,250 +167,250 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
+            "alert_recall": 0.75,
             "by_band": {
               "certain_normal": {
-                "normal_count": 21,
-                "normal_share": 0.328125,
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 21
+                "sample_count": 66
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
               },
               "uncertain": {
-                "normal_count": 43,
-                "normal_share": 0.671875,
-                "phishing_count": 21,
-                "phishing_share": 0.3620689655172414,
-                "sample_count": 64
-              }
-            },
-            "coverage_recall": 1.0,
-            "edges": {
-              "normal_max": 0.13492457205158126,
-              "phishing_min": 0.6386041598664512
-            },
-            "missed_phishing_rate": 0.0,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.5245901639344263
-          },
-          "target_alert_false_positive_rate": 0.005,
-          "target_coverage_recall": 1.0
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
-                "phishing_count": 5,
-                "phishing_share": 0.08620689655172414,
-                "sample_count": 60
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
-              },
-              "uncertain": {
-                "normal_count": 9,
-                "normal_share": 0.140625,
-                "phishing_count": 16,
-                "phishing_share": 0.27586206896551724,
-                "sample_count": 25
-              }
-            },
-            "coverage_recall": 0.9137931034482758,
-            "edges": {
-              "normal_max": 0.3119168630791404,
-              "phishing_min": 0.6386041598664512
-            },
-            "missed_phishing_rate": 0.08620689655172414,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.20491803278688525
-          },
-          "target_alert_false_positive_rate": 0.01,
-          "target_coverage_recall": 0.9
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
-                "phishing_count": 2,
-                "phishing_share": 0.034482758620689655,
-                "sample_count": 57
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
-              },
-              "uncertain": {
-                "normal_count": 9,
-                "normal_share": 0.140625,
-                "phishing_count": 19,
-                "phishing_share": 0.3275862068965517,
-                "sample_count": 28
-              }
-            },
-            "coverage_recall": 0.9655172413793104,
-            "edges": {
-              "normal_max": 0.30389144980860877,
-              "phishing_min": 0.6386041598664512
-            },
-            "missed_phishing_rate": 0.034482758620689655,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.22950819672131148
-          },
-          "target_alert_false_positive_rate": 0.01,
-          "target_coverage_recall": 0.95
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.5625,
-                "phishing_count": 1,
-                "phishing_share": 0.017241379310344827,
-                "sample_count": 37
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
-              },
-              "uncertain": {
-                "normal_count": 28,
-                "normal_share": 0.4375,
-                "phishing_count": 20,
-                "phishing_share": 0.3448275862068966,
-                "sample_count": 48
-              }
-            },
-            "coverage_recall": 0.9827586206896551,
-            "edges": {
-              "normal_max": 0.1976647807177871,
-              "phishing_min": 0.6386041598664512
-            },
-            "missed_phishing_rate": 0.017241379310344827,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.39344262295081966
-          },
-          "target_alert_false_positive_rate": 0.01,
-          "target_coverage_recall": 0.98
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6379310344827587,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 21,
-                "normal_share": 0.328125,
-                "phishing_count": 0,
-                "phishing_share": 0.0,
-                "sample_count": 21
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 37,
-                "phishing_share": 0.6379310344827587,
-                "sample_count": 37
-              },
-              "uncertain": {
-                "normal_count": 43,
-                "normal_share": 0.671875,
-                "phishing_count": 21,
-                "phishing_share": 0.3620689655172414,
-                "sample_count": 64
-              }
-            },
-            "coverage_recall": 1.0,
-            "edges": {
-              "normal_max": 0.13492457205158126,
-              "phishing_min": 0.6386041598664512
-            },
-            "missed_phishing_rate": 0.0,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.5245901639344263
-          },
-          "target_alert_false_positive_rate": 0.01,
-          "target_coverage_recall": 1.0
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.015625,
-            "alert_recall": 0.6551724137931034,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
-                "phishing_count": 5,
-                "phishing_share": 0.08620689655172414,
-                "sample_count": 60
-              },
-              "certain_phishing": {
-                "normal_count": 1,
-                "normal_share": 0.015625,
-                "phishing_count": 38,
-                "phishing_share": 0.6551724137931034,
-                "sample_count": 39
-              },
-              "uncertain": {
-                "normal_count": 8,
-                "normal_share": 0.125,
+                "normal_count": 20,
+                "normal_share": 0.23255813953488372,
                 "phishing_count": 15,
-                "phishing_share": 0.25862068965517243,
-                "sample_count": 23
+                "phishing_share": 0.25,
+                "sample_count": 35
               }
             },
-            "coverage_recall": 0.9137931034482758,
+            "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.3119168630791404,
-              "phishing_min": 0.5931177473908201
+              "normal_max": 0.30309780072145603,
+              "phishing_min": 0.8837296716901334
             },
-            "missed_phishing_rate": 0.08620689655172414,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.1885245901639344
+            "missed_phishing_rate": 0.0,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.23972602739726026
+          },
+          "target_alert_false_positive_rate": 0.005,
+          "target_coverage_recall": 1.0
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.75,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 83,
+                "normal_share": 0.9651162790697675,
+                "phishing_count": 5,
+                "phishing_share": 0.08333333333333333,
+                "sample_count": 88
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
+              },
+              "uncertain": {
+                "normal_count": 3,
+                "normal_share": 0.03488372093023256,
+                "phishing_count": 10,
+                "phishing_share": 0.16666666666666666,
+                "sample_count": 13
+              }
+            },
+            "coverage_recall": 0.9166666666666666,
+            "edges": {
+              "normal_max": 0.6182662659168235,
+              "phishing_min": 0.8837296716901334
+            },
+            "missed_phishing_rate": 0.08333333333333333,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.08904109589041095
+          },
+          "target_alert_false_positive_rate": 0.01,
+          "target_coverage_recall": 0.9
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.75,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 83,
+                "normal_share": 0.9651162790697675,
+                "phishing_count": 3,
+                "phishing_share": 0.05,
+                "sample_count": 86
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
+              },
+              "uncertain": {
+                "normal_count": 3,
+                "normal_share": 0.03488372093023256,
+                "phishing_count": 12,
+                "phishing_share": 0.2,
+                "sample_count": 15
+              }
+            },
+            "coverage_recall": 0.95,
+            "edges": {
+              "normal_max": 0.5980688625214919,
+              "phishing_min": 0.8837296716901334
+            },
+            "missed_phishing_rate": 0.05,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.10273972602739725
+          },
+          "target_alert_false_positive_rate": 0.01,
+          "target_coverage_recall": 0.95
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.75,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
+                "phishing_count": 1,
+                "phishing_share": 0.016666666666666666,
+                "sample_count": 67
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
+              },
+              "uncertain": {
+                "normal_count": 20,
+                "normal_share": 0.23255813953488372,
+                "phishing_count": 14,
+                "phishing_share": 0.23333333333333334,
+                "sample_count": 34
+              }
+            },
+            "coverage_recall": 0.9833333333333333,
+            "edges": {
+              "normal_max": 0.32075081498279706,
+              "phishing_min": 0.8837296716901334
+            },
+            "missed_phishing_rate": 0.016666666666666666,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.2328767123287671
+          },
+          "target_alert_false_positive_rate": 0.01,
+          "target_coverage_recall": 0.98
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.75,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
+                "phishing_count": 0,
+                "phishing_share": 0.0,
+                "sample_count": 66
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 45,
+                "phishing_share": 0.75,
+                "sample_count": 45
+              },
+              "uncertain": {
+                "normal_count": 20,
+                "normal_share": 0.23255813953488372,
+                "phishing_count": 15,
+                "phishing_share": 0.25,
+                "sample_count": 35
+              }
+            },
+            "coverage_recall": 1.0,
+            "edges": {
+              "normal_max": 0.30309780072145603,
+              "phishing_min": 0.8837296716901334
+            },
+            "missed_phishing_rate": 0.0,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.23972602739726026
+          },
+          "target_alert_false_positive_rate": 0.01,
+          "target_coverage_recall": 1.0
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.011627906976744186,
+            "alert_recall": 0.85,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 83,
+                "normal_share": 0.9651162790697675,
+                "phishing_count": 5,
+                "phishing_share": 0.08333333333333333,
+                "sample_count": 88
+              },
+              "certain_phishing": {
+                "normal_count": 1,
+                "normal_share": 0.011627906976744186,
+                "phishing_count": 51,
+                "phishing_share": 0.85,
+                "sample_count": 52
+              },
+              "uncertain": {
+                "normal_count": 2,
+                "normal_share": 0.023255813953488372,
+                "phishing_count": 4,
+                "phishing_share": 0.06666666666666667,
+                "sample_count": 6
+              }
+            },
+            "coverage_recall": 0.9166666666666666,
+            "edges": {
+              "normal_max": 0.6182662659168235,
+              "phishing_min": 0.8349206726300697
+            },
+            "missed_phishing_rate": 0.08333333333333333,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.0410958904109589
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.9
@@ -418,41 +418,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.015625,
-            "alert_recall": 0.6551724137931034,
+            "alert_false_positive_rate": 0.011627906976744186,
+            "alert_recall": 0.85,
             "by_band": {
               "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
-                "phishing_count": 2,
-                "phishing_share": 0.034482758620689655,
-                "sample_count": 57
+                "normal_count": 83,
+                "normal_share": 0.9651162790697675,
+                "phishing_count": 3,
+                "phishing_share": 0.05,
+                "sample_count": 86
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.015625,
-                "phishing_count": 38,
-                "phishing_share": 0.6551724137931034,
-                "sample_count": 39
+                "normal_share": 0.011627906976744186,
+                "phishing_count": 51,
+                "phishing_share": 0.85,
+                "sample_count": 52
               },
               "uncertain": {
-                "normal_count": 8,
-                "normal_share": 0.125,
-                "phishing_count": 18,
-                "phishing_share": 0.3103448275862069,
-                "sample_count": 26
+                "normal_count": 2,
+                "normal_share": 0.023255813953488372,
+                "phishing_count": 6,
+                "phishing_share": 0.1,
+                "sample_count": 8
               }
             },
-            "coverage_recall": 0.9655172413793104,
+            "coverage_recall": 0.95,
             "edges": {
-              "normal_max": 0.30389144980860877,
-              "phishing_min": 0.5931177473908201
+              "normal_max": 0.5980688625214919,
+              "phishing_min": 0.8349206726300697
             },
-            "missed_phishing_rate": 0.034482758620689655,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.21311475409836064
+            "missed_phishing_rate": 0.05,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.0547945205479452
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.95
@@ -460,41 +460,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.015625,
-            "alert_recall": 0.6551724137931034,
+            "alert_false_positive_rate": 0.011627906976744186,
+            "alert_recall": 0.85,
             "by_band": {
               "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.5625,
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
                 "phishing_count": 1,
-                "phishing_share": 0.017241379310344827,
-                "sample_count": 37
+                "phishing_share": 0.016666666666666666,
+                "sample_count": 67
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.015625,
-                "phishing_count": 38,
-                "phishing_share": 0.6551724137931034,
-                "sample_count": 39
+                "normal_share": 0.011627906976744186,
+                "phishing_count": 51,
+                "phishing_share": 0.85,
+                "sample_count": 52
               },
               "uncertain": {
-                "normal_count": 27,
-                "normal_share": 0.421875,
-                "phishing_count": 19,
-                "phishing_share": 0.3275862068965517,
-                "sample_count": 46
+                "normal_count": 19,
+                "normal_share": 0.22093023255813954,
+                "phishing_count": 8,
+                "phishing_share": 0.13333333333333333,
+                "sample_count": 27
               }
             },
-            "coverage_recall": 0.9827586206896551,
+            "coverage_recall": 0.9833333333333333,
             "edges": {
-              "normal_max": 0.1976647807177871,
-              "phishing_min": 0.5931177473908201
+              "normal_max": 0.32075081498279706,
+              "phishing_min": 0.8349206726300697
             },
-            "missed_phishing_rate": 0.017241379310344827,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.3770491803278688
+            "missed_phishing_rate": 0.016666666666666666,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.18493150684931506
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.98
@@ -502,41 +502,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.015625,
-            "alert_recall": 0.6551724137931034,
+            "alert_false_positive_rate": 0.011627906976744186,
+            "alert_recall": 0.85,
             "by_band": {
               "certain_normal": {
-                "normal_count": 21,
-                "normal_share": 0.328125,
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 21
+                "sample_count": 66
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.015625,
-                "phishing_count": 38,
-                "phishing_share": 0.6551724137931034,
-                "sample_count": 39
+                "normal_share": 0.011627906976744186,
+                "phishing_count": 51,
+                "phishing_share": 0.85,
+                "sample_count": 52
               },
               "uncertain": {
-                "normal_count": 42,
-                "normal_share": 0.65625,
-                "phishing_count": 20,
-                "phishing_share": 0.3448275862068966,
-                "sample_count": 62
+                "normal_count": 19,
+                "normal_share": 0.22093023255813954,
+                "phishing_count": 9,
+                "phishing_share": 0.15,
+                "sample_count": 28
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.13492457205158126,
-              "phishing_min": 0.5931177473908201
+              "normal_max": 0.30309780072145603,
+              "phishing_min": 0.8349206726300697
             },
             "missed_phishing_rate": 0.0,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.5081967213114754
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.1917808219178082
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 1.0
@@ -544,41 +544,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.046875,
-            "alert_recall": 0.6896551724137931,
+            "alert_false_positive_rate": 0.046511627906976744,
+            "alert_recall": 0.9666666666666667,
             "by_band": {
               "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
-                "phishing_count": 5,
-                "phishing_share": 0.08620689655172414,
-                "sample_count": 60
+                "normal_count": 82,
+                "normal_share": 0.9534883720930233,
+                "phishing_count": 2,
+                "phishing_share": 0.03333333333333333,
+                "sample_count": 84
               },
               "certain_phishing": {
-                "normal_count": 3,
-                "normal_share": 0.046875,
-                "phishing_count": 40,
-                "phishing_share": 0.6896551724137931,
-                "sample_count": 43
+                "normal_count": 4,
+                "normal_share": 0.046511627906976744,
+                "phishing_count": 58,
+                "phishing_share": 0.9666666666666667,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 6,
-                "normal_share": 0.09375,
-                "phishing_count": 13,
-                "phishing_share": 0.22413793103448276,
-                "sample_count": 19
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 0,
+                "phishing_share": 0.0,
+                "sample_count": 0
               }
             },
-            "coverage_recall": 0.9137931034482758,
+            "coverage_recall": 0.9666666666666667,
             "edges": {
-              "normal_max": 0.3119168630791404,
-              "phishing_min": 0.5306083370006259
+              "normal_max": 0.5238295279985459,
+              "phishing_min": 0.5238295279985459
             },
-            "missed_phishing_rate": 0.08620689655172414,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.1557377049180328
+            "missed_phishing_rate": 0.03333333333333333,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.0
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.9
@@ -586,41 +586,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.046875,
-            "alert_recall": 0.6896551724137931,
+            "alert_false_positive_rate": 0.046511627906976744,
+            "alert_recall": 0.9666666666666667,
             "by_band": {
               "certain_normal": {
-                "normal_count": 55,
-                "normal_share": 0.859375,
+                "normal_count": 82,
+                "normal_share": 0.9534883720930233,
                 "phishing_count": 2,
-                "phishing_share": 0.034482758620689655,
-                "sample_count": 57
+                "phishing_share": 0.03333333333333333,
+                "sample_count": 84
               },
               "certain_phishing": {
-                "normal_count": 3,
-                "normal_share": 0.046875,
-                "phishing_count": 40,
-                "phishing_share": 0.6896551724137931,
-                "sample_count": 43
+                "normal_count": 4,
+                "normal_share": 0.046511627906976744,
+                "phishing_count": 58,
+                "phishing_share": 0.9666666666666667,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 6,
-                "normal_share": 0.09375,
-                "phishing_count": 16,
-                "phishing_share": 0.27586206896551724,
-                "sample_count": 22
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 0,
+                "phishing_share": 0.0,
+                "sample_count": 0
               }
             },
-            "coverage_recall": 0.9655172413793104,
+            "coverage_recall": 0.9666666666666667,
             "edges": {
-              "normal_max": 0.30389144980860877,
-              "phishing_min": 0.5306083370006259
+              "normal_max": 0.5238295279985459,
+              "phishing_min": 0.5238295279985459
             },
-            "missed_phishing_rate": 0.034482758620689655,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.18032786885245902
+            "missed_phishing_rate": 0.03333333333333333,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.0
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.95
@@ -628,41 +628,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.046875,
-            "alert_recall": 0.6896551724137931,
+            "alert_false_positive_rate": 0.046511627906976744,
+            "alert_recall": 0.9666666666666667,
             "by_band": {
               "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.5625,
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
                 "phishing_count": 1,
-                "phishing_share": 0.017241379310344827,
-                "sample_count": 37
+                "phishing_share": 0.016666666666666666,
+                "sample_count": 67
               },
               "certain_phishing": {
-                "normal_count": 3,
-                "normal_share": 0.046875,
-                "phishing_count": 40,
-                "phishing_share": 0.6896551724137931,
-                "sample_count": 43
+                "normal_count": 4,
+                "normal_share": 0.046511627906976744,
+                "phishing_count": 58,
+                "phishing_share": 0.9666666666666667,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 25,
-                "normal_share": 0.390625,
-                "phishing_count": 17,
-                "phishing_share": 0.29310344827586204,
-                "sample_count": 42
+                "normal_count": 16,
+                "normal_share": 0.18604651162790697,
+                "phishing_count": 1,
+                "phishing_share": 0.016666666666666666,
+                "sample_count": 17
               }
             },
-            "coverage_recall": 0.9827586206896551,
+            "coverage_recall": 0.9833333333333333,
             "edges": {
-              "normal_max": 0.1976647807177871,
-              "phishing_min": 0.5306083370006259
+              "normal_max": 0.32075081498279706,
+              "phishing_min": 0.5238295279985459
             },
-            "missed_phishing_rate": 0.017241379310344827,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.3442622950819672
+            "missed_phishing_rate": 0.016666666666666666,
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.11643835616438356
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.98
@@ -670,41 +670,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.046875,
-            "alert_recall": 0.6896551724137931,
+            "alert_false_positive_rate": 0.046511627906976744,
+            "alert_recall": 0.9666666666666667,
             "by_band": {
               "certain_normal": {
-                "normal_count": 21,
-                "normal_share": 0.328125,
+                "normal_count": 66,
+                "normal_share": 0.7674418604651163,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 21
+                "sample_count": 66
               },
               "certain_phishing": {
-                "normal_count": 3,
-                "normal_share": 0.046875,
-                "phishing_count": 40,
-                "phishing_share": 0.6896551724137931,
-                "sample_count": 43
+                "normal_count": 4,
+                "normal_share": 0.046511627906976744,
+                "phishing_count": 58,
+                "phishing_share": 0.9666666666666667,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 40,
-                "normal_share": 0.625,
-                "phishing_count": 18,
-                "phishing_share": 0.3103448275862069,
-                "sample_count": 58
+                "normal_count": 16,
+                "normal_share": 0.18604651162790697,
+                "phishing_count": 2,
+                "phishing_share": 0.03333333333333333,
+                "sample_count": 18
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.13492457205158126,
-              "phishing_min": 0.5306083370006259
+              "normal_max": 0.30309780072145603,
+              "phishing_min": 0.5238295279985459
             },
             "missed_phishing_rate": 0.0,
-            "normal_count": 64,
-            "phishing_count": 58,
-            "sample_count": 122,
-            "uncertain_share": 0.47540983606557374
+            "normal_count": 86,
+            "phishing_count": 60,
+            "sample_count": 146,
+            "uncertain_share": 0.1232876712328767
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 1.0
@@ -713,65 +713,65 @@
       "reliability": [
         {
           "lower": 0.0,
-          "mean_predicted_probability": 0.07825920390864473,
+          "mean_predicted_probability": 0.06573774263862099,
           "observed_phishing_rate": 0.0,
-          "sample_count": 10,
+          "sample_count": 27,
           "upper": 0.1
         },
         {
           "lower": 0.1,
-          "mean_predicted_probability": 0.17642564058009932,
-          "observed_phishing_rate": 0.0425531914893617,
-          "sample_count": 47,
+          "mean_predicted_probability": 0.16668751267411303,
+          "observed_phishing_rate": 0.0,
+          "sample_count": 39,
           "upper": 0.3
         },
         {
           "lower": 0.3,
-          "mean_predicted_probability": 0.3467761139647993,
-          "observed_phishing_rate": 0.8421052631578947,
-          "sample_count": 19,
+          "mean_predicted_probability": 0.41435753097980454,
+          "observed_phishing_rate": 0.11764705882352941,
+          "sample_count": 17,
           "upper": 0.5
         },
         {
           "lower": 0.5,
-          "mean_predicted_probability": 0.5819853627078081,
-          "observed_phishing_rate": 0.45454545454545453,
-          "sample_count": 11,
+          "mean_predicted_probability": 0.5895738306304829,
+          "observed_phishing_rate": 0.7142857142857143,
+          "sample_count": 7,
           "upper": 0.7
         },
         {
           "lower": 0.7,
-          "mean_predicted_probability": 0.8113222278904043,
-          "observed_phishing_rate": 1.0,
-          "sample_count": 8,
+          "mean_predicted_probability": 0.8508522831430697,
+          "observed_phishing_rate": 0.75,
+          "sample_count": 12,
           "upper": 0.9
         },
         {
           "lower": 0.9,
-          "mean_predicted_probability": 0.973738886544325,
+          "mean_predicted_probability": 0.9668321717988991,
           "observed_phishing_rate": 1.0,
-          "sample_count": 27,
+          "sample_count": 44,
           "upper": 1.0
         }
       ],
-      "sample_count": 122,
+      "sample_count": 146,
       "single_threshold_baseline": {
-        "alert_false_positive_rate": 0.140625,
-        "alert_recall": 0.9655172413793104,
+        "alert_false_positive_rate": 0.03488372093023256,
+        "alert_recall": 0.9666666666666667,
         "by_band": {
           "certain_normal": {
-            "normal_count": 55,
-            "normal_share": 0.859375,
+            "normal_count": 83,
+            "normal_share": 0.9651162790697675,
             "phishing_count": 2,
-            "phishing_share": 0.034482758620689655,
-            "sample_count": 57
+            "phishing_share": 0.03333333333333333,
+            "sample_count": 85
           },
           "certain_phishing": {
-            "normal_count": 9,
-            "normal_share": 0.140625,
-            "phishing_count": 56,
-            "phishing_share": 0.9655172413793104,
-            "sample_count": 65
+            "normal_count": 3,
+            "normal_share": 0.03488372093023256,
+            "phishing_count": 58,
+            "phishing_share": 0.9666666666666667,
+            "sample_count": 61
           },
           "uncertain": {
             "normal_count": 0,
@@ -781,15 +781,15 @@
             "sample_count": 0
           }
         },
-        "coverage_recall": 0.9655172413793104,
+        "coverage_recall": 0.9666666666666667,
         "edges": {
-          "normal_max": 0.30389144980860877,
-          "phishing_min": 0.3038914498086088
+          "normal_max": 0.5937114760569799,
+          "phishing_min": 0.59371147605698
         },
-        "missed_phishing_rate": 0.034482758620689655,
-        "normal_count": 64,
-        "phishing_count": 58,
-        "sample_count": 122,
+        "missed_phishing_rate": 0.03333333333333333,
+        "normal_count": 86,
+        "phishing_count": 60,
+        "sample_count": 146,
         "uncertain_share": 0.0
       },
       "split": "validation"
@@ -800,124 +800,124 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 54,
-                "normal_share": 0.9310344827586207,
+                "normal_count": 10,
+                "normal_share": 0.11904761904761904,
                 "phishing_count": 5,
-                "phishing_share": 0.0847457627118644,
-                "sample_count": 59
+                "phishing_share": 0.09090909090909091,
+                "sample_count": 15
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
               },
               "uncertain": {
-                "normal_count": 4,
-                "normal_share": 0.06896551724137931,
-                "phishing_count": 15,
-                "phishing_share": 0.2542372881355932,
-                "sample_count": 19
-              }
-            },
-            "coverage_recall": 0.9152542372881356,
-            "edges": {
-              "normal_max": 0.3654948939741731,
-              "phishing_min": 0.7424612952832209
-            },
-            "missed_phishing_rate": 0.0847457627118644,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.1623931623931624
-          },
-          "target_alert_false_positive_rate": 0.005,
-          "target_coverage_recall": 0.9
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.6206896551724138,
-                "phishing_count": 2,
-                "phishing_share": 0.03389830508474576,
-                "sample_count": 38
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
-              },
-              "uncertain": {
-                "normal_count": 22,
-                "normal_share": 0.3793103448275862,
-                "phishing_count": 18,
-                "phishing_share": 0.3050847457627119,
-                "sample_count": 40
-              }
-            },
-            "coverage_recall": 0.9661016949152542,
-            "edges": {
-              "normal_max": 0.25089074304959114,
-              "phishing_min": 0.7424612952832209
-            },
-            "missed_phishing_rate": 0.03389830508474576,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.3418803418803419
-          },
-          "target_alert_false_positive_rate": 0.005,
-          "target_coverage_recall": 0.95
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 35,
-                "normal_share": 0.603448275862069,
-                "phishing_count": 1,
-                "phishing_share": 0.01694915254237288,
-                "sample_count": 36
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
-              },
-              "uncertain": {
-                "normal_count": 23,
-                "normal_share": 0.39655172413793105,
+                "normal_count": 74,
+                "normal_share": 0.8809523809523809,
                 "phishing_count": 19,
-                "phishing_share": 0.3220338983050847,
-                "sample_count": 42
+                "phishing_share": 0.34545454545454546,
+                "sample_count": 93
               }
             },
-            "coverage_recall": 0.9830508474576272,
+            "coverage_recall": 0.9090909090909091,
             "edges": {
-              "normal_max": 0.2452690737148747,
-              "phishing_min": 0.7424612952832209
+              "normal_max": 0.06255293486025981,
+              "phishing_min": 0.9152583018187163
             },
-            "missed_phishing_rate": 0.01694915254237288,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.358974358974359
+            "missed_phishing_rate": 0.09090909090909091,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6690647482014388
+          },
+          "target_alert_false_positive_rate": 0.005,
+          "target_coverage_recall": 0.9
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.5636363636363636,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 9,
+                "normal_share": 0.10714285714285714,
+                "phishing_count": 2,
+                "phishing_share": 0.03636363636363636,
+                "sample_count": 11
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
+              },
+              "uncertain": {
+                "normal_count": 75,
+                "normal_share": 0.8928571428571429,
+                "phishing_count": 22,
+                "phishing_share": 0.4,
+                "sample_count": 97
+              }
+            },
+            "coverage_recall": 0.9636363636363636,
+            "edges": {
+              "normal_max": 0.05827707009617206,
+              "phishing_min": 0.9152583018187163
+            },
+            "missed_phishing_rate": 0.03636363636363636,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.697841726618705
+          },
+          "target_alert_false_positive_rate": 0.005,
+          "target_coverage_recall": 0.95
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.5636363636363636,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
+                "phishing_count": 1,
+                "phishing_share": 0.01818181818181818,
+                "sample_count": 9
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
+              },
+              "uncertain": {
+                "normal_count": 76,
+                "normal_share": 0.9047619047619048,
+                "phishing_count": 23,
+                "phishing_share": 0.41818181818181815,
+                "sample_count": 99
+              }
+            },
+            "coverage_recall": 0.9818181818181818,
+            "edges": {
+              "normal_max": 0.05183683974499302,
+              "phishing_min": 0.9152583018187163
+            },
+            "missed_phishing_rate": 0.01818181818181818,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.7122302158273381
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 0.98
@@ -926,40 +926,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 7,
-                "normal_share": 0.1206896551724138,
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 7
+                "sample_count": 8
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
               },
               "uncertain": {
-                "normal_count": 51,
-                "normal_share": 0.8793103448275862,
-                "phishing_count": 20,
-                "phishing_share": 0.3389830508474576,
-                "sample_count": 71
+                "normal_count": 76,
+                "normal_share": 0.9047619047619048,
+                "phishing_count": 24,
+                "phishing_share": 0.43636363636363634,
+                "sample_count": 100
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09068993664403235,
-              "phishing_min": 0.7424612952832209
+              "normal_max": 0.04646360163103841,
+              "phishing_min": 0.9152583018187163
             },
             "missed_phishing_rate": 0.0,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.6068376068376068
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.7194244604316546
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 1.0
@@ -968,124 +968,124 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 54,
-                "normal_share": 0.9310344827586207,
+                "normal_count": 10,
+                "normal_share": 0.11904761904761904,
                 "phishing_count": 5,
-                "phishing_share": 0.0847457627118644,
-                "sample_count": 59
+                "phishing_share": 0.09090909090909091,
+                "sample_count": 15
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
               },
               "uncertain": {
-                "normal_count": 4,
-                "normal_share": 0.06896551724137931,
-                "phishing_count": 15,
-                "phishing_share": 0.2542372881355932,
-                "sample_count": 19
-              }
-            },
-            "coverage_recall": 0.9152542372881356,
-            "edges": {
-              "normal_max": 0.3654948939741731,
-              "phishing_min": 0.7424612952832209
-            },
-            "missed_phishing_rate": 0.0847457627118644,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.1623931623931624
-          },
-          "target_alert_false_positive_rate": 0.01,
-          "target_coverage_recall": 0.9
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.6206896551724138,
-                "phishing_count": 2,
-                "phishing_share": 0.03389830508474576,
-                "sample_count": 38
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
-              },
-              "uncertain": {
-                "normal_count": 22,
-                "normal_share": 0.3793103448275862,
-                "phishing_count": 18,
-                "phishing_share": 0.3050847457627119,
-                "sample_count": 40
-              }
-            },
-            "coverage_recall": 0.9661016949152542,
-            "edges": {
-              "normal_max": 0.25089074304959114,
-              "phishing_min": 0.7424612952832209
-            },
-            "missed_phishing_rate": 0.03389830508474576,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.3418803418803419
-          },
-          "target_alert_false_positive_rate": 0.01,
-          "target_coverage_recall": 0.95
-        },
-        {
-          "feasible": true,
-          "measured": {
-            "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
-            "by_band": {
-              "certain_normal": {
-                "normal_count": 35,
-                "normal_share": 0.603448275862069,
-                "phishing_count": 1,
-                "phishing_share": 0.01694915254237288,
-                "sample_count": 36
-              },
-              "certain_phishing": {
-                "normal_count": 0,
-                "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
-              },
-              "uncertain": {
-                "normal_count": 23,
-                "normal_share": 0.39655172413793105,
+                "normal_count": 74,
+                "normal_share": 0.8809523809523809,
                 "phishing_count": 19,
-                "phishing_share": 0.3220338983050847,
-                "sample_count": 42
+                "phishing_share": 0.34545454545454546,
+                "sample_count": 93
               }
             },
-            "coverage_recall": 0.9830508474576272,
+            "coverage_recall": 0.9090909090909091,
             "edges": {
-              "normal_max": 0.2452690737148747,
-              "phishing_min": 0.7424612952832209
+              "normal_max": 0.06255293486025981,
+              "phishing_min": 0.9152583018187163
             },
-            "missed_phishing_rate": 0.01694915254237288,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.358974358974359
+            "missed_phishing_rate": 0.09090909090909091,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6690647482014388
+          },
+          "target_alert_false_positive_rate": 0.01,
+          "target_coverage_recall": 0.9
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.5636363636363636,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 9,
+                "normal_share": 0.10714285714285714,
+                "phishing_count": 2,
+                "phishing_share": 0.03636363636363636,
+                "sample_count": 11
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
+              },
+              "uncertain": {
+                "normal_count": 75,
+                "normal_share": 0.8928571428571429,
+                "phishing_count": 22,
+                "phishing_share": 0.4,
+                "sample_count": 97
+              }
+            },
+            "coverage_recall": 0.9636363636363636,
+            "edges": {
+              "normal_max": 0.05827707009617206,
+              "phishing_min": 0.9152583018187163
+            },
+            "missed_phishing_rate": 0.03636363636363636,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.697841726618705
+          },
+          "target_alert_false_positive_rate": 0.01,
+          "target_coverage_recall": 0.95
+        },
+        {
+          "feasible": true,
+          "measured": {
+            "alert_false_positive_rate": 0.0,
+            "alert_recall": 0.5636363636363636,
+            "by_band": {
+              "certain_normal": {
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
+                "phishing_count": 1,
+                "phishing_share": 0.01818181818181818,
+                "sample_count": 9
+              },
+              "certain_phishing": {
+                "normal_count": 0,
+                "normal_share": 0.0,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
+              },
+              "uncertain": {
+                "normal_count": 76,
+                "normal_share": 0.9047619047619048,
+                "phishing_count": 23,
+                "phishing_share": 0.41818181818181815,
+                "sample_count": 99
+              }
+            },
+            "coverage_recall": 0.9818181818181818,
+            "edges": {
+              "normal_max": 0.05183683974499302,
+              "phishing_min": 0.9152583018187163
+            },
+            "missed_phishing_rate": 0.01818181818181818,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.7122302158273381
           },
           "target_alert_false_positive_rate": 0.01,
           "target_coverage_recall": 0.98
@@ -1094,40 +1094,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.0,
-            "alert_recall": 0.6610169491525424,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 7,
-                "normal_share": 0.1206896551724138,
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 7
+                "sample_count": 8
               },
               "certain_phishing": {
                 "normal_count": 0,
                 "normal_share": 0.0,
-                "phishing_count": 39,
-                "phishing_share": 0.6610169491525424,
-                "sample_count": 39
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 31
               },
               "uncertain": {
-                "normal_count": 51,
-                "normal_share": 0.8793103448275862,
-                "phishing_count": 20,
-                "phishing_share": 0.3389830508474576,
-                "sample_count": 71
+                "normal_count": 76,
+                "normal_share": 0.9047619047619048,
+                "phishing_count": 24,
+                "phishing_share": 0.43636363636363634,
+                "sample_count": 100
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09068993664403235,
-              "phishing_min": 0.7424612952832209
+              "normal_max": 0.04646360163103841,
+              "phishing_min": 0.9152583018187163
             },
             "missed_phishing_rate": 0.0,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.6068376068376068
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.7194244604316546
           },
           "target_alert_false_positive_rate": 0.01,
           "target_coverage_recall": 1.0
@@ -1135,41 +1135,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.017241379310344827,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.011904761904761904,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 54,
-                "normal_share": 0.9310344827586207,
+                "normal_count": 10,
+                "normal_share": 0.11904761904761904,
                 "phishing_count": 5,
-                "phishing_share": 0.0847457627118644,
-                "sample_count": 59
+                "phishing_share": 0.09090909090909091,
+                "sample_count": 15
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.017241379310344827,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 54
+                "normal_share": 0.011904761904761904,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 32
               },
               "uncertain": {
-                "normal_count": 3,
-                "normal_share": 0.05172413793103448,
-                "phishing_count": 1,
-                "phishing_share": 0.01694915254237288,
-                "sample_count": 4
+                "normal_count": 73,
+                "normal_share": 0.8690476190476191,
+                "phishing_count": 19,
+                "phishing_share": 0.34545454545454546,
+                "sample_count": 92
               }
             },
-            "coverage_recall": 0.9152542372881356,
+            "coverage_recall": 0.9090909090909091,
             "edges": {
-              "normal_max": 0.3654948939741731,
-              "phishing_min": 0.48205516709710156
+              "normal_max": 0.06255293486025981,
+              "phishing_min": 0.9149069112624669
             },
-            "missed_phishing_rate": 0.0847457627118644,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.03418803418803419
+            "missed_phishing_rate": 0.09090909090909091,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6618705035971223
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.9
@@ -1177,41 +1177,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.017241379310344827,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.011904761904761904,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.6206896551724138,
+                "normal_count": 9,
+                "normal_share": 0.10714285714285714,
                 "phishing_count": 2,
-                "phishing_share": 0.03389830508474576,
-                "sample_count": 38
+                "phishing_share": 0.03636363636363636,
+                "sample_count": 11
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.017241379310344827,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 54
+                "normal_share": 0.011904761904761904,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 32
               },
               "uncertain": {
-                "normal_count": 21,
-                "normal_share": 0.3620689655172414,
-                "phishing_count": 4,
-                "phishing_share": 0.06779661016949153,
-                "sample_count": 25
+                "normal_count": 74,
+                "normal_share": 0.8809523809523809,
+                "phishing_count": 22,
+                "phishing_share": 0.4,
+                "sample_count": 96
               }
             },
-            "coverage_recall": 0.9661016949152542,
+            "coverage_recall": 0.9636363636363636,
             "edges": {
-              "normal_max": 0.25089074304959114,
-              "phishing_min": 0.48205516709710156
+              "normal_max": 0.05827707009617206,
+              "phishing_min": 0.9149069112624669
             },
-            "missed_phishing_rate": 0.03389830508474576,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.21367521367521367
+            "missed_phishing_rate": 0.03636363636363636,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6906474820143885
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.95
@@ -1219,41 +1219,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.017241379310344827,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.011904761904761904,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 35,
-                "normal_share": 0.603448275862069,
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
                 "phishing_count": 1,
-                "phishing_share": 0.01694915254237288,
-                "sample_count": 36
+                "phishing_share": 0.01818181818181818,
+                "sample_count": 9
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.017241379310344827,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 54
+                "normal_share": 0.011904761904761904,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 32
               },
               "uncertain": {
-                "normal_count": 22,
-                "normal_share": 0.3793103448275862,
-                "phishing_count": 5,
-                "phishing_share": 0.0847457627118644,
-                "sample_count": 27
+                "normal_count": 75,
+                "normal_share": 0.8928571428571429,
+                "phishing_count": 23,
+                "phishing_share": 0.41818181818181815,
+                "sample_count": 98
               }
             },
-            "coverage_recall": 0.9830508474576272,
+            "coverage_recall": 0.9818181818181818,
             "edges": {
-              "normal_max": 0.2452690737148747,
-              "phishing_min": 0.48205516709710156
+              "normal_max": 0.05183683974499302,
+              "phishing_min": 0.9149069112624669
             },
-            "missed_phishing_rate": 0.01694915254237288,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.23076923076923078
+            "missed_phishing_rate": 0.01818181818181818,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.7050359712230215
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.98
@@ -1261,41 +1261,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.017241379310344827,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.011904761904761904,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 7,
-                "normal_share": 0.1206896551724138,
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 7
+                "sample_count": 8
               },
               "certain_phishing": {
                 "normal_count": 1,
-                "normal_share": 0.017241379310344827,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 54
+                "normal_share": 0.011904761904761904,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 32
               },
               "uncertain": {
-                "normal_count": 50,
-                "normal_share": 0.8620689655172413,
-                "phishing_count": 6,
-                "phishing_share": 0.1016949152542373,
-                "sample_count": 56
+                "normal_count": 75,
+                "normal_share": 0.8928571428571429,
+                "phishing_count": 24,
+                "phishing_share": 0.43636363636363634,
+                "sample_count": 99
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09068993664403235,
-              "phishing_min": 0.48205516709710156
+              "normal_max": 0.04646360163103841,
+              "phishing_min": 0.9149069112624669
             },
             "missed_phishing_rate": 0.0,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.47863247863247865
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.7122302158273381
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 1.0
@@ -1303,41 +1303,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.034482758620689655,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.047619047619047616,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 54,
-                "normal_share": 0.9310344827586207,
+                "normal_count": 10,
+                "normal_share": 0.11904761904761904,
                 "phishing_count": 5,
-                "phishing_share": 0.0847457627118644,
-                "sample_count": 59
+                "phishing_share": 0.09090909090909091,
+                "sample_count": 15
               },
               "certain_phishing": {
-                "normal_count": 2,
-                "normal_share": 0.034482758620689655,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 55
+                "normal_count": 4,
+                "normal_share": 0.047619047619047616,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 35
               },
               "uncertain": {
-                "normal_count": 2,
-                "normal_share": 0.034482758620689655,
-                "phishing_count": 1,
-                "phishing_share": 0.01694915254237288,
-                "sample_count": 3
+                "normal_count": 70,
+                "normal_share": 0.8333333333333334,
+                "phishing_count": 19,
+                "phishing_share": 0.34545454545454546,
+                "sample_count": 89
               }
             },
-            "coverage_recall": 0.9152542372881356,
+            "coverage_recall": 0.9090909090909091,
             "edges": {
-              "normal_max": 0.3654948939741731,
-              "phishing_min": 0.44901441130565184
+              "normal_max": 0.06255293486025981,
+              "phishing_min": 0.913248047524137
             },
-            "missed_phishing_rate": 0.0847457627118644,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.02564102564102564
+            "missed_phishing_rate": 0.09090909090909091,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6402877697841727
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.9
@@ -1345,41 +1345,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.034482758620689655,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.047619047619047616,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 36,
-                "normal_share": 0.6206896551724138,
+                "normal_count": 9,
+                "normal_share": 0.10714285714285714,
                 "phishing_count": 2,
-                "phishing_share": 0.03389830508474576,
-                "sample_count": 38
+                "phishing_share": 0.03636363636363636,
+                "sample_count": 11
               },
               "certain_phishing": {
-                "normal_count": 2,
-                "normal_share": 0.034482758620689655,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 55
+                "normal_count": 4,
+                "normal_share": 0.047619047619047616,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 35
               },
               "uncertain": {
-                "normal_count": 20,
-                "normal_share": 0.3448275862068966,
-                "phishing_count": 4,
-                "phishing_share": 0.06779661016949153,
-                "sample_count": 24
+                "normal_count": 71,
+                "normal_share": 0.8452380952380952,
+                "phishing_count": 22,
+                "phishing_share": 0.4,
+                "sample_count": 93
               }
             },
-            "coverage_recall": 0.9661016949152542,
+            "coverage_recall": 0.9636363636363636,
             "edges": {
-              "normal_max": 0.25089074304959114,
-              "phishing_min": 0.44901441130565184
+              "normal_max": 0.05827707009617206,
+              "phishing_min": 0.913248047524137
             },
-            "missed_phishing_rate": 0.03389830508474576,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.20512820512820512
+            "missed_phishing_rate": 0.03636363636363636,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6690647482014388
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.95
@@ -1387,41 +1387,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.034482758620689655,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.047619047619047616,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 35,
-                "normal_share": 0.603448275862069,
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
                 "phishing_count": 1,
-                "phishing_share": 0.01694915254237288,
-                "sample_count": 36
+                "phishing_share": 0.01818181818181818,
+                "sample_count": 9
               },
               "certain_phishing": {
-                "normal_count": 2,
-                "normal_share": 0.034482758620689655,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 55
+                "normal_count": 4,
+                "normal_share": 0.047619047619047616,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 35
               },
               "uncertain": {
-                "normal_count": 21,
-                "normal_share": 0.3620689655172414,
-                "phishing_count": 5,
-                "phishing_share": 0.0847457627118644,
-                "sample_count": 26
+                "normal_count": 72,
+                "normal_share": 0.8571428571428571,
+                "phishing_count": 23,
+                "phishing_share": 0.41818181818181815,
+                "sample_count": 95
               }
             },
-            "coverage_recall": 0.9830508474576272,
+            "coverage_recall": 0.9818181818181818,
             "edges": {
-              "normal_max": 0.2452690737148747,
-              "phishing_min": 0.44901441130565184
+              "normal_max": 0.05183683974499302,
+              "phishing_min": 0.913248047524137
             },
-            "missed_phishing_rate": 0.01694915254237288,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.2222222222222222
+            "missed_phishing_rate": 0.01818181818181818,
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6834532374100719
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.98
@@ -1429,41 +1429,41 @@
         {
           "feasible": true,
           "measured": {
-            "alert_false_positive_rate": 0.034482758620689655,
-            "alert_recall": 0.8983050847457628,
+            "alert_false_positive_rate": 0.047619047619047616,
+            "alert_recall": 0.5636363636363636,
             "by_band": {
               "certain_normal": {
-                "normal_count": 7,
-                "normal_share": 0.1206896551724138,
+                "normal_count": 8,
+                "normal_share": 0.09523809523809523,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 7
+                "sample_count": 8
               },
               "certain_phishing": {
-                "normal_count": 2,
-                "normal_share": 0.034482758620689655,
-                "phishing_count": 53,
-                "phishing_share": 0.8983050847457628,
-                "sample_count": 55
+                "normal_count": 4,
+                "normal_share": 0.047619047619047616,
+                "phishing_count": 31,
+                "phishing_share": 0.5636363636363636,
+                "sample_count": 35
               },
               "uncertain": {
-                "normal_count": 49,
-                "normal_share": 0.8448275862068966,
-                "phishing_count": 6,
-                "phishing_share": 0.1016949152542373,
-                "sample_count": 55
+                "normal_count": 72,
+                "normal_share": 0.8571428571428571,
+                "phishing_count": 24,
+                "phishing_share": 0.43636363636363634,
+                "sample_count": 96
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09068993664403235,
-              "phishing_min": 0.44901441130565184
+              "normal_max": 0.04646360163103841,
+              "phishing_min": 0.913248047524137
             },
             "missed_phishing_rate": 0.0,
-            "normal_count": 58,
-            "phishing_count": 59,
-            "sample_count": 117,
-            "uncertain_share": 0.4700854700854701
+            "normal_count": 84,
+            "phishing_count": 55,
+            "sample_count": 139,
+            "uncertain_share": 0.6906474820143885
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 1.0
@@ -1472,65 +1472,65 @@
       "reliability": [
         {
           "lower": 0.0,
-          "mean_predicted_probability": 0.07281719244260762,
-          "observed_phishing_rate": 0.1,
-          "sample_count": 10,
+          "mean_predicted_probability": 0.06017729954845358,
+          "observed_phishing_rate": 0.25,
+          "sample_count": 28,
           "upper": 0.1
         },
         {
           "lower": 0.1,
-          "mean_predicted_probability": 0.1868921809011266,
-          "observed_phishing_rate": 0.08333333333333333,
-          "sample_count": 36,
+          "mean_predicted_probability": 0.1712759480054083,
+          "observed_phishing_rate": 0.02127659574468085,
+          "sample_count": 47,
           "upper": 0.3
         },
         {
           "lower": 0.3,
-          "mean_predicted_probability": 0.36481462578186674,
-          "observed_phishing_rate": 0.21052631578947367,
-          "sample_count": 19,
+          "mean_predicted_probability": 0.43427818658881395,
+          "observed_phishing_rate": 0.5,
+          "sample_count": 14,
           "upper": 0.5
         },
         {
           "lower": 0.5,
-          "mean_predicted_probability": 0.6517241075468002,
+          "mean_predicted_probability": 0.6468295004312504,
           "observed_phishing_rate": 1.0,
-          "sample_count": 7,
+          "sample_count": 3,
           "upper": 0.7
         },
         {
           "lower": 0.7,
-          "mean_predicted_probability": 0.7894741493874016,
-          "observed_phishing_rate": 0.9545454545454546,
-          "sample_count": 22,
+          "mean_predicted_probability": 0.8362111557378746,
+          "observed_phishing_rate": 0.8333333333333334,
+          "sample_count": 6,
           "upper": 0.9
         },
         {
           "lower": 0.9,
-          "mean_predicted_probability": 0.9678597842123924,
-          "observed_phishing_rate": 1.0,
-          "sample_count": 23,
+          "mean_predicted_probability": 0.9648857512883507,
+          "observed_phishing_rate": 0.7804878048780488,
+          "sample_count": 41,
           "upper": 1.0
         }
       ],
-      "sample_count": 117,
+      "sample_count": 139,
       "single_threshold_baseline": {
-        "alert_false_positive_rate": 0.27586206896551724,
-        "alert_recall": 0.9322033898305084,
+        "alert_false_positive_rate": 0.11904761904761904,
+        "alert_recall": 0.7272727272727273,
         "by_band": {
           "certain_normal": {
-            "normal_count": 42,
-            "normal_share": 0.7241379310344828,
-            "phishing_count": 4,
-            "phishing_share": 0.06779661016949153,
-            "sample_count": 46
+            "normal_count": 74,
+            "normal_share": 0.8809523809523809,
+            "phishing_count": 15,
+            "phishing_share": 0.2727272727272727,
+            "sample_count": 89
           },
           "certain_phishing": {
-            "normal_count": 16,
-            "normal_share": 0.27586206896551724,
-            "phishing_count": 55,
-            "phishing_share": 0.9322033898305084,
-            "sample_count": 71
+            "normal_count": 10,
+            "normal_share": 0.11904761904761904,
+            "phishing_count": 40,
+            "phishing_share": 0.7272727272727273,
+            "sample_count": 50
           },
           "uncertain": {
             "normal_count": 0,
@@ -1540,15 +1540,15 @@
             "sample_count": 0
           }
         },
-        "coverage_recall": 0.9322033898305084,
+        "coverage_recall": 0.7272727272727273,
         "edges": {
-          "normal_max": 0.30389144980860877,
-          "phishing_min": 0.3038914498086088
+          "normal_max": 0.5937114760569799,
+          "phishing_min": 0.59371147605698
         },
-        "missed_phishing_rate": 0.06779661016949153,
-        "normal_count": 58,
-        "phishing_count": 59,
-        "sample_count": 117,
+        "missed_phishing_rate": 0.2727272727272727,
+        "normal_count": 84,
+        "phishing_count": 55,
+        "sample_count": 139,
         "uncertain_share": 0.0
       },
       "split": "test"
@@ -1585,8 +1585,8 @@
             },
             "coverage_recall": 0.9036144578313253,
             "edges": {
-              "normal_max": 0.30143228841988506,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.41815296779646743,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.0963855421686747,
             "normal_count": 74,
@@ -1604,11 +1604,11 @@
             "alert_recall": 0.4939759036144578,
             "by_band": {
               "certain_normal": {
-                "normal_count": 58,
-                "normal_share": 0.7837837837837838,
+                "normal_count": 39,
+                "normal_share": 0.527027027027027,
                 "phishing_count": 4,
                 "phishing_share": 0.04819277108433735,
-                "sample_count": 62
+                "sample_count": 43
               },
               "certain_phishing": {
                 "normal_count": 0,
@@ -1618,23 +1618,23 @@
                 "sample_count": 41
               },
               "uncertain": {
-                "normal_count": 16,
-                "normal_share": 0.21621621621621623,
+                "normal_count": 35,
+                "normal_share": 0.47297297297297297,
                 "phishing_count": 38,
                 "phishing_share": 0.4578313253012048,
-                "sample_count": 54
+                "sample_count": 73
               }
             },
             "coverage_recall": 0.9518072289156626,
             "edges": {
-              "normal_max": 0.21059381422038756,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.14108421351311495,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.04819277108433735,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.34394904458598724
+            "uncertain_share": 0.46496815286624205
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 0.95
@@ -1646,11 +1646,11 @@
             "alert_recall": 0.4939759036144578,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 1,
                 "phishing_share": 0.012048192771084338,
-                "sample_count": 9
+                "sample_count": 11
               },
               "certain_phishing": {
                 "normal_count": 0,
@@ -1660,23 +1660,23 @@
                 "sample_count": 41
               },
               "uncertain": {
-                "normal_count": 66,
-                "normal_share": 0.8918918918918919,
+                "normal_count": 64,
+                "normal_share": 0.8648648648648649,
                 "phishing_count": 41,
                 "phishing_share": 0.4939759036144578,
-                "sample_count": 107
+                "sample_count": 105
               }
             },
             "coverage_recall": 0.9879518072289156,
             "edges": {
-              "normal_max": 0.092198157561084,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.05988351291751435,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.012048192771084338,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.6815286624203821
+            "uncertain_share": 0.6687898089171974
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 0.98
@@ -1688,11 +1688,11 @@
             "alert_recall": 0.4939759036144578,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 8
+                "sample_count": 10
               },
               "certain_phishing": {
                 "normal_count": 0,
@@ -1702,23 +1702,23 @@
                 "sample_count": 41
               },
               "uncertain": {
-                "normal_count": 66,
-                "normal_share": 0.8918918918918919,
+                "normal_count": 64,
+                "normal_share": 0.8648648648648649,
                 "phishing_count": 42,
                 "phishing_share": 0.5060240963855421,
-                "sample_count": 108
+                "sample_count": 106
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09207301406592293,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.058993335752798824,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.0,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.6878980891719745
+            "uncertain_share": 0.6751592356687898
           },
           "target_alert_false_positive_rate": 0.005,
           "target_coverage_recall": 1.0
@@ -1753,8 +1753,8 @@
             },
             "coverage_recall": 0.9036144578313253,
             "edges": {
-              "normal_max": 0.30143228841988506,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.41815296779646743,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.0963855421686747,
             "normal_count": 74,
@@ -1772,11 +1772,11 @@
             "alert_recall": 0.4939759036144578,
             "by_band": {
               "certain_normal": {
-                "normal_count": 58,
-                "normal_share": 0.7837837837837838,
+                "normal_count": 39,
+                "normal_share": 0.527027027027027,
                 "phishing_count": 4,
                 "phishing_share": 0.04819277108433735,
-                "sample_count": 62
+                "sample_count": 43
               },
               "certain_phishing": {
                 "normal_count": 0,
@@ -1786,23 +1786,23 @@
                 "sample_count": 41
               },
               "uncertain": {
-                "normal_count": 16,
-                "normal_share": 0.21621621621621623,
+                "normal_count": 35,
+                "normal_share": 0.47297297297297297,
                 "phishing_count": 38,
                 "phishing_share": 0.4578313253012048,
-                "sample_count": 54
+                "sample_count": 73
               }
             },
             "coverage_recall": 0.9518072289156626,
             "edges": {
-              "normal_max": 0.21059381422038756,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.14108421351311495,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.04819277108433735,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.34394904458598724
+            "uncertain_share": 0.46496815286624205
           },
           "target_alert_false_positive_rate": 0.01,
           "target_coverage_recall": 0.95
@@ -1814,11 +1814,11 @@
             "alert_recall": 0.4939759036144578,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 1,
                 "phishing_share": 0.012048192771084338,
-                "sample_count": 9
+                "sample_count": 11
               },
               "certain_phishing": {
                 "normal_count": 0,
@@ -1828,23 +1828,23 @@
                 "sample_count": 41
               },
               "uncertain": {
-                "normal_count": 66,
-                "normal_share": 0.8918918918918919,
+                "normal_count": 64,
+                "normal_share": 0.8648648648648649,
                 "phishing_count": 41,
                 "phishing_share": 0.4939759036144578,
-                "sample_count": 107
+                "sample_count": 105
               }
             },
             "coverage_recall": 0.9879518072289156,
             "edges": {
-              "normal_max": 0.092198157561084,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.05988351291751435,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.012048192771084338,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.6815286624203821
+            "uncertain_share": 0.6687898089171974
           },
           "target_alert_false_positive_rate": 0.01,
           "target_coverage_recall": 0.98
@@ -1856,11 +1856,11 @@
             "alert_recall": 0.4939759036144578,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 8
+                "sample_count": 10
               },
               "certain_phishing": {
                 "normal_count": 0,
@@ -1870,23 +1870,23 @@
                 "sample_count": 41
               },
               "uncertain": {
-                "normal_count": 66,
-                "normal_share": 0.8918918918918919,
+                "normal_count": 64,
+                "normal_share": 0.8648648648648649,
                 "phishing_count": 42,
                 "phishing_share": 0.5060240963855421,
-                "sample_count": 108
+                "sample_count": 106
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09207301406592293,
-              "phishing_min": 0.8496571018813257
+              "normal_max": 0.058993335752798824,
+              "phishing_min": 0.9068034042402592
             },
             "missed_phishing_rate": 0.0,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.6878980891719745
+            "uncertain_share": 0.6751592356687898
           },
           "target_alert_false_positive_rate": 0.01,
           "target_coverage_recall": 1.0
@@ -1895,7 +1895,7 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.013513513513513514,
-            "alert_recall": 0.5662650602409639,
+            "alert_recall": 0.6746987951807228,
             "by_band": {
               "certain_normal": {
                 "normal_count": 65,
@@ -1907,28 +1907,28 @@
               "certain_phishing": {
                 "normal_count": 1,
                 "normal_share": 0.013513513513513514,
-                "phishing_count": 47,
-                "phishing_share": 0.5662650602409639,
-                "sample_count": 48
+                "phishing_count": 56,
+                "phishing_share": 0.6746987951807228,
+                "sample_count": 57
               },
               "uncertain": {
                 "normal_count": 8,
                 "normal_share": 0.10810810810810811,
-                "phishing_count": 28,
-                "phishing_share": 0.3373493975903614,
-                "sample_count": 36
+                "phishing_count": 19,
+                "phishing_share": 0.2289156626506024,
+                "sample_count": 27
               }
             },
             "coverage_recall": 0.9036144578313253,
             "edges": {
-              "normal_max": 0.30143228841988506,
-              "phishing_min": 0.782519990885167
+              "normal_max": 0.41815296779646743,
+              "phishing_min": 0.7603531964989261
             },
             "missed_phishing_rate": 0.0963855421686747,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.22929936305732485
+            "uncertain_share": 0.17197452229299362
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.9
@@ -1937,40 +1937,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.013513513513513514,
-            "alert_recall": 0.5662650602409639,
+            "alert_recall": 0.6746987951807228,
             "by_band": {
               "certain_normal": {
-                "normal_count": 58,
-                "normal_share": 0.7837837837837838,
+                "normal_count": 39,
+                "normal_share": 0.527027027027027,
                 "phishing_count": 4,
                 "phishing_share": 0.04819277108433735,
-                "sample_count": 62
+                "sample_count": 43
               },
               "certain_phishing": {
                 "normal_count": 1,
                 "normal_share": 0.013513513513513514,
-                "phishing_count": 47,
-                "phishing_share": 0.5662650602409639,
-                "sample_count": 48
+                "phishing_count": 56,
+                "phishing_share": 0.6746987951807228,
+                "sample_count": 57
               },
               "uncertain": {
-                "normal_count": 15,
-                "normal_share": 0.20270270270270271,
-                "phishing_count": 32,
-                "phishing_share": 0.3855421686746988,
-                "sample_count": 47
+                "normal_count": 34,
+                "normal_share": 0.4594594594594595,
+                "phishing_count": 23,
+                "phishing_share": 0.27710843373493976,
+                "sample_count": 57
               }
             },
             "coverage_recall": 0.9518072289156626,
             "edges": {
-              "normal_max": 0.21059381422038756,
-              "phishing_min": 0.782519990885167
+              "normal_max": 0.14108421351311495,
+              "phishing_min": 0.7603531964989261
             },
             "missed_phishing_rate": 0.04819277108433735,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.29936305732484075
+            "uncertain_share": 0.3630573248407643
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.95
@@ -1979,40 +1979,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.013513513513513514,
-            "alert_recall": 0.5662650602409639,
+            "alert_recall": 0.6746987951807228,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 1,
                 "phishing_share": 0.012048192771084338,
-                "sample_count": 9
+                "sample_count": 11
               },
               "certain_phishing": {
                 "normal_count": 1,
                 "normal_share": 0.013513513513513514,
-                "phishing_count": 47,
-                "phishing_share": 0.5662650602409639,
-                "sample_count": 48
+                "phishing_count": 56,
+                "phishing_share": 0.6746987951807228,
+                "sample_count": 57
               },
               "uncertain": {
-                "normal_count": 65,
-                "normal_share": 0.8783783783783784,
-                "phishing_count": 35,
-                "phishing_share": 0.42168674698795183,
-                "sample_count": 100
+                "normal_count": 63,
+                "normal_share": 0.8513513513513513,
+                "phishing_count": 26,
+                "phishing_share": 0.3132530120481928,
+                "sample_count": 89
               }
             },
             "coverage_recall": 0.9879518072289156,
             "edges": {
-              "normal_max": 0.092198157561084,
-              "phishing_min": 0.782519990885167
+              "normal_max": 0.05988351291751435,
+              "phishing_min": 0.7603531964989261
             },
             "missed_phishing_rate": 0.012048192771084338,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.6369426751592356
+            "uncertain_share": 0.5668789808917197
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 0.98
@@ -2021,40 +2021,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.013513513513513514,
-            "alert_recall": 0.5662650602409639,
+            "alert_recall": 0.6746987951807228,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 8
+                "sample_count": 10
               },
               "certain_phishing": {
                 "normal_count": 1,
                 "normal_share": 0.013513513513513514,
-                "phishing_count": 47,
-                "phishing_share": 0.5662650602409639,
-                "sample_count": 48
+                "phishing_count": 56,
+                "phishing_share": 0.6746987951807228,
+                "sample_count": 57
               },
               "uncertain": {
-                "normal_count": 65,
-                "normal_share": 0.8783783783783784,
-                "phishing_count": 36,
-                "phishing_share": 0.43373493975903615,
-                "sample_count": 101
+                "normal_count": 63,
+                "normal_share": 0.8513513513513513,
+                "phishing_count": 27,
+                "phishing_share": 0.3253012048192771,
+                "sample_count": 90
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09207301406592293,
-              "phishing_min": 0.782519990885167
+              "normal_max": 0.058993335752798824,
+              "phishing_min": 0.7603531964989261
             },
             "missed_phishing_rate": 0.0,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.643312101910828
+            "uncertain_share": 0.5732484076433121
           },
           "target_alert_false_positive_rate": 0.02,
           "target_coverage_recall": 1.0
@@ -2063,7 +2063,7 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.04054054054054054,
-            "alert_recall": 0.6987951807228916,
+            "alert_recall": 0.7108433734939759,
             "by_band": {
               "certain_normal": {
                 "normal_count": 65,
@@ -2075,28 +2075,28 @@
               "certain_phishing": {
                 "normal_count": 3,
                 "normal_share": 0.04054054054054054,
-                "phishing_count": 58,
-                "phishing_share": 0.6987951807228916,
-                "sample_count": 61
+                "phishing_count": 59,
+                "phishing_share": 0.7108433734939759,
+                "sample_count": 62
               },
               "uncertain": {
                 "normal_count": 6,
                 "normal_share": 0.08108108108108109,
-                "phishing_count": 17,
-                "phishing_share": 0.20481927710843373,
-                "sample_count": 23
+                "phishing_count": 16,
+                "phishing_share": 0.1927710843373494,
+                "sample_count": 22
               }
             },
             "coverage_recall": 0.9036144578313253,
             "edges": {
-              "normal_max": 0.30143228841988506,
-              "phishing_min": 0.6414861490042556
+              "normal_max": 0.41815296779646743,
+              "phishing_min": 0.7333442047237935
             },
             "missed_phishing_rate": 0.0963855421686747,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.1464968152866242
+            "uncertain_share": 0.14012738853503184
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.9
@@ -2105,40 +2105,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.04054054054054054,
-            "alert_recall": 0.6987951807228916,
+            "alert_recall": 0.7108433734939759,
             "by_band": {
               "certain_normal": {
-                "normal_count": 58,
-                "normal_share": 0.7837837837837838,
+                "normal_count": 39,
+                "normal_share": 0.527027027027027,
                 "phishing_count": 4,
                 "phishing_share": 0.04819277108433735,
-                "sample_count": 62
+                "sample_count": 43
               },
               "certain_phishing": {
                 "normal_count": 3,
                 "normal_share": 0.04054054054054054,
-                "phishing_count": 58,
-                "phishing_share": 0.6987951807228916,
-                "sample_count": 61
+                "phishing_count": 59,
+                "phishing_share": 0.7108433734939759,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 13,
-                "normal_share": 0.17567567567567569,
-                "phishing_count": 21,
-                "phishing_share": 0.25301204819277107,
-                "sample_count": 34
+                "normal_count": 32,
+                "normal_share": 0.43243243243243246,
+                "phishing_count": 20,
+                "phishing_share": 0.24096385542168675,
+                "sample_count": 52
               }
             },
             "coverage_recall": 0.9518072289156626,
             "edges": {
-              "normal_max": 0.21059381422038756,
-              "phishing_min": 0.6414861490042556
+              "normal_max": 0.14108421351311495,
+              "phishing_min": 0.7333442047237935
             },
             "missed_phishing_rate": 0.04819277108433735,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.21656050955414013
+            "uncertain_share": 0.33121019108280253
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.95
@@ -2147,40 +2147,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.04054054054054054,
-            "alert_recall": 0.6987951807228916,
+            "alert_recall": 0.7108433734939759,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 1,
                 "phishing_share": 0.012048192771084338,
-                "sample_count": 9
+                "sample_count": 11
               },
               "certain_phishing": {
                 "normal_count": 3,
                 "normal_share": 0.04054054054054054,
-                "phishing_count": 58,
-                "phishing_share": 0.6987951807228916,
-                "sample_count": 61
+                "phishing_count": 59,
+                "phishing_share": 0.7108433734939759,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 63,
-                "normal_share": 0.8513513513513513,
-                "phishing_count": 24,
-                "phishing_share": 0.2891566265060241,
-                "sample_count": 87
+                "normal_count": 61,
+                "normal_share": 0.8243243243243243,
+                "phishing_count": 23,
+                "phishing_share": 0.27710843373493976,
+                "sample_count": 84
               }
             },
             "coverage_recall": 0.9879518072289156,
             "edges": {
-              "normal_max": 0.092198157561084,
-              "phishing_min": 0.6414861490042556
+              "normal_max": 0.05988351291751435,
+              "phishing_min": 0.7333442047237935
             },
             "missed_phishing_rate": 0.012048192771084338,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.554140127388535
+            "uncertain_share": 0.535031847133758
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 0.98
@@ -2189,40 +2189,40 @@
           "feasible": true,
           "measured": {
             "alert_false_positive_rate": 0.04054054054054054,
-            "alert_recall": 0.6987951807228916,
+            "alert_recall": 0.7108433734939759,
             "by_band": {
               "certain_normal": {
-                "normal_count": 8,
-                "normal_share": 0.10810810810810811,
+                "normal_count": 10,
+                "normal_share": 0.13513513513513514,
                 "phishing_count": 0,
                 "phishing_share": 0.0,
-                "sample_count": 8
+                "sample_count": 10
               },
               "certain_phishing": {
                 "normal_count": 3,
                 "normal_share": 0.04054054054054054,
-                "phishing_count": 58,
-                "phishing_share": 0.6987951807228916,
-                "sample_count": 61
+                "phishing_count": 59,
+                "phishing_share": 0.7108433734939759,
+                "sample_count": 62
               },
               "uncertain": {
-                "normal_count": 63,
-                "normal_share": 0.8513513513513513,
-                "phishing_count": 25,
-                "phishing_share": 0.30120481927710846,
-                "sample_count": 88
+                "normal_count": 61,
+                "normal_share": 0.8243243243243243,
+                "phishing_count": 24,
+                "phishing_share": 0.2891566265060241,
+                "sample_count": 85
               }
             },
             "coverage_recall": 1.0,
             "edges": {
-              "normal_max": 0.09207301406592293,
-              "phishing_min": 0.6414861490042556
+              "normal_max": 0.058993335752798824,
+              "phishing_min": 0.7333442047237935
             },
             "missed_phishing_rate": 0.0,
             "normal_count": 74,
             "phishing_count": 83,
             "sample_count": 157,
-            "uncertain_share": 0.5605095541401274
+            "uncertain_share": 0.5414012738853503
           },
           "target_alert_false_positive_rate": 0.05,
           "target_coverage_recall": 1.0
@@ -2231,65 +2231,65 @@
       "reliability": [
         {
           "lower": 0.0,
-          "mean_predicted_probability": 0.0840976665351311,
-          "observed_phishing_rate": 0.1111111111111111,
-          "sample_count": 18,
+          "mean_predicted_probability": 0.06993454097964176,
+          "observed_phishing_rate": 0.10714285714285714,
+          "sample_count": 28,
           "upper": 0.1
         },
         {
           "lower": 0.1,
-          "mean_predicted_probability": 0.1608475268879273,
-          "observed_phishing_rate": 0.10909090909090909,
-          "sample_count": 55,
+          "mean_predicted_probability": 0.17647885439505093,
+          "observed_phishing_rate": 0.07317073170731707,
+          "sample_count": 41,
           "upper": 0.3
         },
         {
           "lower": 0.3,
-          "mean_predicted_probability": 0.4075435666592641,
-          "observed_phishing_rate": 0.7142857142857143,
-          "sample_count": 14,
+          "mean_predicted_probability": 0.4265532159247328,
+          "observed_phishing_rate": 0.7,
+          "sample_count": 10,
           "upper": 0.5
         },
         {
           "lower": 0.5,
-          "mean_predicted_probability": 0.6123577448978523,
-          "observed_phishing_rate": 0.8571428571428571,
-          "sample_count": 14,
+          "mean_predicted_probability": 0.6000739710979661,
+          "observed_phishing_rate": 0.75,
+          "sample_count": 12,
           "upper": 0.7
         },
         {
           "lower": 0.7,
-          "mean_predicted_probability": 0.7999049181998265,
-          "observed_phishing_rate": 0.8333333333333334,
-          "sample_count": 18,
+          "mean_predicted_probability": 0.7860331301422633,
+          "observed_phishing_rate": 0.8181818181818182,
+          "sample_count": 22,
           "upper": 0.9
         },
         {
           "lower": 0.9,
-          "mean_predicted_probability": 0.9763372685934224,
-          "observed_phishing_rate": 1.0,
-          "sample_count": 38,
+          "mean_predicted_probability": 0.9802225592897824,
+          "observed_phishing_rate": 0.9772727272727273,
+          "sample_count": 44,
           "upper": 1.0
         }
       ],
       "sample_count": 157,
       "single_threshold_baseline": {
-        "alert_false_positive_rate": 0.12162162162162163,
-        "alert_recall": 0.891566265060241,
+        "alert_false_positive_rate": 0.08108108108108109,
+        "alert_recall": 0.7831325301204819,
         "by_band": {
           "certain_normal": {
-            "normal_count": 65,
-            "normal_share": 0.8783783783783784,
-            "phishing_count": 9,
-            "phishing_share": 0.10843373493975904,
-            "sample_count": 74
+            "normal_count": 68,
+            "normal_share": 0.918918918918919,
+            "phishing_count": 18,
+            "phishing_share": 0.21686746987951808,
+            "sample_count": 86
           },
           "certain_phishing": {
-            "normal_count": 9,
-            "normal_share": 0.12162162162162163,
-            "phishing_count": 74,
-            "phishing_share": 0.891566265060241,
-            "sample_count": 83
+            "normal_count": 6,
+            "normal_share": 0.08108108108108109,
+            "phishing_count": 65,
+            "phishing_share": 0.7831325301204819,
+            "sample_count": 71
           },
           "uncertain": {
             "normal_count": 0,
@@ -2299,12 +2299,12 @@
             "sample_count": 0
           }
         },
-        "coverage_recall": 0.891566265060241,
+        "coverage_recall": 0.7831325301204819,
         "edges": {
-          "normal_max": 0.30389144980860877,
-          "phishing_min": 0.3038914498086088
+          "normal_max": 0.5937114760569799,
+          "phishing_min": 0.59371147605698
         },
-        "missed_phishing_rate": 0.10843373493975904,
+        "missed_phishing_rate": 0.21686746987951808,
         "normal_count": 74,
         "phishing_count": 83,
         "sample_count": 157,
@@ -2315,21 +2315,21 @@
   ],
   "threshold_policy": {
     "after": {
-      "best_recall_within_ceiling": 0.6379310344827587,
+      "best_recall_within_ceiling": 0.75,
       "feasible": false,
-      "lowest_false_positive_rate_at_target_recall": 0.140625,
-      "measurable_false_positive_rate": 0.015625,
-      "reason": "no threshold satisfies both targets: recall >= 0.95 needs a false positive rate of 0.1406, while a ceiling of 0.01 caps recall at 0.6379. The validation split can only resolve a false positive rate down to 0.0156."
+      "lowest_false_positive_rate_at_target_recall": 0.03488372093023256,
+      "measurable_false_positive_rate": 0.011627906976744186,
+      "reason": "no threshold satisfies both targets: recall >= 0.95 needs a false positive rate of 0.0349, while a ceiling of 0.01 caps recall at 0.7500. The validation split can only resolve a false positive rate down to 0.0116."
     },
     "before": {
-      "f2": 0.9427609427609428,
-      "false_positive_rate": 0.140625,
+      "f2": 0.9634551495016611,
+      "false_positive_rate": 0.03488372093023256,
       "max_false_positive_rate": null,
-      "measurable_false_positive_rate": 0.015625,
-      "recall": 0.9655172413793104,
+      "measurable_false_positive_rate": 0.011627906976744186,
+      "recall": 0.9666666666666667,
       "target_recall": 0.95,
       "target_recall_met": true,
-      "threshold": 0.3038914498086088
+      "threshold": 0.59371147605698
     },
     "max_false_positive_rate": 0.01,
     "target_recall": 0.95

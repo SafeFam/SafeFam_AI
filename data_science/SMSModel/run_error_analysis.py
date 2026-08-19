@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 
+from data_science.SMSModel.run_stacking_training import (
+    STACKING_MODEL_PATH,
+)
 from data_science.SMSModel.train_sms import (
     DATA_PATH,
     load_data,
@@ -18,9 +21,8 @@ from data_science.SMSModel.train_sms import (
 )
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
-DEFAULT_MODEL_PATH = (
-    SMS_MODEL_DIRECTORY / "artifacts" / "stacking" / "v3" / "model.joblib"
-)
+# artifact 버전은 학습 스크립트를 따른다. 여기서 따로 고정하지 않는다.
+DEFAULT_MODEL_PATH = STACKING_MODEL_PATH
 DEFAULT_OUTPUT_PATH = SMS_MODEL_DIRECTORY / "reports" / "error_analysis.json"
 
 # 오탐률 곡선을 확인할 지점

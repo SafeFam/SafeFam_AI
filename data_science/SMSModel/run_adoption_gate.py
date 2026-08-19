@@ -19,6 +19,9 @@ from data_science.SMSModel.evaluation.standalone_bands import (
     select_standalone_bands,
     summarize_bands,
 )
+from data_science.SMSModel.run_stacking_training import (
+    STACKING_MODEL_PATH,
+)
 from data_science.SMSModel.run_error_analysis import load_classifier
 from data_science.SMSModel.run_standalone_analysis import (
     SELECTION_SPLIT,
@@ -32,9 +35,8 @@ from data_science.SMSModel.train_sms import (
 )
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
-DEFAULT_MODEL_PATH = (
-    SMS_MODEL_DIRECTORY / "artifacts" / "stacking" / "v3" / "model.joblib"
-)
+# artifact 버전은 학습 스크립트를 따른다. 여기서 따로 고정하지 않는다.
+DEFAULT_MODEL_PATH = STACKING_MODEL_PATH
 DEFAULT_OUTPUT_PATH = (
     SMS_MODEL_DIRECTORY / "reports" / "adoption_gate.json"
 )
