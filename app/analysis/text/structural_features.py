@@ -49,25 +49,20 @@ LINK_ACTION_PATTERN = re.compile(
 )
 
 
-# 합법 광고 문자의 법정 표기.
-# 정보통신망법상 영리 목적 광고성 정보에는 "(광고)" 표기와 수신거부 방법을
-# 명시해야 한다. 피싱은 이 표기를 갖추지 않거나 흉내만 내는 경우가 많다.
-# 데이터셋 기준 정상 6.0% · 피싱 2.6%로 보유율이 갈리며, 오탐이 집중된
-# 정상광고프로모션은 73.8%가 이 표기를 갖고 있다(#84).
+# 합법 광고 문자의 법정 표기
 AD_DISCLOSURE_PATTERN = re.compile(
     r"\(\s*광고\s*\)|\[\s*광고\s*\]|^광고",
-    re.IGNORECASE,
+    re.IGNORECASE | re.MULTILINE,
 )
 
-# 수신거부 안내. 광고 표기와 함께 나타나면 합법 광고일 가능성이 높아진다.
 OPT_OUT_PATTERN = re.compile(
-    r"무료\s*수신\s*거부|수신\s*거부|무료거부|"
+    r"수신\s*거부|무료거부|"
     r"080[-.\s]?\d{3,4}[-.\s]?\d{4}",
     re.IGNORECASE,
 )
 
 
-# 배열의 열 순서가 학습 및 추론에서 동일해야 하므로 상수로 고정합니다.
+# 배열의 열 순서가 학습 및 추론에서 동일해야 하므로 상수로 고정
 STACKING_STRUCTURAL_FEATURE_NAMES: tuple[str, ...] = (
     "has_url",
     "has_short_url",
@@ -80,9 +75,7 @@ STACKING_STRUCTURAL_FEATURE_NAMES: tuple[str, ...] = (
     "has_transfer_request",
     "has_personal_info_request",
     "has_link_action",
-    "is_long_text",
-    # #84: 오탐이 광고성 정상 문자에 집중돼 추가.
-    # 기존 열 순서를 유지해야 하므로 반드시 뒤에만 덧붙인다.
+    "is_long_text"
     "has_ad_disclosure",
     "has_opt_out",
 )

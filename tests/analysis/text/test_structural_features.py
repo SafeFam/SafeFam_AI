@@ -122,3 +122,33 @@ def test_advertising_features_are_appended_last() -> None:
         "has_ad_disclosure",
         "has_opt_out",
     )
+
+
+def test_detects_advertising_disclosure_after_web_prefix() -> None:
+    """`[Web발신]` 접두어 다음 줄에서 시작하는 광고 표기도 인식해야 한다"""
+    result = extract_stacking_structural_features(
+        "[Web발신]\n광고 신상품 안내입니다.\n무료수신거부 080-123-4567"
+    )
+    values = dict(zip(result.names, result.values, strict=True))
+
+    assert values["has_ad_disclosure"] == 1.0
+    assert values["has_opt_out"] == 1.0
+
+
+def test_advertising_disclosure_ignores_mid_line_mention() -> None:
+    """문장 중간에 언급된 '광고'는 법정 표기로 보지 않는다"""
+    result = extract_stacking_structural_features(
+        "어제 본 광고 기억나? 그거 링크 좀 보내줘."
+    )
+    values = dict(zip(result.names, result.values, strict=True))
+
+    assert values["has_ad_disclosure"] == 0.0
+
+
+def test_opt_out_covers_free_variants() -> None:
+    """무료수신거부·수신 거부·무료거부 표기를 모두 같은 특징으로 잡는다"""
+    for text in ("무료수신거부", "수신 거부", "무료거부", "080-123-4567"):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_opt_out"] == 1.0, text

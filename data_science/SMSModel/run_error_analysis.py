@@ -114,6 +114,7 @@ def list_extreme_samples(scored: pd.DataFrame) -> dict[str, list[dict]]:
     """임계값을 밀어올리는 정상과, 놓치기 쉬운 피싱 추출"""
 
     def to_records(frame: pd.DataFrame) -> list[dict]:
+        """원문 없이 지문·유형·확률만 남긴 표본 레코드로 변환"""
         return [
             {
                 "text_fingerprint": str(row.get("text_fingerprint", "")),
@@ -178,6 +179,8 @@ def build_report(classifier) -> dict[str, object]:
 
 
 def main() -> None:
+    """CLI 인자를 읽어 오탐·미탐 분석 리포트를 JSON으로 저장"""
+
     parser = argparse.ArgumentParser(
         description="Analyze false positives and missed phishing."
     )

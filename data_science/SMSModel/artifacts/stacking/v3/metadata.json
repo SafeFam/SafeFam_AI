@@ -51,7 +51,7 @@
   "model_sha256": "72cfe282beaba96e5c7c864ec3a2431e1f9ae41f25a2369a616abcbd6927886f",
   "schema_version": 2,
   "split_manifest": "sms_split_v3.csv",
-  "split_manifest_sha256": "73447f8466ff29c4e2b96eb55dd720ceee029185f6205025a14b6758b5ac038a",
+  "split_manifest_sha256": "459c24d86bc73503147d8fbe0844b30ee985a0b2a1e8d4d3981510a124037d2a",
   "splits": {
     "test": 117,
     "train": 565,

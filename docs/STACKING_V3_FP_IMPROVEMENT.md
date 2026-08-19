@@ -191,13 +191,13 @@ fingerprint 중복 제거는 숫자가 달라 걸러내지 못하고, template �
 
 | 경로 | 내용 |
 |---|---|
-| `SMSModel/run_error_analysis.py` | 오탐·미탐 분석 도구 (신규) |
-| `SMSModel/reports/error_analysis_baseline.json` | 특징 추가 전 기준선 |
-| `SMSModel/reports/error_analysis_with_ad_features.json` | 특징 추가 후 결과 |
-| `SMSModel/artifacts/stacking/v3-baseline/` | 특징 추가 전 artifact (보존) |
-| `SMSModel/artifacts/stacking/v3/` | 특징 추가 후 artifact |
-| `SMSModel/reports/stacking_v3-baseline/` | 특징 추가 전 평가 리포트 |
-| `SMSModel/reports/stacking_v3/` | 특징 추가 후 평가 리포트 |
+| `data_science/SMSModel/run_error_analysis.py` | 오탐·미탐 분석 도구 (신규) |
+| `data_science/SMSModel/reports/error_analysis_baseline.json` | 특징 추가 전 기준선 |
+| `data_science/SMSModel/reports/error_analysis_with_ad_features.json` | 특징 추가 후 결과 |
+| `data_science/SMSModel/artifacts/stacking/v3-baseline/` | 특징 추가 전 artifact (보존) |
+| `data_science/SMSModel/artifacts/stacking/v3/` | 특징 추가 후 artifact |
+| `data_science/SMSModel/reports/stacking_v3-baseline/` | 특징 추가 전 평가 리포트 |
+| `data_science/SMSModel/reports/stacking_v3/` | 특징 추가 후 평가 리포트 |
 | `app/analysis/text/structural_features.py` | 광고 표기 특징 추가 |
 
 ## 8. 방법론 기록
@@ -206,3 +206,5 @@ fingerprint 중복 제거는 숫자가 달라 걸러내지 못하고, template �
 - 데이터셋은 이 실험 동안 변경하지 않았다. 특징 추가만이 유일한 변경이다.
 - 오탐 원인 분석 과정에서 real_holdout을 참조했다. 다만 광고 집중 현상은 test split에서도 동일하게 관측되므로(5/8), 특징 설계가 holdout에만 의존하지 않는다.
 - `v2` artifact와 `#78` 리포트는 `REJECT_CURRENT_ARTIFACT` 상태로 보존했다.
+- `v3`와 `v3-baseline`은 동일한 `sms_split_v3.csv`를 사용했다. 두 metadata의 `split_manifest_sha256`이 한때 달랐던 것은 split 구성 차이가 아니라 Windows 체크아웃(`core.autocrlf=true`)에서 CRLF로 변환된 사본을 해싱했기 때문이다. 줄바꿈만 정규화하면 두 값이 `459c24…`로 일치한다. `.gitattributes`에 `eol=lf`를 고정해 재발을 막고 metadata를 정정했다. split 멤버십이 동일하므로 재학습은 필요하지 않다.
+- `has_ad_disclosure`에 `re.MULTILINE`을 추가하고 `has_opt_out`의 중복 분기를 정리했으나, 데이터셋 3,078행 전체에서 두 특징값 변화는 0건이라 위 수치와 artifact는 그대로 유효하다.
