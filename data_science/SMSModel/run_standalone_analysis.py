@@ -15,6 +15,10 @@ from data_science.SMSModel.evaluation.standalone_bands import (
     summarize_bands,
     sweep_band_frontier,
 )
+from data_science.SMSModel.evaluation.threshold import (
+    ThresholdInfeasibleError,
+    select_probability_threshold,
+)
 from data_science.SMSModel.run_error_analysis import (
     load_classifier,
     score_frame,
@@ -76,6 +80,56 @@ def find_reference_edges(
     )
 
 
+def compare_threshold_policies(
+    probabilities,
+    labels,
+) -> dict[str, object]:
+    """상한 도입 전후로 어떤 임계값이 선택되는지 나란히 기록"""
+    from data_science.SMSModel.run_stacking_training import (
+        MAX_NORMAL_FALSE_POSITIVE_RATE,
+        TARGET_RECALL,
+    )
+
+    before = select_probability_threshold(
+        probabilities,
+        labels,
+        target_recall=TARGET_RECALL,
+    )
+
+    entry: dict[str, object] = {
+        "target_recall": TARGET_RECALL,
+        "max_false_positive_rate": MAX_NORMAL_FALSE_POSITIVE_RATE,
+        "before": before.to_validation_metrics() | {"threshold": before.threshold},
+    }
+
+    try:
+        after = select_probability_threshold(
+            probabilities,
+            labels,
+            target_recall=TARGET_RECALL,
+            max_false_positive_rate=MAX_NORMAL_FALSE_POSITIVE_RATE,
+        )
+    except ThresholdInfeasibleError as error:
+        entry["after"] = {
+            "feasible": False,
+            "best_recall_within_ceiling": error.best_recall_within_ceiling,
+            "lowest_false_positive_rate_at_target_recall": (
+                error.lowest_false_positive_rate_at_target_recall
+            ),
+            "measurable_false_positive_rate": (
+                error.measurable_false_positive_rate
+            ),
+            "reason": str(error),
+        }
+    else:
+        entry["after"] = after.to_validation_metrics() | {
+            "feasible": True,
+            "threshold": after.threshold,
+        }
+
+    return entry
+
+
 def build_report(classifier) -> dict[str, object]:
     """split별 구간 측정과 경계 전이 결과를 한데 모음"""
     scored = collect_scored_splits(classifier)
@@ -113,6 +167,7 @@ def build_report(classifier) -> dict[str, object]:
     return {
         "artifact_threshold": artifact_threshold,
         "selection_split": SELECTION_SPLIT,
+        "threshold_policy": compare_threshold_policies(*scored[SELECTION_SPLIT]),
         "reference_edges": (
             reference_edges.to_dict() if reference_edges else None
         ),
@@ -155,6 +210,32 @@ def print_summary(report: dict[str, object]) -> None:
                 f" · 의심 {measured['uncertain_share']:.3f}"
                 f" · 놓침 {measured['missed_phishing_rate']:.3f}"
             )
+
+    policy = report["threshold_policy"]
+    before = policy["before"]
+    after = policy["after"]
+    print(
+        f"\n  [임계값 정책] Recall>={policy['target_recall']}"
+        f" · 정상 FPR<={policy['max_false_positive_rate']}"
+    )
+    print(
+        f"    상한 없음  threshold {before['threshold']:.4f}"
+        f" · recall {before['recall']:.3f}"
+        f" · FPR {before['false_positive_rate']:.4f}"
+    )
+    if after["feasible"]:
+        print(
+            f"    상한 적용  threshold {after['threshold']:.4f}"
+            f" · recall {after['recall']:.3f}"
+            f" · FPR {after['false_positive_rate']:.4f}"
+        )
+    else:
+        print(
+            f"    상한 적용  불가 — 상한 안에서 Recall 최대 "
+            f"{after['best_recall_within_ceiling']:.3f}, "
+            f"목표 Recall은 FPR "
+            f"{after['lowest_false_positive_rate_at_target_recall']:.4f} 요구"
+        )
 
     if not report["edge_transfer"]:
         print("\n  [전이] 기준 경계를 달성할 수 없어 측정하지 않음")

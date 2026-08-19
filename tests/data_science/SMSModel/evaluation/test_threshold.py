@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from data_science.SMSModel.evaluation.threshold import (
+    ThresholdInfeasibleError,
     select_probability_threshold,
     select_validation_threshold,
 )
@@ -93,8 +94,11 @@ def test_probability_selection_exposes_validation_metrics() -> None:
     assert set(selection.to_validation_metrics()) == {
         "recall",
         "f2",
+        "false_positive_rate",
         "target_recall",
         "target_recall_met",
+        "max_false_positive_rate",
+        "measurable_false_positive_rate",
     }
 
 
@@ -188,4 +192,107 @@ def test_probability_selection_rejects_invalid_inputs(
             probabilities,
             labels,
             target_recall=0.95,
+        )
+
+
+def build_ceiling_case() -> tuple[np.ndarray, pd.Series]:
+    """정상 10건 중 상위 몇 건이 피싱 구간에 섞여 있는 표본"""
+    probabilities = np.asarray(
+        [0.05, 0.08, 0.11, 0.14, 0.17, 0.20, 0.23, 0.55, 0.70, 0.85]
+        + [0.30, 0.45, 0.60, 0.75, 0.90]
+    )
+    labels = pd.Series(["normal"] * 10 + ["phishing"] * 5)
+    return probabilities, labels
+
+
+def test_ceiling_excludes_high_false_positive_candidates() -> None:
+    """상한을 넘는 후보는 F2가 높아도 선택되지 않는다"""
+    probabilities, labels = build_ceiling_case()
+
+    unconstrained = select_probability_threshold(
+        probabilities, labels, target_recall=0.4
+    )
+    constrained = select_probability_threshold(
+        probabilities,
+        labels,
+        target_recall=0.4,
+        max_false_positive_rate=0.1,
+    )
+
+    assert unconstrained.false_positive_rate > 0.1
+    assert constrained.false_positive_rate <= 0.1
+    assert constrained.threshold > unconstrained.threshold
+
+
+def test_raises_when_both_targets_cannot_be_met() -> None:
+    """조용히 물러나지 않고 실패해야 미달이 artifact에 숨지 않는다"""
+    probabilities, labels = build_ceiling_case()
+
+    with pytest.raises(ThresholdInfeasibleError) as raised:
+        select_probability_threshold(
+            probabilities,
+            labels,
+            target_recall=1.0,
+            max_false_positive_rate=0.0,
+        )
+
+    error = raised.value
+    assert error.target_recall == 1.0
+    assert error.max_false_positive_rate == 0.0
+    # 상한 안에서 낼 수 있는 최대 Recall과, 목표 Recall의 오탐 대가를 함께 남긴다
+    assert 0.0 <= error.best_recall_within_ceiling < 1.0
+    assert error.lowest_false_positive_rate_at_target_recall > 0.0
+
+
+def test_reports_the_resolution_of_the_validation_split() -> None:
+    """정상 표본 수가 곧 오탐률의 측정 하한이다"""
+    probabilities, labels = build_ceiling_case()
+
+    selection = select_probability_threshold(
+        probabilities,
+        labels,
+        target_recall=0.6,
+        max_false_positive_rate=0.2,
+    )
+
+    # 정상 10건이므로 한 건이 0.1이다. 그보다 촘촘한 상한은 검증할 수 없다.
+    assert selection.measurable_false_positive_rate == pytest.approx(0.1)
+
+
+def test_infeasible_error_reports_the_resolution_limit() -> None:
+    """상한이 표본 해상도보다 촘촘하면 그 사실을 메시지에 남긴다"""
+    probabilities, labels = build_ceiling_case()
+
+    with pytest.raises(ThresholdInfeasibleError) as raised:
+        select_probability_threshold(
+            probabilities,
+            labels,
+            target_recall=1.0,
+            max_false_positive_rate=0.01,
+        )
+
+    assert raised.value.measurable_false_positive_rate == pytest.approx(0.1)
+    assert "resolve a false positive rate" in str(raised.value)
+
+
+def test_ceiling_is_optional() -> None:
+    """상한을 주지 않으면 기존 정책 그대로 동작한다"""
+    probabilities, labels = build_ceiling_case()
+
+    assert select_probability_threshold(
+        probabilities, labels, target_recall=0.6
+    ).max_false_positive_rate is None
+
+
+@pytest.mark.parametrize("ceiling", [-0.1, 1.5])
+def test_rejects_out_of_range_ceiling(ceiling: float) -> None:
+    """확률 범위를 벗어난 상한은 거부한다"""
+    probabilities, labels = build_ceiling_case()
+
+    with pytest.raises(ValueError, match="max_false_positive_rate"):
+        select_probability_threshold(
+            probabilities,
+            labels,
+            target_recall=0.6,
+            max_false_positive_rate=ceiling,
         )

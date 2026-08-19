@@ -2312,5 +2312,26 @@
       },
       "split": "real_holdout"
     }
-  ]
+  ],
+  "threshold_policy": {
+    "after": {
+      "best_recall_within_ceiling": 0.6379310344827587,
+      "feasible": false,
+      "lowest_false_positive_rate_at_target_recall": 0.140625,
+      "measurable_false_positive_rate": 0.015625,
+      "reason": "no threshold satisfies both targets: recall >= 0.95 needs a false positive rate of 0.1406, while a ceiling of 0.01 caps recall at 0.6379. The validation split can only resolve a false positive rate down to 0.0156."
+    },
+    "before": {
+      "f2": 0.9427609427609428,
+      "false_positive_rate": 0.140625,
+      "max_false_positive_rate": null,
+      "measurable_false_positive_rate": 0.015625,
+      "recall": 0.9655172413793104,
+      "target_recall": 0.95,
+      "target_recall_met": true,
+      "threshold": 0.3038914498086088
+    },
+    "max_false_positive_rate": 0.01,
+    "target_recall": 0.95
+  }
 }

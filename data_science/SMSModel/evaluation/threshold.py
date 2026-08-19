@@ -10,8 +10,6 @@ from sklearn.metrics import (
     recall_score,
 )
 
-PROBABILITY_CANDIDATE_GRID = np.linspace(0.01, 0.99, 99)
-
 @dataclass(frozen=True)
 class ThresholdSelection:
     """Validation에서 선택된 threshold와 관련 지표"""
@@ -25,6 +23,37 @@ class ThresholdSelection:
     target_recall_met: bool
 
 
+class ThresholdInfeasibleError(ValueError):
+    """Recall 목표와 정상 오탐 상한을 동시에 만족하는 임계값이 없을 때"""
+
+    def __init__(
+        self,
+        *,
+        target_recall: float,
+        max_false_positive_rate: float,
+        best_recall_within_ceiling: float,
+        lowest_false_positive_rate_at_target_recall: float,
+        measurable_false_positive_rate: float,
+    ) -> None:
+        self.target_recall = target_recall
+        self.max_false_positive_rate = max_false_positive_rate
+        self.best_recall_within_ceiling = best_recall_within_ceiling
+        self.lowest_false_positive_rate_at_target_recall = (
+            lowest_false_positive_rate_at_target_recall
+        )
+        self.measurable_false_positive_rate = measurable_false_positive_rate
+
+        super().__init__(
+            "no threshold satisfies both targets: "
+            f"recall >= {target_recall} needs a false positive rate of "
+            f"{lowest_false_positive_rate_at_target_recall:.4f}, while a "
+            f"ceiling of {max_false_positive_rate} caps recall at "
+            f"{best_recall_within_ceiling:.4f}. The validation split can only "
+            f"resolve a false positive rate down to "
+            f"{measurable_false_positive_rate:.4f}."
+        )
+
+
 @dataclass(frozen=True)
 class ProbabilityThresholdSelection:
     """확률 출력 모델에서 선택된 threshold와 validation 지표"""
@@ -32,16 +61,24 @@ class ProbabilityThresholdSelection:
     threshold: float
     recall: float
     f2: float
+    false_positive_rate: float
     target_recall: float
     target_recall_met: bool
+    max_false_positive_rate: float | None
+    measurable_false_positive_rate: float
 
     def to_validation_metrics(self) -> dict[str, float]:
         """artifact metadata에 기록하는 validation 항목으로 변환"""
         return {
             "recall": self.recall,
             "f2": self.f2,
+            "false_positive_rate": self.false_positive_rate,
             "target_recall": self.target_recall,
             "target_recall_met": self.target_recall_met,
+            "max_false_positive_rate": self.max_false_positive_rate,
+            "measurable_false_positive_rate": (
+                self.measurable_false_positive_rate
+            ),
         }
 
 
@@ -218,8 +255,9 @@ def select_probability_threshold(
     labels,
     *,
     target_recall: float,
+    max_false_positive_rate: float | None = None,
 ) -> ProbabilityThresholdSelection:
-    """Recall 목표를 만족하는 후보 중 F2가 가장 높은 확률 임계값을 선택"""
+    """Recall 하한과 정상 오탐 상한을 함께 만족하는 임계값을 선택"""
     probability_array = np.asarray(probabilities, dtype=np.float64)
     binary_labels = _validate_probability_inputs(
         probability_array,
@@ -227,45 +265,74 @@ def select_probability_threshold(
         target_recall,
     )
 
-    candidates = np.unique(
-        np.concatenate([PROBABILITY_CANDIDATE_GRID, probability_array])
-    )
+    if max_false_positive_rate is not None and not (
+        0.0 <= max_false_positive_rate <= 1.0
+    ):
+        raise ValueError(
+            "max_false_positive_rate must be between 0 and 1"
+        )
 
-    best: tuple[float, float, float] | None = None
+    is_normal = binary_labels == 0
+    normal_count = int(is_normal.sum())
 
-    for threshold in candidates:
+    if normal_count == 0:
+        raise ValueError("validation data must contain normal messages")
+
+    measurable_false_positive_rate = 1.0 / normal_count
+
+    within_ceiling: list[tuple[float, float, float, float]] = []
+    meeting_recall_rates: list[float] = []
+
+    for threshold in _candidate_thresholds(probability_array):
         predictions = (probability_array >= threshold).astype(int)
         recall, f2 = _recall_and_f2(binary_labels, predictions)
+        false_positive_rate = float(
+            (predictions[is_normal] == 1).sum() / normal_count
+        )
 
-        if recall < target_recall:
+        if recall >= target_recall:
+            meeting_recall_rates.append(false_positive_rate)
+
+        if (
+            max_false_positive_rate is not None
+            and false_positive_rate > max_false_positive_rate
+        ):
             continue
 
-        candidate = (f2, recall, float(threshold))
-
-        if best is None or candidate > best:
-            best = candidate
-
-    if best is None:
-        threshold = float(np.min(candidates))
-        recall, f2 = _recall_and_f2(
-            binary_labels,
-            (probability_array >= threshold).astype(int),
+        within_ceiling.append(
+            (f2, recall, float(threshold), false_positive_rate)
         )
 
-        return ProbabilityThresholdSelection(
-            threshold=threshold,
-            recall=recall,
-            f2=f2,
+    feasible = [
+        candidate
+        for candidate in within_ceiling
+        if candidate[1] >= target_recall
+    ]
+
+    if not feasible:
+        raise ThresholdInfeasibleError(
             target_recall=target_recall,
-            target_recall_met=False,
+            max_false_positive_rate=float(max_false_positive_rate),
+            best_recall_within_ceiling=max(
+                (candidate[1] for candidate in within_ceiling),
+                default=0.0,
+            ),
+            lowest_false_positive_rate_at_target_recall=min(
+                meeting_recall_rates,
+                default=1.0,
+            ),
+            measurable_false_positive_rate=measurable_false_positive_rate,
         )
 
-    f2, recall, threshold = best
+    f2, recall, threshold, false_positive_rate = max(feasible)
 
     return ProbabilityThresholdSelection(
         threshold=threshold,
         recall=recall,
         f2=f2,
+        false_positive_rate=false_positive_rate,
         target_recall=target_recall,
         target_recall_met=True,
+        max_false_positive_rate=max_false_positive_rate,
+        measurable_false_positive_rate=measurable_false_positive_rate,
     )

@@ -61,6 +61,10 @@ STACKING_REPORT_DIRECTORY = (
 )
 
 TARGET_RECALL = 0.95
+
+# 자동 경고가 잘못 울릴 정상 문자의 상한.
+# 하루 정상 문자 15건 기준으로 0.01은 주 1회 오경보에 해당한다(#85).
+MAX_NORMAL_FALSE_POSITIVE_RATE = 0.01
 EXPECTED_DATASET_FINGERPRINT = (
     "46aa236b5c70453bc5b5e91664f4a43"
     "d499fffd9a3f103eec9178a30aab85f22"
@@ -372,6 +376,7 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         validation_probabilities,
         splits.validation["label"],
         target_recall=TARGET_RECALL,
+        max_false_positive_rate=MAX_NORMAL_FALSE_POSITIVE_RATE,
     )
     threshold = threshold_selection.threshold
     validation_metrics = threshold_selection.to_validation_metrics()

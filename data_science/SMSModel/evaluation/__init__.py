@@ -25,6 +25,7 @@ from .standalone_bands import (
 )
 from .threshold import (
     ProbabilityThresholdSelection,
+    ThresholdInfeasibleError,
     ThresholdSelection,
     select_probability_threshold,
     select_validation_threshold,
@@ -36,6 +37,7 @@ __all__ = [
     "LatencyMetrics",
     "ModelEvaluationResult",
     "ProbabilityThresholdSelection",
+    "ThresholdInfeasibleError",
     "ThresholdSelection",
     "assign_bands",
     "calculate_classification_metrics",
