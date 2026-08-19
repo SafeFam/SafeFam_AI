@@ -49,7 +49,20 @@ LINK_ACTION_PATTERN = re.compile(
 )
 
 
-# 배열의 열 순서가 학습 및 추론에서 동일해야 하므로 상수로 고정합니다.
+# 합법 광고 문자의 법정 표기
+AD_DISCLOSURE_PATTERN = re.compile(
+    r"\(\s*광고\s*\)|\[\s*광고\s*\]|^광고",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+OPT_OUT_PATTERN = re.compile(
+    r"수신\s*거부|무료거부|"
+    r"080[-.\s]?\d{3,4}[-.\s]?\d{4}",
+    re.IGNORECASE,
+)
+
+
+# 배열의 열 순서가 학습 및 추론에서 동일해야 하므로 상수로 고정
 STACKING_STRUCTURAL_FEATURE_NAMES: tuple[str, ...] = (
     "has_url",
     "has_short_url",
@@ -63,6 +76,8 @@ STACKING_STRUCTURAL_FEATURE_NAMES: tuple[str, ...] = (
     "has_personal_info_request",
     "has_link_action",
     "is_long_text",
+    "has_ad_disclosure",
+    "has_opt_out",
 )
 
 
@@ -113,6 +128,8 @@ def extract_stacking_structural_features(
             bool(PERSONAL_INFO_PATTERN.search(text)),
             bool(LINK_ACTION_PATTERN.search(text)),
             len(text) > 100,
+            bool(AD_DISCLOSURE_PATTERN.search(text)),
+            bool(OPT_OUT_PATTERN.search(text)),
         ],
         dtype=np.float64,
     )

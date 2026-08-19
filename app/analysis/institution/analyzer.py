@@ -43,10 +43,7 @@ def _find_mentioned_institution(text: str) -> OfficialInstitution | None:
     return None
 
 
-# 문자에 언급된 기관명과 실제 링크된 URL의 도메인이 그 기관의 공식 도메인과 일치하는지 대조.
-# 기관 언급 자체가 없으면 대조할 대상이 없으므로 checked=False로 스킵하지만, URL이 없어서
-# 도메인 대조를 못 한 경우에도 감지된 기관명은 채워서 반환한다 - 발신번호-기관 연계(issue #67)
-# 등 URL 유무와 무관하게 "이 문자가 어느 기관 명의였는지"가 필요한 소비자를 위함이다.
+# 문자에 언급된 기관명과 실제 링크된 URL의 도메인이 그 기관의 공식 도메인과 일치하는지 대조
 def analyze_institution_match(text: str, traced_url: str | None = None) -> dict:
     no_institution_result = {
         "checked": False,
