@@ -269,6 +269,25 @@ def sweep_band_frontier(
     return frontier
 
 
+def select_reference_edges(
+    frontier: list[dict[str, object]],
+    *,
+    alert_false_positive_target: float,
+    coverage_recall_target: float,
+) -> BandEdges | None:
+    """스윕 결과에서 목표 조합 하나에 해당하는 경계를 꺼냄"""
+    for entry in frontier:
+        if (
+            entry["target_alert_false_positive_rate"]
+            == alert_false_positive_target
+            and entry["target_coverage_recall"] == coverage_recall_target
+            and entry.get("feasible")
+        ):
+            return BandEdges(**entry["measured"]["edges"])
+
+    return None
+
+
 def measure_reliability(
     probabilities,
     labels,

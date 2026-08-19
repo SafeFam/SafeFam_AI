@@ -1,0 +1,594 @@
+{
+  "calibration_split": "validation",
+  "reference_alert_false_positive_target": 0.01,
+  "reference_coverage_recall_target": 0.95,
+  "variants": {
+    "isotonic": {
+      "calibrator": {
+        "method": "isotonic",
+        "training_sample_count": 122
+      },
+      "edge_transfer": [
+        {
+          "alert_false_positive_rate": 0.0,
+          "alert_false_positive_rate_drift": 0.0,
+          "coverage_recall": 0.9655172413793104,
+          "coverage_recall_drift": 0.0,
+          "is_selection_split": true,
+          "split": "validation",
+          "uncertain_share": 0.22950819672131148
+        },
+        {
+          "alert_false_positive_rate": 0.017241379310344827,
+          "alert_false_positive_rate_drift": 0.017241379310344827,
+          "coverage_recall": 0.9322033898305084,
+          "coverage_recall_drift": -0.033313851548801954,
+          "is_selection_split": false,
+          "split": "test",
+          "uncertain_share": 0.19658119658119658
+        },
+        {
+          "alert_false_positive_rate": 0.05405405405405406,
+          "alert_false_positive_rate_drift": 0.05405405405405406,
+          "coverage_recall": 0.9036144578313253,
+          "coverage_recall_drift": -0.06190278354798506,
+          "is_selection_split": false,
+          "split": "real_holdout",
+          "uncertain_share": 0.1337579617834395
+        }
+      ],
+      "reference_edges": {
+        "normal_max": 0.05555555555555555,
+        "phishing_min": 0.6785714285714287
+      },
+      "splits": {
+        "real_holdout": {
+          "quality": {
+            "brier_score": 0.09900742901202504,
+            "expected_calibration_error": 0.07702945267676131,
+            "roc_auc": 0.9233962878541192
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.025229725840128583,
+              "observed_phishing_rate": 0.1095890410958904,
+              "sample_count": 73,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.49317737199051537,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 1,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6785714285714286,
+              "observed_phishing_rate": 0.75,
+              "sample_count": 20,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 1.0,
+              "observed_phishing_rate": 0.9365079365079365,
+              "sample_count": 63,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 157
+        },
+        "test": {
+          "quality": {
+            "brier_score": 0.10661914630696318,
+            "expected_calibration_error": 0.09620172867746722,
+            "roc_auc": 0.9358562244301578
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.02938131743215644,
+              "observed_phishing_rate": 0.08695652173913043,
+              "sample_count": 46,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6785714285714287,
+              "observed_phishing_rate": 0.34782608695652173,
+              "sample_count": 23,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 1.0,
+              "observed_phishing_rate": 0.9791666666666666,
+              "sample_count": 48,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 117
+        },
+        "validation": {
+          "quality": {
+            "brier_score": 0.06554124381993234,
+            "expected_calibration_error": 7.644158530205996e-17,
+            "roc_auc": 0.962957974137931
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.03508771929824561,
+              "observed_phishing_rate": 0.03508771929824561,
+              "sample_count": 57,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6785714285714283,
+              "observed_phishing_rate": 0.6785714285714286,
+              "sample_count": 28,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.0,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 0,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 1.0,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 37,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 122
+        }
+      }
+    },
+    "sigmoid": {
+      "calibrator": {
+        "method": "sigmoid",
+        "training_sample_count": 122
+      },
+      "edge_transfer": [
+        {
+          "alert_false_positive_rate": 0.0,
+          "alert_false_positive_rate_drift": 0.0,
+          "coverage_recall": 0.9655172413793104,
+          "coverage_recall_drift": 0.0,
+          "is_selection_split": true,
+          "split": "validation",
+          "uncertain_share": 0.38524590163934425
+        },
+        {
+          "alert_false_positive_rate": 0.017241379310344827,
+          "alert_false_positive_rate_drift": 0.017241379310344827,
+          "coverage_recall": 0.9830508474576272,
+          "coverage_recall_drift": 0.017533606078316777,
+          "is_selection_split": false,
+          "split": "test",
+          "uncertain_share": 0.3333333333333333
+        },
+        {
+          "alert_false_positive_rate": 0.05405405405405406,
+          "alert_false_positive_rate_drift": 0.05405405405405406,
+          "coverage_recall": 0.9518072289156626,
+          "coverage_recall_drift": -0.01371001246364778,
+          "is_selection_split": false,
+          "split": "real_holdout",
+          "uncertain_share": 0.20382165605095542
+        }
+      ],
+      "reference_edges": {
+        "normal_max": 0.16825642903879703,
+        "phishing_min": 0.835868797224493
+      },
+      "splits": {
+        "real_holdout": {
+          "quality": {
+            "brier_score": 0.09462012987089134,
+            "expected_calibration_error": 0.04586937338520261,
+            "roc_auc": 0.9366655812438944
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.05875825955611874,
+              "observed_phishing_rate": 0.06976744186046512,
+              "sample_count": 43,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.16271337420771953,
+              "observed_phishing_rate": 0.1724137931034483,
+              "sample_count": 29,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.42611333562381193,
+              "observed_phishing_rate": 0.75,
+              "sample_count": 8,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6049053356721338,
+              "observed_phishing_rate": 0.625,
+              "sample_count": 8,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.8139644071614062,
+              "observed_phishing_rate": 0.8461538461538461,
+              "sample_count": 13,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 0.9818081064618475,
+              "observed_phishing_rate": 0.9464285714285714,
+              "sample_count": 56,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 157
+        },
+        "test": {
+          "quality": {
+            "brier_score": 0.07162804916609808,
+            "expected_calibration_error": 0.06948178164173724,
+            "roc_auc": 0.957042665108124
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.05509827123812855,
+              "observed_phishing_rate": 0.043478260869565216,
+              "sample_count": 23,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.20517109226749727,
+              "observed_phishing_rate": 0.13636363636363635,
+              "sample_count": 22,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.3898454250278984,
+              "observed_phishing_rate": 0.125,
+              "sample_count": 16,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6315449536189026,
+              "observed_phishing_rate": 0.5,
+              "sample_count": 4,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.8466022793342375,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 7,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 0.9702537776850437,
+              "observed_phishing_rate": 0.9777777777777777,
+              "sample_count": 45,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 117
+        },
+        "validation": {
+          "quality": {
+            "brier_score": 0.10222034066655179,
+            "expected_calibration_error": 0.13464930979610967,
+            "roc_auc": 0.9447737068965517
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.05792490904955907,
+              "observed_phishing_rate": 0.043478260869565216,
+              "sample_count": 23,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.16360964736917455,
+              "observed_phishing_rate": 0.030303030303030304,
+              "sample_count": 33,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.39454153369916967,
+              "observed_phishing_rate": 0.8333333333333334,
+              "sample_count": 18,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6025349469738477,
+              "observed_phishing_rate": 0.3333333333333333,
+              "sample_count": 3,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.7883794165904348,
+              "observed_phishing_rate": 0.5454545454545454,
+              "sample_count": 11,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 0.9906531262655446,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 34,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 122
+        }
+      }
+    },
+    "uncalibrated": {
+      "edge_transfer": [
+        {
+          "alert_false_positive_rate": 0.0,
+          "alert_false_positive_rate_drift": 0.0,
+          "coverage_recall": 0.9655172413793104,
+          "coverage_recall_drift": 0.0,
+          "is_selection_split": true,
+          "split": "validation",
+          "uncertain_share": 0.38524590163934425
+        },
+        {
+          "alert_false_positive_rate": 0.017241379310344827,
+          "alert_false_positive_rate_drift": 0.017241379310344827,
+          "coverage_recall": 0.9830508474576272,
+          "coverage_recall_drift": 0.017533606078316777,
+          "is_selection_split": false,
+          "split": "test",
+          "uncertain_share": 0.3333333333333333
+        },
+        {
+          "alert_false_positive_rate": 0.05405405405405406,
+          "alert_false_positive_rate_drift": 0.05405405405405406,
+          "coverage_recall": 0.9518072289156626,
+          "coverage_recall_drift": -0.01371001246364778,
+          "is_selection_split": false,
+          "split": "real_holdout",
+          "uncertain_share": 0.20382165605095542
+        }
+      ],
+      "reference_edges": {
+        "normal_max": 0.19766478071778712,
+        "phishing_min": 0.6386041598664512
+      },
+      "splits": {
+        "real_holdout": {
+          "quality": {
+            "brier_score": 0.10347169663498626,
+            "expected_calibration_error": 0.09619936659439586,
+            "roc_auc": 0.9366655812438944
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.0840976665351311,
+              "observed_phishing_rate": 0.1111111111111111,
+              "sample_count": 18,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.1608475268879273,
+              "observed_phishing_rate": 0.10909090909090909,
+              "sample_count": 55,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.4075435666592641,
+              "observed_phishing_rate": 0.7142857142857143,
+              "sample_count": 14,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6123577448978523,
+              "observed_phishing_rate": 0.8571428571428571,
+              "sample_count": 14,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.7999049181998265,
+              "observed_phishing_rate": 0.8333333333333334,
+              "sample_count": 18,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 0.9763372685934224,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 38,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 157
+        },
+        "test": {
+          "quality": {
+            "brier_score": 0.0806030548243559,
+            "expected_calibration_error": 0.11905678305583065,
+            "roc_auc": 0.957042665108124
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.07281719244260762,
+              "observed_phishing_rate": 0.1,
+              "sample_count": 10,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.1868921809011266,
+              "observed_phishing_rate": 0.08333333333333333,
+              "sample_count": 36,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.36481462578186674,
+              "observed_phishing_rate": 0.21052631578947367,
+              "sample_count": 19,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.6517241075468002,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 7,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.7894741493874016,
+              "observed_phishing_rate": 0.9545454545454546,
+              "sample_count": 22,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 0.9678597842123924,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 23,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 117
+        },
+        "validation": {
+          "quality": {
+            "brier_score": 0.10883070847851418,
+            "expected_calibration_error": 0.17192568744150816,
+            "roc_auc": 0.9447737068965517
+          },
+          "reliability": [
+            {
+              "lower": 0.0,
+              "mean_predicted_probability": 0.07825920390864473,
+              "observed_phishing_rate": 0.0,
+              "sample_count": 10,
+              "upper": 0.1
+            },
+            {
+              "lower": 0.1,
+              "mean_predicted_probability": 0.17642564058009932,
+              "observed_phishing_rate": 0.0425531914893617,
+              "sample_count": 47,
+              "upper": 0.3
+            },
+            {
+              "lower": 0.3,
+              "mean_predicted_probability": 0.3467761139647993,
+              "observed_phishing_rate": 0.8421052631578947,
+              "sample_count": 19,
+              "upper": 0.5
+            },
+            {
+              "lower": 0.5,
+              "mean_predicted_probability": 0.5819853627078081,
+              "observed_phishing_rate": 0.45454545454545453,
+              "sample_count": 11,
+              "upper": 0.7
+            },
+            {
+              "lower": 0.7,
+              "mean_predicted_probability": 0.8113222278904043,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 8,
+              "upper": 0.9
+            },
+            {
+              "lower": 0.9,
+              "mean_predicted_probability": 0.973738886544325,
+              "observed_phishing_rate": 1.0,
+              "sample_count": 27,
+              "upper": 1.0
+            }
+          ],
+          "sample_count": 122
+        }
+      }
+    }
+  }
+}

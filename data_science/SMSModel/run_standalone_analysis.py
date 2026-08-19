@@ -11,6 +11,7 @@ from data_science.SMSModel.evaluation.standalone_bands import (
     BandEdges,
     measure_edge_transfer,
     measure_reliability,
+    select_reference_edges,
     summarize_bands,
     sweep_band_frontier,
 )
@@ -36,6 +37,10 @@ DEFAULT_OUTPUT_PATH = (
 SELECTION_SPLIT = "validation"
 
 SPLIT_ORDER = ("validation", "test", "real_holdout")
+
+# #85에서 논의 중인 후보 운영점
+REFERENCE_ALERT_FALSE_POSITIVE_TARGET = 0.01
+REFERENCE_COVERAGE_RECALL_TARGET = 0.95
 
 
 def collect_scored_splits(classifier) -> dict[str, tuple]:
@@ -64,16 +69,11 @@ def find_reference_edges(
     frontier: list[dict[str, object]],
 ) -> BandEdges | None:
     """전이 확인의 기준으로 삼을 경계를 고름"""
-    for entry in frontier:
-        if (
-            entry["target_alert_false_positive_rate"] == 0.01
-            and entry["target_coverage_recall"] == 0.95
-            and entry.get("feasible")
-        ):
-            measured = entry["measured"]
-            return BandEdges(**measured["edges"])
-
-    return None
+    return select_reference_edges(
+        frontier,
+        alert_false_positive_target=REFERENCE_ALERT_FALSE_POSITIVE_TARGET,
+        coverage_recall_target=REFERENCE_COVERAGE_RECALL_TARGET,
+    )
 
 
 def build_report(classifier) -> dict[str, object]:
