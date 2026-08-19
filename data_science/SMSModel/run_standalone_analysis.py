@@ -7,11 +7,13 @@ from pathlib import Path
 
 import numpy as np
 
+from data_science.SMSModel.evaluation.adoption import AdoptionCriteria
 from data_science.SMSModel.evaluation.standalone_bands import (
     BandEdges,
+    BandEdgesUnreachableError,
     measure_edge_transfer,
     measure_reliability,
-    select_reference_edges,
+    select_standalone_bands,
     summarize_bands,
     sweep_band_frontier,
 )
@@ -42,9 +44,7 @@ SELECTION_SPLIT = "validation"
 
 SPLIT_ORDER = ("validation", "test", "real_holdout")
 
-# #85에서 논의 중인 후보 운영점
-REFERENCE_ALERT_FALSE_POSITIVE_TARGET = 0.01
-REFERENCE_COVERAGE_RECALL_TARGET = 0.95
+ADOPTION_CRITERIA = AdoptionCriteria()
 
 
 def collect_scored_splits(classifier) -> dict[str, tuple]:
@@ -69,15 +69,19 @@ def collect_scored_splits(classifier) -> dict[str, tuple]:
     return scored
 
 
-def find_reference_edges(
-    frontier: list[dict[str, object]],
-) -> BandEdges | None:
-    """전이 확인의 기준으로 삼을 경계를 고름"""
-    return select_reference_edges(
-        frontier,
-        alert_false_positive_target=REFERENCE_ALERT_FALSE_POSITIVE_TARGET,
-        coverage_recall_target=REFERENCE_COVERAGE_RECALL_TARGET,
-    )
+def find_reference_edges(probabilities, labels) -> BandEdges | None:
+    """전이 확인의 기준으로 삼을 경계를 채택 기준대로 선정"""
+    try:
+        return select_standalone_bands(
+            probabilities,
+            labels,
+            max_alert_false_positive_rate=(
+                ADOPTION_CRITERIA.max_alert_false_positive_rate
+            ),
+            min_coverage_recall=ADOPTION_CRITERIA.min_coverage_recall,
+        )
+    except BandEdgesUnreachableError:
+        return None
 
 
 def compare_threshold_policies(
@@ -157,12 +161,7 @@ def build_report(classifier) -> dict[str, object]:
             }
         )
 
-    selection_frontier = next(
-        split["band_frontier"]
-        for split in splits
-        if split["split"] == SELECTION_SPLIT
-    )
-    reference_edges = find_reference_edges(selection_frontier)
+    reference_edges = find_reference_edges(*scored[SELECTION_SPLIT])
 
     return {
         "artifact_threshold": artifact_threshold,

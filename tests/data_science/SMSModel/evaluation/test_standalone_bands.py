@@ -8,9 +8,11 @@ from data_science.SMSModel.evaluation.standalone_bands import (
     CERTAIN_PHISHING,
     UNCERTAIN,
     BandEdges,
+    BandEdgesUnreachableError,
     assign_bands,
     measure_edge_transfer,
     measure_reliability,
+    select_standalone_bands,
     summarize_bands,
     sweep_band_frontier,
 )
@@ -331,4 +333,84 @@ def test_summarize_bands_rejects_invalid_inputs(
             np.asarray(probabilities, dtype=float),
             np.asarray(labels, dtype=str),
             BandEdges(normal_max=0.1, phishing_min=0.9),
+        )
+
+
+def test_selects_bands_from_probabilities_alone() -> None:
+    """LLM 점수 없이 확률만으로 두 목표를 지키는 경계를 고른다"""
+    probabilities, labels = build_separable_case()
+
+    edges = select_standalone_bands(
+        probabilities,
+        labels,
+        max_alert_false_positive_rate=0.0,
+        min_coverage_recall=1.0,
+    )
+    measured = summarize_bands(probabilities, labels, edges)
+
+    assert measured["alert_false_positive_rate"] == 0.0
+    assert measured["coverage_recall"] == 1.0
+
+
+def test_selection_clamps_the_silent_boundary() -> None:
+    """무알림 경계가 자동 경고 경계를 넘으면 거기서 잘라낸다"""
+    probabilities, labels = build_separable_case()
+
+    edges = select_standalone_bands(
+        probabilities,
+        labels,
+        max_alert_false_positive_rate=0.2,
+        min_coverage_recall=0.8,
+    )
+
+    assert edges.normal_max <= edges.phishing_min
+    # 잘라내도 두 목표는 그대로 지켜진다.
+    measured = summarize_bands(probabilities, labels, edges)
+    assert measured["alert_false_positive_rate"] <= 0.2
+    assert measured["coverage_recall"] >= 0.8
+
+
+def test_selection_raises_when_the_alert_boundary_cannot_be_placed() -> None:
+    """정상이 확률 1.0에 있으면 오탐 0건 경계를 놓을 수 없다"""
+    with pytest.raises(BandEdgesUnreachableError) as raised:
+        select_standalone_bands(
+            np.array([0.1, 1.0, 0.9]),
+            np.array(["normal", "normal", "phishing"]),
+            max_alert_false_positive_rate=0.0,
+            min_coverage_recall=1.0,
+        )
+
+    assert raised.value.reason == "ALERT_CEILING_UNREACHABLE"
+
+
+def test_selection_raises_when_the_silent_boundary_cannot_be_placed() -> None:
+    """피싱이 확률 0.0에 있으면 전부 포착하는 경계를 놓을 수 없다"""
+    with pytest.raises(BandEdgesUnreachableError) as raised:
+        select_standalone_bands(
+            np.array([0.1, 0.0, 0.9]),
+            np.array(["normal", "phishing", "phishing"]),
+            max_alert_false_positive_rate=0.5,
+            min_coverage_recall=1.0,
+        )
+
+    assert raised.value.reason == "COVERAGE_TARGET_UNREACHABLE"
+
+
+@pytest.mark.parametrize(
+    ("alert_ceiling", "coverage_floor"),
+    [(-0.1, 0.95), (1.5, 0.95), (0.01, 0.0), (0.01, 1.5)],
+)
+def test_selection_rejects_out_of_range_targets(
+    alert_ceiling: float,
+    coverage_floor: float,
+) -> None:
+    """범위를 벗어난 목표값은 거부한다"""
+    probabilities, labels = build_separable_case()
+
+    with pytest.raises(ValueError, match="must be"):
+        select_standalone_bands(
+            probabilities,
+            labels,
+            max_alert_false_positive_rate=alert_ceiling,
+            min_coverage_recall=coverage_floor,
         )

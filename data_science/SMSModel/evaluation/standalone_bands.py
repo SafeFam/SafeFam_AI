@@ -21,6 +21,14 @@ CERTAIN_PHISHING = "certain_phishing"
 BAND_NAMES = (CERTAIN_NORMAL, UNCERTAIN, CERTAIN_PHISHING)
 
 
+class BandEdgesUnreachableError(ValueError):
+    """두 목표를 만족하는 경계를 놓을 수 없을 때"""
+
+    def __init__(self, reason: str, message: str) -> None:
+        self.reason = reason
+        super().__init__(message)
+
+
 @dataclass(frozen=True)
 class BandEdges:
     """3구간을 가르는 두 경계"""
@@ -198,6 +206,58 @@ def _highest_normal_edge(
     return edge if edge >= 0.0 else None
 
 
+def select_standalone_bands(
+    probabilities,
+    labels,
+    *,
+    max_alert_false_positive_rate: float,
+    min_coverage_recall: float,
+) -> BandEdges:
+    """LLM 점수 없이 확률만으로 3구간 경계를 선정"""
+    probability_array, label_array = _validate_inputs(probabilities, labels)
+
+    if not 0.0 <= max_alert_false_positive_rate <= 1.0:
+        raise ValueError(
+            "max_alert_false_positive_rate must be between 0 and 1"
+        )
+
+    if not 0.0 < min_coverage_recall <= 1.0:
+        raise ValueError(
+            "min_coverage_recall must be greater than 0 and at most 1"
+        )
+
+    is_phishing = label_array == "phishing"
+
+    phishing_min = _lowest_alert_edge(
+        probability_array,
+        is_phishing,
+        max_alert_false_positive_rate,
+    )
+    if phishing_min is None:
+        raise BandEdgesUnreachableError(
+            "ALERT_CEILING_UNREACHABLE",
+            "no alert boundary keeps the false positive rate at or below "
+            f"{max_alert_false_positive_rate}",
+        )
+
+    normal_max_limit = _highest_normal_edge(
+        probability_array,
+        is_phishing,
+        min_coverage_recall,
+    )
+    if normal_max_limit is None:
+        raise BandEdgesUnreachableError(
+            "COVERAGE_TARGET_UNREACHABLE",
+            "no silent boundary keeps the coverage recall at or above "
+            f"{min_coverage_recall}",
+        )
+
+    return BandEdges(
+        normal_max=max(0.0, min(normal_max_limit, phishing_min)),
+        phishing_min=max(0.0, min(1.0, phishing_min)),
+    )
+
+
 def sweep_band_frontier(
     probabilities,
     labels,
@@ -207,85 +267,37 @@ def sweep_band_frontier(
 ) -> list[dict[str, object]]:
     """두 목표를 교차시켜 도달 가능한 구간 경계와 그 결과를 나열"""
     probability_array, label_array = _validate_inputs(probabilities, labels)
-    is_phishing = label_array == "phishing"
 
     frontier: list[dict[str, object]] = []
 
     for alert_target in alert_false_positive_targets:
-        if not 0.0 <= alert_target <= 1.0:
-            raise ValueError(
-                "alert false positive targets must be between 0 and 1"
-            )
-
-        phishing_min = _lowest_alert_edge(
-            probability_array,
-            is_phishing,
-            alert_target,
-        )
-
         for coverage_target in coverage_recall_targets:
-            if not 0.0 < coverage_target <= 1.0:
-                raise ValueError(
-                    "coverage recall targets must be greater than 0 "
-                    "and at most 1"
-                )
-
-            normal_max_limit = _highest_normal_edge(
-                probability_array,
-                is_phishing,
-                coverage_target,
-            )
-
             entry: dict[str, object] = {
                 "target_alert_false_positive_rate": float(alert_target),
                 "target_coverage_recall": float(coverage_target),
             }
 
-            if phishing_min is None:
+            try:
+                edges = select_standalone_bands(
+                    probability_array,
+                    label_array,
+                    max_alert_false_positive_rate=alert_target,
+                    min_coverage_recall=coverage_target,
+                )
+            except BandEdgesUnreachableError as error:
                 entry["feasible"] = False
-                entry["reason"] = "ALERT_CEILING_UNREACHABLE"
-                frontier.append(entry)
-                continue
+                entry["reason"] = error.reason
+            else:
+                entry["feasible"] = True
+                entry["measured"] = summarize_bands(
+                    probability_array,
+                    label_array,
+                    edges,
+                )
 
-            if normal_max_limit is None:
-                entry["feasible"] = False
-                entry["reason"] = "COVERAGE_TARGET_UNREACHABLE"
-                frontier.append(entry)
-                continue
-
-            edges = BandEdges(
-                normal_max=max(0.0, min(normal_max_limit, phishing_min)),
-                phishing_min=max(0.0, min(1.0, phishing_min)),
-            )
-
-            entry["feasible"] = True
-            entry["measured"] = summarize_bands(
-                probability_array,
-                label_array,
-                edges,
-            )
             frontier.append(entry)
 
     return frontier
-
-
-def select_reference_edges(
-    frontier: list[dict[str, object]],
-    *,
-    alert_false_positive_target: float,
-    coverage_recall_target: float,
-) -> BandEdges | None:
-    """스윕 결과에서 목표 조합 하나에 해당하는 경계를 꺼냄"""
-    for entry in frontier:
-        if (
-            entry["target_alert_false_positive_rate"]
-            == alert_false_positive_target
-            and entry["target_coverage_recall"] == coverage_recall_target
-            and entry.get("feasible")
-        ):
-            return BandEdges(**entry["measured"]["edges"])
-
-    return None
 
 
 def measure_reliability(

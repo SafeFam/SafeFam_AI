@@ -10,8 +10,6 @@ from sklearn.metrics import roc_auc_score
 from data_science.SMSModel.evaluation.standalone_bands import (
     measure_edge_transfer,
     measure_reliability,
-    select_reference_edges,
-    sweep_band_frontier,
 )
 from data_science.SMSModel.modeling.calibration import (
     CALIBRATION_METHODS,
@@ -21,11 +19,11 @@ from data_science.SMSModel.modeling.calibration import (
 )
 from data_science.SMSModel.run_error_analysis import load_classifier
 from data_science.SMSModel.run_standalone_analysis import (
-    REFERENCE_ALERT_FALSE_POSITIVE_TARGET,
-    REFERENCE_COVERAGE_RECALL_TARGET,
+    ADOPTION_CRITERIA,
     SELECTION_SPLIT,
     SPLIT_ORDER,
     collect_scored_splits,
+    find_reference_edges,
 )
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
@@ -69,11 +67,7 @@ def measure_variant(scored: dict[str, tuple]) -> dict[str, object]:
         for name, (probabilities, labels) in scored.items()
     }
 
-    reference_edges = select_reference_edges(
-        sweep_band_frontier(*scored[SELECTION_SPLIT]),
-        alert_false_positive_target=REFERENCE_ALERT_FALSE_POSITIVE_TARGET,
-        coverage_recall_target=REFERENCE_COVERAGE_RECALL_TARGET,
-    )
+    reference_edges = find_reference_edges(*scored[SELECTION_SPLIT])
 
     return {
         "splits": splits,
@@ -106,9 +100,11 @@ def build_report(classifier) -> dict[str, object]:
     return {
         "calibration_split": SELECTION_SPLIT,
         "reference_alert_false_positive_target": (
-            REFERENCE_ALERT_FALSE_POSITIVE_TARGET
+            ADOPTION_CRITERIA.max_alert_false_positive_rate
         ),
-        "reference_coverage_recall_target": REFERENCE_COVERAGE_RECALL_TARGET,
+        "reference_coverage_recall_target": (
+            ADOPTION_CRITERIA.min_coverage_recall
+        ),
         "variants": variants,
     }
 
