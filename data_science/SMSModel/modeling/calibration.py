@@ -15,12 +15,32 @@ CALIBRATION_METHODS = (ISOTONIC, SIGMOID)
 LOGIT_CLIP = 1e-6
 
 
+def _validate_probabilities(probabilities) -> np.ndarray:
+    """확률 배열이 유한하고 0과 1 사이인지 검사
+
+    sklearn은 비유한 입력을 조용히 흘리거나 알아보기 어려운 오류를 내고,
+    범위를 벗어난 값은 clip으로 삼켜진다. 들어오는 자리에서 막는다.
+    """
+    probability_array = np.asarray(probabilities, dtype=np.float64)
+
+    if probability_array.ndim != 1:
+        raise ValueError("probabilities must be one-dimensional")
+
+    if not np.isfinite(probability_array).all():
+        raise ValueError("probabilities must contain only finite values")
+
+    if ((probability_array < 0.0) | (probability_array > 1.0)).any():
+        raise ValueError("probabilities must be between 0 and 1")
+
+    return probability_array
+
+
 def _validate(probabilities, labels) -> tuple[np.ndarray, np.ndarray]:
     """확률과 label 입력을 검사하고 정규화"""
-    probability_array = np.asarray(probabilities, dtype=np.float64)
+    probability_array = _validate_probabilities(probabilities)
     label_array = np.asarray(labels, dtype=str)
 
-    if probability_array.ndim != 1 or label_array.ndim != 1:
+    if label_array.ndim != 1:
         raise ValueError("probabilities and labels must be one-dimensional")
 
     if len(probability_array) != len(label_array):
@@ -28,12 +48,6 @@ def _validate(probabilities, labels) -> tuple[np.ndarray, np.ndarray]:
 
     if len(probability_array) == 0:
         raise ValueError("cannot calibrate from empty inputs")
-
-    if not np.isfinite(probability_array).all():
-        raise ValueError("probabilities must contain only finite values")
-
-    if ((probability_array < 0.0) | (probability_array > 1.0)).any():
-        raise ValueError("probabilities must be between 0 and 1")
 
     allowed_labels = {"normal", "phishing"}
     observed_labels = set(label_array)
@@ -65,10 +79,7 @@ class ProbabilityCalibrator:
 
     def transform(self, probabilities) -> np.ndarray:
         """보정된 확률 반환"""
-        probability_array = np.asarray(probabilities, dtype=np.float64)
-
-        if probability_array.ndim != 1:
-            raise ValueError("probabilities must be one-dimensional")
+        probability_array = _validate_probabilities(probabilities)
 
         if len(probability_array) == 0:
             return probability_array
@@ -117,6 +128,14 @@ def fit_probability_calibrator(
     else:
         model = LogisticRegression()
         model.fit(_to_logit(probability_array).reshape(-1, 1), targets)
+
+        # 계수가 음수면 확률이 클수록 낮게 보정돼 순서가 뒤집힌다.
+        # 점수가 label과 역상관이라는 뜻이므로 보정할 대상이 아니다.
+        if float(model.coef_[0, 0]) < 0.0:
+            raise ValueError(
+                "sigmoid calibration produced a decreasing mapping; "
+                "the scores are inversely related to the labels"
+            )
 
     return ProbabilityCalibrator(
         method=method,

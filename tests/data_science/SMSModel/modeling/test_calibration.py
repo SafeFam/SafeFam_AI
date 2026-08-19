@@ -14,11 +14,7 @@ from data_science.SMSModel.modeling.calibration import (
 
 
 def build_underconfident_case() -> tuple[np.ndarray, np.ndarray]:
-    """확률이 실제 피싱 비율보다 낮게 나오는 표본
-
-    v3가 real_holdout에서 보인 형태다. 확률 0.4 구간의 실제 피싱 비율이
-    0.7을 넘어 경계가 다른 split으로 옮겨가지 않았다.
-    """
+    """확률이 실제 피싱 비율보다 낮게 나오는 표본"""
     rng = np.random.default_rng(42)
     probabilities = np.concatenate(
         [
@@ -27,7 +23,6 @@ def build_underconfident_case() -> tuple[np.ndarray, np.ndarray]:
             rng.uniform(0.70, 1.00, 40),
         ]
     )
-    # 중간 구간 대부분이 실제로는 피싱이다.
     labels = np.array(
         ["normal"] * 36
         + ["phishing"] * 4
@@ -41,11 +36,7 @@ def build_underconfident_case() -> tuple[np.ndarray, np.ndarray]:
 
 @pytest.mark.parametrize("method", CALIBRATION_METHODS)
 def test_calibration_never_degrades_ranking(method: str) -> None:
-    """순위를 뒤집지 않으므로 ROC-AUC가 떨어지면 안 된다
-
-    isotonic은 계단 함수라 구간을 통째로 같은 값으로 눌러 동점을 만든다.
-    동점은 순위 역전이 아니므로 AUC는 유지되거나 올라간다.
-    """
+    """순위를 뒤집지 않으므로 ROC-AUC가 떨어지면 안됨"""
     probabilities, labels = build_underconfident_case()
     truth = (labels == "phishing").astype(int)
 
@@ -60,7 +51,7 @@ def test_calibration_never_degrades_ranking(method: str) -> None:
 
 
 def test_sigmoid_calibration_leaves_ranking_untouched() -> None:
-    """sigmoid는 순증가라 동점도 만들지 않아 AUC가 그대로다"""
+    """sigmoid는 순증가라 동점도 만들지 않아 AUC가 그대로"""
     probabilities, labels = build_underconfident_case()
     truth = (labels == "phishing").astype(int)
 
@@ -76,7 +67,7 @@ def test_sigmoid_calibration_leaves_ranking_untouched() -> None:
 
 @pytest.mark.parametrize("method", CALIBRATION_METHODS)
 def test_calibration_reduces_calibration_error(method: str) -> None:
-    """과소 확신을 보정하면 ECE가 줄어야 한다"""
+    """과소 확신을 보정하면 ECE가 줄어야 함"""
     probabilities, labels = build_underconfident_case()
 
     calibrator = fit_probability_calibrator(
@@ -91,7 +82,7 @@ def test_calibration_reduces_calibration_error(method: str) -> None:
 
 @pytest.mark.parametrize("method", CALIBRATION_METHODS)
 def test_calibration_stays_within_probability_range(method: str) -> None:
-    """보정된 값도 확률이어야 한다"""
+    """보정된 값도 확률"""
     probabilities, labels = build_underconfident_case()
 
     calibrator = fit_probability_calibrator(
@@ -104,7 +95,7 @@ def test_calibration_stays_within_probability_range(method: str) -> None:
 
 @pytest.mark.parametrize("method", CALIBRATION_METHODS)
 def test_calibration_is_monotone(method: str) -> None:
-    """입력 확률이 커지면 보정된 확률도 작아지지 않아야 한다"""
+    """입력 확률이 커지면 보정된 확률도 작아지지 X"""
     probabilities, labels = build_underconfident_case()
 
     calibrator = fit_probability_calibrator(
@@ -116,7 +107,7 @@ def test_calibration_is_monotone(method: str) -> None:
 
 
 def test_transform_handles_empty_input() -> None:
-    """빈 배열은 그대로 빈 배열을 반환한다"""
+    """빈 배열은 그대로 빈 배열을 반환"""
     probabilities, labels = build_underconfident_case()
     calibrator = fit_probability_calibrator(probabilities, labels)
 
@@ -138,7 +129,7 @@ def test_calibrator_records_training_size() -> None:
 
 
 def test_rejects_unknown_method() -> None:
-    """지원하지 않는 방법은 조용히 넘어가지 않는다"""
+    """지원하지 않는 방법은 조용히 넘어가지 X"""
     probabilities, labels = build_underconfident_case()
 
     with pytest.raises(ValueError, match="unsupported calibration method"):
@@ -146,7 +137,7 @@ def test_rejects_unknown_method() -> None:
 
 
 def test_transform_rejects_multidimensional_input() -> None:
-    """2차원 입력은 거부한다"""
+    """2차원 입력은 거부"""
     probabilities, labels = build_underconfident_case()
     calibrator = fit_probability_calibrator(probabilities, labels)
 
@@ -163,8 +154,7 @@ def test_brier_score_is_zero_for_perfect_predictions() -> None:
 
 
 def test_expected_calibration_error_is_zero_when_calibrated() -> None:
-    """예측 확률과 실제 비율이 같으면 ECE는 0이다"""
-    # 확률 0.5 구간에 정상과 피싱이 정확히 절반씩 있다.
+    """예측 확률과 실제 비율이 같으면 ECE는 0"""
     probabilities = np.full(10, 0.5)
     labels = np.array(["normal"] * 5 + ["phishing"] * 5)
 
@@ -174,7 +164,7 @@ def test_expected_calibration_error_is_zero_when_calibrated() -> None:
 
 
 def test_expected_calibration_error_measures_the_gap() -> None:
-    """예측이 실제보다 낮으면 그 차이가 그대로 잡힌다"""
+    """예측이 실제보다 낮으면 그 차이가 그대로 잡힘"""
     probabilities = np.full(10, 0.4)
     labels = np.array(["normal"] * 2 + ["phishing"] * 8)
 
@@ -207,7 +197,7 @@ def test_fit_rejects_invalid_inputs(
     labels: list,
     message: str,
 ) -> None:
-    """잘못된 입력은 즉시 실패해야 한다"""
+    """잘못된 입력은 즉시 실패"""
     with pytest.raises(ValueError, match=message):
         fit_probability_calibrator(
             np.asarray(probabilities, dtype=float),
@@ -216,7 +206,7 @@ def test_fit_rejects_invalid_inputs(
 
 
 def test_calibrator_is_frozen() -> None:
-    """학습된 캘리브레이터는 이후 변경되지 않아야 한다"""
+    """학습된 캘리브레이터는 이후 변경 X"""
     probabilities, labels = build_underconfident_case()
     calibrator = fit_probability_calibrator(probabilities, labels)
 
@@ -224,3 +214,33 @@ def test_calibrator_is_frozen() -> None:
         calibrator.method = "sigmoid"
 
     assert isinstance(calibrator, ProbabilityCalibrator)
+
+
+@pytest.mark.parametrize(
+    ("values", "message"),
+    [
+        (np.array([0.1, np.nan]), "finite"),
+        (np.array([0.1, np.inf]), "finite"),
+        (np.array([0.1, 1.5]), "between 0 and 1"),
+        (np.array([-0.2, 0.5]), "between 0 and 1"),
+    ],
+)
+def test_transform_rejects_invalid_probabilities(
+    values: np.ndarray,
+    message: str,
+) -> None:
+    """보정 단계에서 조용히 clip되지 않도록 입력에서 막음"""
+    probabilities, labels = build_underconfident_case()
+    calibrator = fit_probability_calibrator(probabilities, labels)
+
+    with pytest.raises(ValueError, match=message):
+        calibrator.transform(values)
+
+
+def test_rejects_sigmoid_calibration_that_reverses_order() -> None:
+    """계수가 음수면 순서가 뒤집히므로 보정 거부"""
+    probabilities = np.array([0.1, 0.15, 0.2, 0.8, 0.85, 0.9])
+    labels = np.array(["phishing"] * 3 + ["normal"] * 3)
+
+    with pytest.raises(ValueError, match="decreasing mapping"):
+        fit_probability_calibrator(probabilities, labels, method="sigmoid")

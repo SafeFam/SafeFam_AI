@@ -30,15 +30,15 @@
         {
           "alert_false_positive_rate": 0.05405405405405406,
           "alert_false_positive_rate_drift": 0.05405405405405406,
-          "coverage_recall": 0.9036144578313253,
-          "coverage_recall_drift": -0.06190278354798506,
+          "coverage_recall": 0.891566265060241,
+          "coverage_recall_drift": -0.07395097631906944,
           "is_selection_split": false,
           "split": "real_holdout",
-          "uncertain_share": 0.1337579617834395
+          "uncertain_share": 0.12738853503184713
         }
       ],
       "reference_edges": {
-        "normal_max": 0.05555555555555555,
+        "normal_max": 0.6785714285714285,
         "phishing_min": 0.6785714285714287
       },
       "splits": {
@@ -213,29 +213,29 @@
           "coverage_recall_drift": 0.0,
           "is_selection_split": true,
           "split": "validation",
-          "uncertain_share": 0.38524590163934425
+          "uncertain_share": 0.22950819672131148
         },
         {
           "alert_false_positive_rate": 0.017241379310344827,
           "alert_false_positive_rate_drift": 0.017241379310344827,
-          "coverage_recall": 0.9830508474576272,
-          "coverage_recall_drift": 0.017533606078316777,
+          "coverage_recall": 0.9322033898305084,
+          "coverage_recall_drift": -0.033313851548801954,
           "is_selection_split": false,
           "split": "test",
-          "uncertain_share": 0.3333333333333333
+          "uncertain_share": 0.19658119658119658
         },
         {
           "alert_false_positive_rate": 0.05405405405405406,
           "alert_false_positive_rate_drift": 0.05405405405405406,
-          "coverage_recall": 0.9518072289156626,
-          "coverage_recall_drift": -0.01371001246364778,
+          "coverage_recall": 0.891566265060241,
+          "coverage_recall_drift": -0.07395097631906944,
           "is_selection_split": false,
           "split": "real_holdout",
-          "uncertain_share": 0.20382165605095542
+          "uncertain_share": 0.12738853503184713
         }
       ],
       "reference_edges": {
-        "normal_max": 0.16825642903879703,
+        "normal_max": 0.34044174473896655,
         "phishing_min": 0.835868797224493
       },
       "splits": {
@@ -406,29 +406,29 @@
           "coverage_recall_drift": 0.0,
           "is_selection_split": true,
           "split": "validation",
-          "uncertain_share": 0.38524590163934425
+          "uncertain_share": 0.22950819672131148
         },
         {
           "alert_false_positive_rate": 0.017241379310344827,
           "alert_false_positive_rate_drift": 0.017241379310344827,
-          "coverage_recall": 0.9830508474576272,
-          "coverage_recall_drift": 0.017533606078316777,
+          "coverage_recall": 0.9322033898305084,
+          "coverage_recall_drift": -0.033313851548801954,
           "is_selection_split": false,
           "split": "test",
-          "uncertain_share": 0.3333333333333333
+          "uncertain_share": 0.19658119658119658
         },
         {
           "alert_false_positive_rate": 0.05405405405405406,
           "alert_false_positive_rate_drift": 0.05405405405405406,
-          "coverage_recall": 0.9518072289156626,
-          "coverage_recall_drift": -0.01371001246364778,
+          "coverage_recall": 0.891566265060241,
+          "coverage_recall_drift": -0.07395097631906944,
           "is_selection_split": false,
           "split": "real_holdout",
-          "uncertain_share": 0.20382165605095542
+          "uncertain_share": 0.12738853503184713
         }
       ],
       "reference_edges": {
-        "normal_max": 0.19766478071778712,
+        "normal_max": 0.30389144980860877,
         "phishing_min": 0.6386041598664512
       },
       "splits": {

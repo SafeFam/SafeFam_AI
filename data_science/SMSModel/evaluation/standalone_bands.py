@@ -175,10 +175,15 @@ def _lowest_alert_edge(
     allowed_false_positives = int(np.floor(max_false_positive_rate * normal_total))
     descending = np.sort(normal_probabilities)[::-1]
 
-    if allowed_false_positives == 0:
-        edge = float(np.nextafter(descending[0], np.inf))
+    if allowed_false_positives >= normal_total:
+        # 상한이 정상 전부를 허용하므로 경계를 끝까지 내린다.
+        edge = float(np.nextafter(probabilities.min(), -np.inf))
     else:
-        edge = float(descending[allowed_false_positives - 1])
+        # 예산 밖 첫 표본보다 한 단계 위에 둔다. 경계값에 동점이 몰려 있어도
+        # 예산을 넘겨 넘어오지 않는다.
+        edge = float(
+            np.nextafter(descending[allowed_false_positives], np.inf)
+        )
 
     return edge if edge <= 1.0 else None
 
@@ -198,10 +203,12 @@ def _highest_normal_edge(
     allowed_misses = int(np.floor((1.0 - min_coverage_recall) * phishing_total))
     ascending = np.sort(phishing_probabilities)
 
-    if allowed_misses == 0:
-        edge = float(np.nextafter(ascending[0], -np.inf))
+    if allowed_misses >= phishing_total:
+        # 놓침 예산이 피싱 전부를 덮으므로 경계를 끝까지 올린다.
+        edge = float(np.nextafter(probabilities.max(), np.inf))
     else:
-        edge = float(ascending[allowed_misses - 1])
+        # 예산 밖 첫 표본보다 한 단계 아래에 둔다.
+        edge = float(np.nextafter(ascending[allowed_misses], -np.inf))
 
     return edge if edge >= 0.0 else None
 

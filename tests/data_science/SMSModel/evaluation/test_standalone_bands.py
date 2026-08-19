@@ -414,3 +414,73 @@ def test_selection_rejects_out_of_range_targets(
             max_alert_false_positive_rate=alert_ceiling,
             min_coverage_recall=coverage_floor,
         )
+
+
+def build_tied_case() -> tuple[np.ndarray, np.ndarray]:
+    """정상 여러 건이 같은 확률에 묶여 있는 표본"""
+    probabilities = np.array([0.9, 0.5, 0.5, 0.5, 0.1, 0.6, 0.95])
+    labels = np.array(["normal"] * 5 + ["phishing"] * 2)
+    return probabilities, labels
+
+
+def test_tied_probabilities_do_not_break_the_alert_ceiling() -> None:
+    """경계값에 동점이 몰려도 오탐 상한을 넘기지 않아야 함"""
+    probabilities, labels = build_tied_case()
+
+    edges = select_standalone_bands(
+        probabilities,
+        labels,
+        max_alert_false_positive_rate=0.4,
+        min_coverage_recall=1.0,
+    )
+    measured = summarize_bands(probabilities, labels, edges)
+
+    assert measured["alert_false_positive_rate"] <= 0.4
+
+
+def test_tied_probabilities_do_not_break_the_coverage_floor() -> None:
+    """무알림 경계도 동점 때문에 놓침 예산을 넘기면 안됨"""
+    probabilities = np.array([0.1, 0.4, 0.4, 0.4, 0.9, 0.05, 0.2])
+    labels = np.array(["phishing"] * 5 + ["normal"] * 2)
+
+    edges = select_standalone_bands(
+        probabilities,
+        labels,
+        max_alert_false_positive_rate=0.5,
+        min_coverage_recall=0.8,
+    )
+    measured = summarize_bands(probabilities, labels, edges)
+
+    assert measured["coverage_recall"] >= 0.8
+
+
+def test_untied_selection_is_unchanged() -> None:
+    """동점이 없으면 예산을 정확히 소진하는 기존 동작 그대로"""
+    probabilities = np.array([0.9, 0.7, 0.5, 0.3, 0.1, 0.95, 0.99])
+    labels = np.array(["normal"] * 5 + ["phishing"] * 2)
+
+    edges = select_standalone_bands(
+        probabilities,
+        labels,
+        max_alert_false_positive_rate=0.4,
+        min_coverage_recall=1.0,
+    )
+    measured = summarize_bands(probabilities, labels, edges)
+
+    # 정상 5건에 상한 0.4이므로 2건까지 허용되고, 그 2건을 그대로 쓴다.
+    assert measured["alert_false_positive_rate"] == pytest.approx(0.4)
+
+
+def test_ceiling_of_one_allows_every_normal_into_the_alert_band() -> None:
+    """상한이 1.0이면 경계를 끝까지 내려 경고 Recall이 최대"""
+    probabilities, labels = build_separable_case()
+
+    edges = select_standalone_bands(
+        probabilities,
+        labels,
+        max_alert_false_positive_rate=1.0,
+        min_coverage_recall=1.0,
+    )
+    measured = summarize_bands(probabilities, labels, edges)
+
+    assert measured["alert_recall"] == 1.0
