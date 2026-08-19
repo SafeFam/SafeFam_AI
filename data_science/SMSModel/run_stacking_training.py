@@ -12,10 +12,12 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import fbeta_score, recall_score
 
 from data_science.SMSModel.evaluation.metrics import (
     calculate_classification_metrics,
+)
+from data_science.SMSModel.evaluation.threshold import (
+    select_probability_threshold,
 )
 from data_science.SMSModel.evaluation.stacking_reporting import (
     predict_probabilities_with_latency,
@@ -137,113 +139,6 @@ def validate_dataset_fingerprint() -> str:
             f"expected={EXPECTED_DATASET_FINGERPRINT}, actual={actual}"
         )
     return str(actual)
-
-def select_validation_threshold(
-    probabilities: np.ndarray,
-    labels: pd.Series,
-    *,
-    target_recall: float = TARGET_RECALL,
-) -> tuple[float, dict[str, float]]:
-    """Recall 목표를 만족하는 후보 중 F2가 가장 높은 임계 값을 선택"""
-
-    probability_array = np.asarray(probabilities, dtype=np.float64)
-
-    if probability_array.ndim != 1:
-        raise ValueError("probabilities must be one-dimensional")
-
-    if len(probability_array) != len(labels):
-        raise ValueError("probabilities and labels must have the same length")
-
-    if len(probability_array) == 0:
-        raise ValueError("validation data must not be empty")
-
-    if not np.isfinite(probability_array).all():
-        raise ValueError("probabilities must contain only finite values")
-
-    if ((probability_array < 0.0) | (probability_array > 1.0)).any():
-        raise ValueError("probabilities must be between 0 and 1")
-
-    if not 0.0 < target_recall <= 1.0:
-        raise ValueError("target_recall must be between 0 and 1")
-
-    normalized_labels = labels.astype(str)
-    supported_labels = {"normal", "phishing"}
-    observed_labels = set(normalized_labels)
-
-    if observed_labels != supported_labels:
-        raise ValueError(
-            "validation labels must contain normal and phishing"
-        )
-
-    binary_labels = (
-        normalized_labels == "phishing"
-    ).astype(int).to_numpy()
-
-    candidates = np.unique(
-        np.concatenate(
-            [
-                np.linspace(0.01, 0.99, 99),
-                probability_array,
-            ]
-        )
-    )
-
-    best: tuple[float, float, float] | None = None
-
-    for threshold in candidates:
-        predictions = (probability_array >= threshold).astype(int)
-        recall = recall_score(
-            binary_labels,
-            predictions,
-            zero_division=0,
-        )
-        f2 = fbeta_score(
-            binary_labels,
-            predictions,
-            beta=2,
-            zero_division=0,
-        )
-
-        if recall < target_recall:
-            continue
-
-        candidate = (float(f2), float(recall), float(threshold))
-
-        if best is None or candidate > best:
-            best = candidate
-
-    if best is None:
-        threshold = float(np.min(candidates))
-        predictions = (probability_array >= threshold).astype(int)
-
-        return threshold, {
-            "recall": float(
-                recall_score(
-                    binary_labels,
-                    predictions,
-                    zero_division=0,
-                )
-            ),
-            "f2": float(
-                fbeta_score(
-                    binary_labels,
-                    predictions,
-                    beta=2,
-                    zero_division=0,
-                )
-            ),
-            "target_recall": target_recall,
-            "target_recall_met": False,
-        }
-
-    f2, recall, threshold = best
-
-    return threshold, {
-        "recall": recall,
-        "f2": f2,
-        "target_recall": target_recall,
-        "target_recall_met": True,
-    }
 
 def save_artifact(
         classifier: StackingPhishingClassifier,
@@ -473,13 +368,13 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
             f"{unavailable}"
         )
 
-    threshold, validation_metrics = (
-        select_validation_threshold(
-            validation_probabilities,
-            splits.validation["label"],
-            target_recall=TARGET_RECALL,
-        )
+    threshold_selection = select_probability_threshold(
+        validation_probabilities,
+        splits.validation["label"],
+        target_recall=TARGET_RECALL,
     )
+    threshold = threshold_selection.threshold
+    validation_metrics = threshold_selection.to_validation_metrics()
 
     classifier.set_threshold(threshold)
 
@@ -538,6 +433,7 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
     print(f"  artifact={STACKING_MODEL_PATH}")
 
 def main() -> None:
+    """CLI 인자를 읽어 stacking 학습을 실행"""
     parser = argparse.ArgumentParser(
         description="Train the SafeFam stacking phishing classifier."
     )

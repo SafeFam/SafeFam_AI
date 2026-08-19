@@ -24,7 +24,9 @@ from .standalone_bands import (
     sweep_band_frontier,
 )
 from .threshold import (
+    ProbabilityThresholdSelection,
     ThresholdSelection,
+    select_probability_threshold,
     select_validation_threshold,
 )
 
@@ -33,6 +35,7 @@ __all__ = [
     "ClassificationMetrics",
     "LatencyMetrics",
     "ModelEvaluationResult",
+    "ProbabilityThresholdSelection",
     "ThresholdSelection",
     "assign_bands",
     "calculate_classification_metrics",
@@ -40,6 +43,7 @@ __all__ = [
     "measure_reliability",
     "measure_single_inference_latency",
     "save_model_evaluation_reports",
+    "select_probability_threshold",
     "select_validation_threshold",
     "summarize_bands",
     "sweep_band_frontier",
