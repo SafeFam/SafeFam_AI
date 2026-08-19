@@ -118,6 +118,8 @@ def test_feature_matrix_width_matches_names() -> None:
 
 def test_advertising_features_are_appended_last() -> None:
     """열 순서 호환을 위해 새 특징은 항상 마지막에 있어야 한다"""
+    # 콤마 누락으로 인접 문자열이 암묵적으로 이어붙으면 개수부터 어긋난다.
+    assert len(STACKING_STRUCTURAL_FEATURE_NAMES) == 14
     assert STACKING_STRUCTURAL_FEATURE_NAMES[-2:] == (
         "has_ad_disclosure",
         "has_opt_out",

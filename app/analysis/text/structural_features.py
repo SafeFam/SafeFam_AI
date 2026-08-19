@@ -75,7 +75,7 @@ STACKING_STRUCTURAL_FEATURE_NAMES: tuple[str, ...] = (
     "has_transfer_request",
     "has_personal_info_request",
     "has_link_action",
-    "is_long_text"
+    "is_long_text",
     "has_ad_disclosure",
     "has_opt_out",
 )
