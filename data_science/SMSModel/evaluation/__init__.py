@@ -15,19 +15,33 @@ from .metrics import (
 from .reporting import (
     save_model_evaluation_reports,
 )
+from .standalone_bands import (
+    BandEdges,
+    assign_bands,
+    measure_edge_transfer,
+    measure_reliability,
+    summarize_bands,
+    sweep_band_frontier,
+)
 from .threshold import (
     ThresholdSelection,
     select_validation_threshold,
 )
 
 __all__ = [
+    "BandEdges",
     "ClassificationMetrics",
     "LatencyMetrics",
     "ModelEvaluationResult",
     "ThresholdSelection",
+    "assign_bands",
     "calculate_classification_metrics",
+    "measure_edge_transfer",
+    "measure_reliability",
     "measure_single_inference_latency",
     "save_model_evaluation_reports",
     "select_validation_threshold",
+    "summarize_bands",
+    "sweep_band_frontier",
     "train_and_evaluate_model",
 ]
