@@ -1,5 +1,4 @@
 """validation 데이터 기반 threshold 선택"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,7 +9,6 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-
 
 @dataclass(frozen=True)
 class ThresholdSelection:
@@ -23,6 +21,65 @@ class ThresholdSelection:
     false_negative_count: int
     target_recall: float
     target_recall_met: bool
+
+
+class ThresholdInfeasibleError(ValueError):
+    """Recall 목표와 정상 오탐 상한을 동시에 만족하는 임계값이 없을 때"""
+
+    def __init__(
+        self,
+        *,
+        target_recall: float,
+        max_false_positive_rate: float,
+        best_recall_within_ceiling: float,
+        lowest_false_positive_rate_at_target_recall: float,
+        measurable_false_positive_rate: float,
+    ) -> None:
+        self.target_recall = target_recall
+        self.max_false_positive_rate = max_false_positive_rate
+        self.best_recall_within_ceiling = best_recall_within_ceiling
+        self.lowest_false_positive_rate_at_target_recall = (
+            lowest_false_positive_rate_at_target_recall
+        )
+        self.measurable_false_positive_rate = measurable_false_positive_rate
+
+        super().__init__(
+            "no threshold satisfies both targets: "
+            f"recall >= {target_recall} needs a false positive rate of "
+            f"{lowest_false_positive_rate_at_target_recall:.4f}, while a "
+            f"ceiling of {max_false_positive_rate} caps recall at "
+            f"{best_recall_within_ceiling:.4f}. The validation split can only "
+            f"resolve a false positive rate down to "
+            f"{measurable_false_positive_rate:.4f}."
+        )
+
+
+@dataclass(frozen=True)
+class ProbabilityThresholdSelection:
+    """확률 출력 모델에서 선택된 threshold와 validation 지표"""
+
+    threshold: float
+    recall: float
+    f2: float
+    false_positive_rate: float
+    target_recall: float
+    target_recall_met: bool
+    max_false_positive_rate: float | None
+    measurable_false_positive_rate: float
+
+    def to_validation_metrics(self) -> dict[str, float]:
+        """artifact metadata에 기록하는 validation 항목으로 변환"""
+        return {
+            "recall": self.recall,
+            "f2": self.f2,
+            "false_positive_rate": self.false_positive_rate,
+            "target_recall": self.target_recall,
+            "target_recall_met": self.target_recall_met,
+            "max_false_positive_rate": self.max_false_positive_rate,
+            "measurable_false_positive_rate": (
+                self.measurable_false_positive_rate
+            ),
+        }
 
 
 def _validate_binary_inputs(
@@ -146,4 +203,136 @@ def select_validation_threshold(
             candidate.precision,
             candidate.threshold,
         ),
+    )
+
+
+def _validate_probability_inputs(
+    probabilities: np.ndarray,
+    labels,
+    target_recall: float,
+) -> np.ndarray:
+    """확률 입력을 검사하고 이진 label 배열로 변환"""
+    if probabilities.ndim != 1:
+        raise ValueError("probabilities must be one-dimensional")
+
+    if len(probabilities) != len(labels):
+        raise ValueError("probabilities and labels must have the same length")
+
+    if len(probabilities) == 0:
+        raise ValueError("validation data must not be empty")
+
+    if not np.isfinite(probabilities).all():
+        raise ValueError("probabilities must contain only finite values")
+
+    if ((probabilities < 0.0) | (probabilities > 1.0)).any():
+        raise ValueError("probabilities must be between 0 and 1")
+
+    if not 0.0 < target_recall <= 1.0:
+        raise ValueError("target_recall must be between 0 and 1")
+
+    normalized_labels = np.asarray(labels, dtype=str)
+    supported_labels = {"normal", "phishing"}
+
+    if set(normalized_labels) != supported_labels:
+        raise ValueError("validation labels must contain normal and phishing")
+
+    return (normalized_labels == "phishing").astype(int)
+
+
+def _recall_and_f2(
+    binary_labels: np.ndarray,
+    predictions: np.ndarray,
+) -> tuple[float, float]:
+    """이진 예측의 recall과 F2를 함께 계산"""
+    return (
+        float(recall_score(binary_labels, predictions, zero_division=0)),
+        float(fbeta_score(binary_labels, predictions, beta=2, zero_division=0)),
+    )
+
+
+def select_probability_threshold(
+    probabilities,
+    labels,
+    *,
+    target_recall: float,
+    max_false_positive_rate: float | None = None,
+) -> ProbabilityThresholdSelection:
+    """Recall 하한과 정상 오탐 상한을 함께 만족하는 임계값을 선택"""
+    probability_array = np.asarray(probabilities, dtype=np.float64)
+    binary_labels = _validate_probability_inputs(
+        probability_array,
+        labels,
+        target_recall,
+    )
+
+    if max_false_positive_rate is not None and not (
+        0.0 <= max_false_positive_rate <= 1.0
+    ):
+        raise ValueError(
+            "max_false_positive_rate must be between 0 and 1"
+        )
+
+    is_normal = binary_labels == 0
+    normal_count = int(is_normal.sum())
+
+    if normal_count == 0:
+        raise ValueError("validation data must contain normal messages")
+
+    measurable_false_positive_rate = 1.0 / normal_count
+
+    within_ceiling: list[tuple[float, float, float, float]] = []
+    meeting_recall_rates: list[float] = []
+
+    for threshold in _candidate_thresholds(probability_array):
+        predictions = (probability_array >= threshold).astype(int)
+        recall, f2 = _recall_and_f2(binary_labels, predictions)
+        false_positive_rate = float(
+            (predictions[is_normal] == 1).sum() / normal_count
+        )
+
+        if recall >= target_recall:
+            meeting_recall_rates.append(false_positive_rate)
+
+        if (
+            max_false_positive_rate is not None
+            and false_positive_rate > max_false_positive_rate
+        ):
+            continue
+
+        within_ceiling.append(
+            (f2, recall, float(threshold), false_positive_rate)
+        )
+
+    feasible = [
+        candidate
+        for candidate in within_ceiling
+        if candidate[1] >= target_recall
+    ]
+
+    if not feasible:
+        raise ThresholdInfeasibleError(
+            target_recall=target_recall,
+            max_false_positive_rate=float(max_false_positive_rate),
+            best_recall_within_ceiling=max(
+                (candidate[1] for candidate in within_ceiling),
+                default=0.0,
+            ),
+            lowest_false_positive_rate_at_target_recall=min(
+                meeting_recall_rates,
+                default=1.0,
+            ),
+            measurable_false_positive_rate=measurable_false_positive_rate,
+        )
+
+    f2, recall, threshold, false_positive_rate = max(feasible)
+
+    return ProbabilityThresholdSelection(
+        threshold=threshold,
+        recall=recall,
+        f2=f2,
+        false_positive_rate=false_positive_rate,
+        target_recall=target_recall,
+        target_recall_met=True,
+        max_false_positive_rate=max_false_positive_rate,
+        measurable_false_positive_rate=measurable_false_positive_rate,
     )

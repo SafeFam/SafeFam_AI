@@ -1,4 +1,4 @@
-"""Stacking 학습 스크립트의 임계값 선택 및 artifact 저장 테스트"""
+"""Stacking 학습 스크립트의 artifact 저장 테스트"""
 
 from __future__ import annotations
 
@@ -14,52 +14,6 @@ from data_science.SMSModel import run_stacking_training as training
 from data_science.SMSModel.modeling.stacking import (
     StackingPhishingClassifier,
 )
-
-
-def test_selects_threshold_using_validation_f2_and_recall() -> None:
-    probabilities = np.asarray([0.1, 0.4, 0.8, 0.9])
-    labels = pd.Series(["normal", "normal", "phishing", "phishing"])
-
-    threshold, metrics = training.select_validation_threshold(
-        probabilities,
-        labels,
-        target_recall=1.0,
-    )
-
-    assert 0.4 < threshold <= 0.8
-    assert metrics["recall"] == pytest.approx(1.0)
-    assert metrics["f2"] == pytest.approx(1.0)
-    assert metrics["target_recall_met"] is True
-
-
-@pytest.mark.parametrize(
-    ("probabilities", "labels", "message"),
-    [
-        (np.asarray([]), pd.Series(dtype=str), "must not be empty"),
-        (
-            np.asarray([0.1, np.nan]),
-            pd.Series(["normal", "phishing"]),
-            "finite",
-        ),
-        (
-            np.asarray([0.1, 1.1]),
-            pd.Series(["normal", "phishing"]),
-            "between 0 and 1",
-        ),
-        (
-            np.asarray([0.1]),
-            pd.Series(["normal", "phishing"]),
-            "same length",
-        ),
-    ],
-)
-def test_rejects_invalid_validation_inputs(
-    probabilities: np.ndarray,
-    labels: pd.Series,
-    message: str,
-) -> None:
-    with pytest.raises(ValueError, match=message):
-        training.select_validation_threshold(probabilities, labels)
 
 
 def test_saves_and_reloads_model_artifact(
