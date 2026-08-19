@@ -50,6 +50,7 @@ ALLOWED_DATA_SOURCES = {
     "synthetic_diversity_v2",
     "synthetic_hard_negative_v2",
     "synthetic_normal_v3",
+    "real_collected_v4",
     "real_holdout",
 }
 
@@ -72,7 +73,7 @@ DATA_PATH = (
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v3.csv"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v4.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"
