@@ -52,9 +52,13 @@ ALLOWED_DATA_SOURCES = {
     "synthetic_normal_v3",
     "real_collected_v4",
     "real_holdout",
+    "real_holdout_v5",
 }
 
-REAL_HOLDOUT_SOURCES = ("real_holdout",)
+REAL_HOLDOUT_SOURCES = (
+    "real_holdout",
+    "real_holdout_v5",
+)
 SYNTHETIC_STRESS_SOURCES = (
     "synthetic_new_holdout",
     "synthetic_fp_stress",
