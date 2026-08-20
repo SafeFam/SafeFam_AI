@@ -44,7 +44,10 @@ def contains_account_number(text: str) -> bool:
 
     return False
 EMAIL_PATTERN = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
-AMOUNT_PATTERN = re.compile(r"\d+[,\d]*원")
+
+AMOUNT_PATTERN = re.compile(
+    r"\d[\d,]* ?(?:[억만천]+ ?)?(?:\d[\d,]* ?(?:[억만천]+ ?)?)*원"
+)
 FORMAT_ARTIFACT_PATTERN = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
 SHORT_URL_PATTERN = re.compile(
     r"(?i)bit\.ly|goo\.gl|tinyurl|gourl|ow\.ly|n\.bnuee|han\.gl|cutt\.ly"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pathlib
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +15,7 @@ from data_science.SMSModel.merge_sms_diversity import (
     ADDITION_SOURCES,
     BASE_SOURCES,
 )
+from data_science.SMSModel import run_stacking_training as training
 from data_science.SMSModel.template_grouping import create_text_fingerprint
 from data_science.SMSModel.train_sms import (
     ALLOWED_DATA_SOURCES,
@@ -42,9 +45,17 @@ def test_source_is_registered_everywhere() -> None:
     assert REAL_SOURCE in ADDITION_SOURCES
 
 
-def test_split_manifest_points_at_v4() -> None:
-    """행이 늘었으므로 v3 manifest로는 fingerprint 대조가 실패한다"""
-    assert SPLIT_MANIFEST_PATH.name == "sms_split_v4.csv"
+def test_split_manifest_matches_the_training_guard() -> None:
+    """학습 스크립트가 요구하는 manifest와 실제 경로가 어긋나면 안 된다
+
+    데이터가 바뀔 때마다 manifest를 새로 만드는데, 학습 쪽 검사에 버전이
+    문자열로 박혀 있어 한쪽만 갱신되면 학습이 통째로 막힌다.
+    """
+    source = pathlib.Path(training.__file__).read_text(encoding="utf-8")
+    required = re.search(r'SPLIT_MANIFEST_PATH\.name != "([^"]+)"', source)
+
+    assert required is not None
+    assert SPLIT_MANIFEST_PATH.name == required.group(1)
     assert SPLIT_MANIFEST_PATH.is_file()
 
 

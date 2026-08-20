@@ -428,7 +428,6 @@ def train_stacking(
         test_predictions,
     )
 
-    # 정책 상한을 지킨 실행만 정규 경로에 저장된다
     artifact_directory, report_directory = resolve_artifact_paths(
         max_false_positive_rate
     )

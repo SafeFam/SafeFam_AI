@@ -1,4 +1,4 @@
-# SMS 피싱 탐지 베이즈 분류기 학습 파이프라인
+"""SMS 피싱 탐지 베이즈 분류기 학습 파이프라인"""
 from __future__ import annotations
 
 import warnings
@@ -73,7 +73,7 @@ DATA_PATH = (
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v4.csv"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v5.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"
