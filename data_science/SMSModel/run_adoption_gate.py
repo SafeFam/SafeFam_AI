@@ -47,9 +47,7 @@ JUDGING_SPLIT = "real_holdout"
 
 def fingerprint_judging_set(frame: pd.DataFrame) -> str:
     """판정 split의 구성이 바뀌지 않았는지 확인할 지문"""
-    canonical = "\n".join(
-        sorted(frame["text_fingerprint"].astype(str))
-    )
+    canonical = "\n".join(sorted(frame["text"].astype(str)))
 
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 

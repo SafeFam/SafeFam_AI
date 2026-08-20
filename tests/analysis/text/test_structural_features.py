@@ -215,3 +215,35 @@ def test_real_account_number_is_still_detected() -> None:
         values = dict(zip(result.names, result.values, strict=True))
 
         assert values["has_account"] == 1.0, text
+
+
+def test_privacy_notices_are_not_credential_requests() -> None:
+    """안내문은 요구가 아니다
+
+    어간만 보면 "개인정보 제공에 동의"나 "개인정보를 알려드립니다" 같은
+    문장이 걸린다. 둘 다 받는 사람에게 자격증명을 넘기라는 말이 아니다.
+    """
+    for text in (
+        "개인정보 제공에 동의합니다",
+        "개인정보를 알려드립니다",
+        "개인정보 제공 동의 안내입니다",
+        "인증번호 안내를 보내드렸습니다",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_personal_info_request"] == 0.0, text
+
+
+def test_imperative_handover_forms_are_still_flagged() -> None:
+    """요구 어미가 붙은 형태는 계속 잡아야 한다"""
+    for text in (
+        "인증번호 알려줘",
+        "계좌번호 회신요망",
+        "비밀번호를 알려주십시오",
+        "보안카드 번호를 전송 부탁드립니다",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_personal_info_request"] == 1.0, text
