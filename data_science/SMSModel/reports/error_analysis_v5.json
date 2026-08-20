@@ -503,6 +503,41 @@
       "extreme_samples": {
         "highest_scoring_normals": [
           {
+            "probability": 0.9205301651358953,
+            "text_fingerprint": "142e893e7abf8d1250e4746b52b5ffc12d95fe74ed00971f4f7bebdfcf8aec60",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.9007857820519316,
+            "text_fingerprint": "b839897a2b91ffce0e4f1636a326e927dd60c4108d9b6519a26c13be7f4365a4",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.8954111451810283,
+            "text_fingerprint": "98b159e62b613bf2336834b16aaff6767eaabeeac7efcb31799181f67cae0524",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.8879352751257275,
+            "text_fingerprint": "ea37b2f365f48362140d6d2faa06a9ac6365ce9ae4c2e13d56d880e08c20f942",
+            "type": "정상택배배송안내"
+          },
+          {
+            "probability": 0.8423066259122377,
+            "text_fingerprint": "ad8aef5dca65b9d427dce72cdf8a082f084e6cac7ea671beefc0f62ad840ad5c",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.828051882483322,
+            "text_fingerprint": "eb39ce7f026426e4959672fdd274afdbe8a8791052372d2501631eae9eb41244",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.7862618519767182,
+            "text_fingerprint": "78f84761c2d3c78e0423cbddad17817052df948672bffd62c380b32cbbdbec87",
+            "type": "정상카드결제알림"
+          },
+          {
             "probability": 0.7305111705496715,
             "text_fingerprint": "fa744c13158f675ec99818e8f32585876a4d77c625f583f61d146cd638070e42",
             "type": "정상광고프로모션"
@@ -513,69 +548,34 @@
             "type": "정상광고프로모션"
           },
           {
-            "probability": 0.6561768310420522,
-            "text_fingerprint": "256b2148cc278f8bd7179c636766b00104ce55dc15bf9cf3166b727915a6c764",
+            "probability": 0.7187319369487121,
+            "text_fingerprint": "bd90ffd2d9d870557aa19508ea75f2d92a66b1e7d6a2ecd91dc0fae2988a3ac7",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.7121668673288611,
+            "text_fingerprint": "954a8cd7f96bd877aa1e3f6cf091e1edb574ffa2b7fc70cd6049c5731cbd41cd",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.7074718569482099,
+            "text_fingerprint": "9f5b789f6e41de6df9911938eb03541ed782ce02a034d44af1d486044283c694",
             "type": "정상광고프로모션"
           },
           {
-            "probability": 0.5053540927474787,
-            "text_fingerprint": "ccca86762c602f64a4407d99f53bba7499d2272ca223065768bd8b41dda74e05",
-            "type": "정상광고프로모션"
+            "probability": 0.7055735892286935,
+            "text_fingerprint": "95d83f20949d40719770963a92c1ba0422d65468fdbb3d01d4c686baf50bf8fa",
+            "type": "정상금융알림"
           },
           {
-            "probability": 0.4824094141998888,
-            "text_fingerprint": "10230255369903082a88920fac2895b0714dec5e6ff7b2a729be4d23ace84d51",
-            "type": "정상광고프로모션"
+            "probability": 0.6767752035655644,
+            "text_fingerprint": "ffbc39465fba9917b496f151b829d2a237a8930dc1a90d4b095f3207ccf7bc0a",
+            "type": "정상포인트소멸알림"
           },
           {
-            "probability": 0.4289188948246476,
-            "text_fingerprint": "534c8fd679825d3fe1f006f271adb420465ef772ba31a9bcb5d8d10f0c8a2db7",
-            "type": "정상광고프로모션"
-          },
-          {
-            "probability": 0.40806075639371076,
-            "text_fingerprint": "1717bc55259a1f8214b2c3b3af4fd234e59bd24bf774b35d3bfdcfb62c70d96f",
-            "type": "기타정상"
-          },
-          {
-            "probability": 0.39354965525952834,
-            "text_fingerprint": "024c7e6cfe9a6b242978eb66f744d63a01cec065f8463535baf9b7057ef23f90",
-            "type": "일상대화"
-          },
-          {
-            "probability": 0.38956659974768465,
-            "text_fingerprint": "15e3408fe377c99e7b7d3c1ebd0f20551abe2c63b72487ccb2e734b009a2e64c",
-            "type": "정상광고프로모션"
-          },
-          {
-            "probability": 0.3665116153906659,
-            "text_fingerprint": "9b7aa6b76a470798f660897937e157e72416bb87ad8647decfae67b2e122d6f6",
-            "type": "기타정상"
-          },
-          {
-            "probability": 0.3543923412540205,
-            "text_fingerprint": "301f545f30fe3a4b2ea8bf0be80d564782893f0137f7fc10645244a3d82eb833",
-            "type": "기타정상"
-          },
-          {
-            "probability": 0.345958877389661,
-            "text_fingerprint": "840bb721d23219993fe757edd1b895100ddb026de44e0b0a2cfdbd05b398600e",
-            "type": "정상카드결제알림"
-          },
-          {
-            "probability": 0.3447780033453441,
-            "text_fingerprint": "4738b05ee8c32e815c7d0f25d58e7895167b7befc837d9497547cdcb00122d8a",
-            "type": "정상카드결제알림"
-          },
-          {
-            "probability": 0.3285164995501944,
-            "text_fingerprint": "1f052ab4586c32bdd4bab5cf260ad3d4e7041e755221fbe164f339c05d0c3994",
-            "type": "일상대화"
-          },
-          {
-            "probability": 0.3272393335567837,
-            "text_fingerprint": "30aa69504beb9a59482f577de2e9dd844edba745b45ebbc6a89c239c41ee1f5e",
-            "type": "일상대화"
+            "probability": 0.6654731863362625,
+            "text_fingerprint": "87398dd164f90665601ea4f6a2a32229a1ad7353ec92f7db7a26723db6e49c48",
+            "type": "정상택배배송안내"
           }
         ],
         "lowest_scoring_phishing": [
@@ -661,69 +661,79 @@
           "기타정상": {
             "false_positive": 0,
             "false_positive_rate": 0.0,
-            "sample_count": 13
+            "sample_count": 33
           },
           "일상대화": {
-            "false_positive": 0,
-            "false_positive_rate": 0.0,
-            "sample_count": 34
+            "false_positive": 2,
+            "false_positive_rate": 0.04081632653061224,
+            "sample_count": 49
+          },
+          "정상공공기관알림": {
+            "false_positive": 1,
+            "false_positive_rate": 0.03225806451612903,
+            "sample_count": 31
           },
           "정상광고프로모션": {
-            "false_positive": 5,
-            "false_positive_rate": 0.625,
-            "sample_count": 8
+            "false_positive": 12,
+            "false_positive_rate": 0.3157894736842105,
+            "sample_count": 38
           },
           "정상금융알림": {
+            "false_positive": 8,
+            "false_positive_rate": 0.23529411764705882,
+            "sample_count": 34
+          },
+          "정상인증알림": {
             "false_positive": 0,
             "false_positive_rate": 0.0,
-            "sample_count": 6
+            "sample_count": 44
           },
           "정상카드결제알림": {
-            "false_positive": 0,
-            "false_positive_rate": 0.0,
-            "sample_count": 4
+            "false_positive": 4,
+            "false_positive_rate": 0.14814814814814814,
+            "sample_count": 27
           },
           "정상택배배송안내": {
-            "false_positive": 0,
-            "false_positive_rate": 0.0,
-            "sample_count": 6
+            "false_positive": 6,
+            "false_positive_rate": 0.20689655172413793,
+            "sample_count": 29
           },
           "정상포인트소멸알림": {
-            "false_positive": 0,
-            "false_positive_rate": 0.0,
-            "sample_count": 3
+            "false_positive": 6,
+            "false_positive_rate": 0.2608695652173913,
+            "sample_count": 23
           }
         },
-        "false_positive_count": 5,
-        "false_positive_rate": 0.06756756756756757,
-        "normal_count": 74,
+        "false_positive_count": 39,
+        "false_positive_rate": 0.1266233766233766,
+        "normal_count": 308,
         "threshold": 0.4621824849448737
       },
-      "normal_count": 74,
+      "normal_count": 308,
       "operating_points": [
         {
-          "max_recall": 0.7469879518072289,
-          "missed_phishing": 21,
+          "max_recall": 0.7349397590361446,
+          "missed_phishing": 22,
           "target_fpr": 0.02,
-          "threshold": 0.7794038724883074
+          "threshold": 0.7938951595218737
         },
         {
-          "max_recall": 0.8313253012048193,
-          "missed_phishing": 14,
+          "max_recall": 0.7590361445783133,
+          "missed_phishing": 20,
           "target_fpr": 0.05,
-          "threshold": 0.516439669631862
+          "threshold": 0.6833229489168108
+        },
+        {
+          "max_recall": 0.8072289156626506,
+          "missed_phishing": 16,
+          "target_fpr": 0.1,
+          "threshold": 0.5497533590969237
         },
         {
           "max_recall": 0.8433734939759037,
           "missed_phishing": 13,
-          "target_fpr": 0.1,
-          "threshold": 0.4654601154246654
-        },
-        {
-          "max_recall": 0.8554216867469879,
-          "missed_phishing": 12,
           "target_fpr": 0.15,
-          "threshold": 0.38941692353106155
+          "threshold": 0.4654601154246654
         },
         {
           "max_recall": 0.8554216867469879,
@@ -733,9 +743,9 @@
         }
       ],
       "phishing_count": 83,
-      "pr_auc": 0.9547294680124218,
-      "roc_auc": 0.9327580592640833,
-      "sample_count": 157,
+      "pr_auc": 0.8626175058706718,
+      "roc_auc": 0.9126897199186356,
+      "sample_count": 391,
       "split": "real_holdout"
     }
   ],
