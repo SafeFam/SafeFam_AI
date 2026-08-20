@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 from app.analysis.text.preprocessing import (
+    AMOUNT_PATTERN,
     STRUCT_FEATURE_NAMES,
+    contains_account_number,
     extract_struct_feature_matrix,
     extract_struct_features,
     mask_pii,
@@ -163,3 +165,67 @@ def test_single_and_batch_url_features_use_the_same_signal():
     batch = extract_struct_feature_matrix([text])[0].tolist()
 
     assert batch == single
+
+
+def test_contains_account_number_excludes_phone_numbers() -> None:
+    """전화번호로 완전히 읽히는 숫자는 계좌로 세지 않는다"""
+    assert not contains_account_number("예약 문의 02-345-6789")
+    assert not contains_account_number("무료거부080-870-1234")
+    assert not contains_account_number("상담 010-1234-5678")
+
+
+def test_contains_account_number_keeps_real_accounts() -> None:
+    """계좌 형식은 은행마다 다르므로 앞자리로 거르지 않는다"""
+    assert contains_account_number("신한 110-234-567890")
+    assert contains_account_number("1002-345-678901로 입금")
+
+
+def test_masking_is_unchanged_by_the_account_check() -> None:
+    """마스킹 경로는 그대로여야 fingerprint가 유지된다"""
+    assert normalize_text("예약 문의 02-345-6789") == normalize_text(
+        "예약 문의 02-345-6789"
+    )
+    assert "[PHONE]" in normalize_text("예약 문의 02-345-6789")
+    assert "[ACCOUNT]" in normalize_text("신한 110-234-567890")
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("88,435원", "88,435원"),
+        ("113만 원", "113만 원"),
+        ("3만원", "3만원"),
+        ("5천원", "5천원"),
+        ("1억원", "1억원"),
+        ("1억 2천만원", "1억 2천만원"),
+        ("3만 5천원", "3만 5천원"),
+    ],
+)
+def test_amount_pattern_covers_korean_units(
+    text: str,
+    expected: str,
+) -> None:
+    """한글 단위 금액을 놓치면 금액 변형이 중복 제거를 통과한다"""
+    match = AMOUNT_PATTERN.search(text)
+
+    assert match is not None
+    assert match.group() == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["가격 5000\n\n원래는", "25일은 원장님 휴진"],
+)
+def test_amount_pattern_does_not_reach_across_lines(text: str) -> None:
+    """공백을 한 칸으로 제한해 줄바꿈 너머의 '원'을 삼키지 않는다"""
+    assert AMOUNT_PATTERN.search(text) is None
+
+
+def test_amount_variants_share_one_fingerprint() -> None:
+    """금액만 다른 같은 문장은 한 건으로 합쳐져야 한다"""
+    masked = {
+        normalize_text(f"예상환급액: {amount}")
+        for amount in ("88,435원", "113만 원", "12만 원", "89만원")
+    }
+
+    assert len(masked) == 1

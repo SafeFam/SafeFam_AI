@@ -154,3 +154,96 @@ def test_opt_out_covers_free_variants() -> None:
         values = dict(zip(result.names, result.values, strict=True))
 
         assert values["has_opt_out"] == 1.0, text
+
+
+def test_normal_authentication_message_is_not_a_credential_request() -> None:
+    """정상 인증 문자는 개인정보 요구로 잡히면 안 된다
+
+    이 특징은 피싱 전용 신호인데, 단어 존재만 보던 시절에는 정상 인증 문자가
+    전부 켜서 판별력이 사라졌다(#92).
+    """
+    for text in (
+        "[Web발신][배달의민족] 인증번호 [198788]를 입력해주세요.",
+        "[Web발신][토스] 인증번호 [830101] 입니다.",
+        "[Web발신][KCB] 본인확인 인증번호는 685649입니다. 정확히 입력해주세요.",
+        "[Web발신](광고)연세의원 국가건강검진 안내 방문 시 신분증 지참 부탁드립니다.",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_personal_info_request"] == 0.0, text
+
+
+def test_handover_request_is_flagged() -> None:
+    """제3자에게 넘기라는 요구는 잡아야 한다"""
+    for text in (
+        "인증번호를 알려주시면 처리해 드립니다",
+        "보안카드 번호를 전송해 주세요",
+        "주민등록번호를 회신 바랍니다",
+        "계좌번호를 보내주세요",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_personal_info_request"] == 1.0, text
+
+
+def test_phone_number_is_not_counted_as_an_account() -> None:
+    """연락처가 계좌번호 신호를 켜면 안 된다
+
+    소상공인 광고는 연락처와 수신거부 번호를 함께 싣는다. 그것이 계좌로
+    잡히면 계좌번호가 정상 쪽 신호가 된다(#92).
+    """
+    for text in (
+        "예약 문의 02-345-6789",
+        "무료거부080-870-1234",
+        "상담문의 010-1234-5678",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_account"] == 0.0, text
+
+
+def test_real_account_number_is_still_detected() -> None:
+    """전화번호를 걸러내면서 실제 계좌번호는 계속 잡아야 한다"""
+    for text in (
+        "신한 110-234-567890으로 입금해 주세요",
+        "계좌 1002-345-678901",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_account"] == 1.0, text
+
+
+def test_privacy_notices_are_not_credential_requests() -> None:
+    """안내문은 요구가 아니다
+
+    어간만 보면 "개인정보 제공에 동의"나 "개인정보를 알려드립니다" 같은
+    문장이 걸린다. 둘 다 받는 사람에게 자격증명을 넘기라는 말이 아니다.
+    """
+    for text in (
+        "개인정보 제공에 동의합니다",
+        "개인정보를 알려드립니다",
+        "개인정보 제공 동의 안내입니다",
+        "인증번호 안내를 보내드렸습니다",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_personal_info_request"] == 0.0, text
+
+
+def test_imperative_handover_forms_are_still_flagged() -> None:
+    """요구 어미가 붙은 형태는 계속 잡아야 한다"""
+    for text in (
+        "인증번호 알려줘",
+        "계좌번호 회신요망",
+        "비밀번호를 알려주십시오",
+        "보안카드 번호를 전송 부탁드립니다",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_personal_info_request"] == 1.0, text

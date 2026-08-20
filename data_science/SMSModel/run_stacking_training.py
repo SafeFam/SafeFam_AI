@@ -37,7 +37,7 @@ from data_science.SMSModel.train_sms import (
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
 
-STACKING_ARTIFACT_VERSION = "v4"
+STACKING_ARTIFACT_VERSION = "v5"
 
 STACKING_ARTIFACT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
@@ -66,17 +66,17 @@ TARGET_RECALL = 0.95
 
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.01
 EXPECTED_DATASET_FINGERPRINT = (
-    "29d0aa8b4faaf4a57490f3fe7d1b102"
-    "b3689551a924089fd776791eb54912793"
+    "69236fa9b54e4f2246049e6cefc0691"
+    "79b5e914770854194216ee9a37ea08ae5"
 )
 
 EXPECTED_TOTAL_CSV_ROWS = 3242
-EXPECTED_TRAINING_POOL_ROWS = 968
+EXPECTED_TRAINING_POOL_ROWS = 836
 EXPECTED_HOLDOUT_ROWS = 280
 EXPECTED_SPLIT_COUNTS = {
-    "train": 683,
-    "validation": 146,
-    "test": 139,
+    "train": 581,
+    "validation": 129,
+    "test": 126,
 }
 
 
@@ -317,18 +317,18 @@ def train_stacking(
 ) -> None:
     """Stacking artifact를 학습하고 고정된 test split을 한 번 평가"""
 
-    # committed v4 manifest가 없으면 실행 중단
+    # committed v5 manifest가 없으면 실행 중단
     if not SPLIT_MANIFEST_PATH.is_file():
         raise FileNotFoundError(
             f"split manifest is required: {SPLIT_MANIFEST_PATH}"
         )
 
-    if SPLIT_MANIFEST_PATH.name != "sms_split_v4.csv":
+    if SPLIT_MANIFEST_PATH.name != "sms_split_v5.csv":
         raise ValueError(
-            "Stacking must use sms_split_v4.csv"
+            "Stacking must use sms_split_v5.csv"
         )
 
-    # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리
+    # 원본에서 학습 pool과 holdout을 분리. 실제 행 수는 아래에서 대조한다.
     total_csv_rows = len(pd.read_csv(DATA_PATH))
     if total_csv_rows != EXPECTED_TOTAL_CSV_ROWS:
         raise ValueError(
@@ -428,7 +428,6 @@ def train_stacking(
         test_predictions,
     )
 
-    # 정책 상한을 지킨 실행만 정규 경로에 저장된다
     artifact_directory, report_directory = resolve_artifact_paths(
         max_false_positive_rate
     )
