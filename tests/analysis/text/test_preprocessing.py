@@ -3,6 +3,7 @@ import pytest
 
 from app.analysis.text.preprocessing import (
     STRUCT_FEATURE_NAMES,
+    contains_account_number,
     extract_struct_feature_matrix,
     extract_struct_features,
     mask_pii,
@@ -163,3 +164,25 @@ def test_single_and_batch_url_features_use_the_same_signal():
     batch = extract_struct_feature_matrix([text])[0].tolist()
 
     assert batch == single
+
+
+def test_contains_account_number_excludes_phone_numbers() -> None:
+    """전화번호로 완전히 읽히는 숫자는 계좌로 세지 않는다"""
+    assert not contains_account_number("예약 문의 02-345-6789")
+    assert not contains_account_number("무료거부080-870-1234")
+    assert not contains_account_number("상담 010-1234-5678")
+
+
+def test_contains_account_number_keeps_real_accounts() -> None:
+    """계좌 형식은 은행마다 다르므로 앞자리로 거르지 않는다"""
+    assert contains_account_number("신한 110-234-567890")
+    assert contains_account_number("1002-345-678901로 입금")
+
+
+def test_masking_is_unchanged_by_the_account_check() -> None:
+    """마스킹 경로는 그대로여야 fingerprint가 유지된다"""
+    assert normalize_text("예약 문의 02-345-6789") == normalize_text(
+        "예약 문의 02-345-6789"
+    )
+    assert "[PHONE]" in normalize_text("예약 문의 02-345-6789")
+    assert "[ACCOUNT]" in normalize_text("신한 110-234-567890")

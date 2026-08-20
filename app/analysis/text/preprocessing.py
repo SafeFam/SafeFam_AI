@@ -1,5 +1,4 @@
-"""SMS 모델의 학습과 추론에서 공통으로 사용하는 전처리 로직."""
-
+"""SMS 모델의 학습과 추론에서 공통으로 사용하는 전처리 로직"""
 from __future__ import annotations
 
 import re
@@ -12,7 +11,6 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-# 학습된 모델은 아래 피처 순서에 의존하므로 순서를 변경하면 안 됩니다.
 STRUCT_FEATURE_NAMES: tuple[str, ...] = (
     "has_url",
     "has_short_url",
@@ -36,6 +34,15 @@ ACCOUNT_PATTERN = re.compile(
     r"(?<!\d)\d{2,6}-\d{2,6}-\d{2,6}(?:-\d{1,6})?(?!\d)"
     r"|(?<!\d)\d{10,14}(?!\d)"
 )
+
+
+def contains_account_number(text: str) -> bool:
+    """전화번호로도 읽히는 숫자는 계좌번호로 카운팅 X"""
+    for match in ACCOUNT_PATTERN.finditer(text):
+        if not PHONE_PATTERN.fullmatch(match.group()):
+            return True
+
+    return False
 EMAIL_PATTERN = re.compile(r"(?i)[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}")
 AMOUNT_PATTERN = re.compile(r"\d+[,\d]*원")
 FORMAT_ARTIFACT_PATTERN = re.compile(r"={2,}|■|□|▪|▫|●|○|\s-\s|\s:\s")
@@ -60,14 +67,13 @@ def mask_pii(text: str) -> str:
 
 
 def normalize_text(text: str) -> str:
-    """URL·개인정보·금액을 치환하고 공백을 정리한 모델 입력을 만듭니다."""
+    """URL·개인정보·금액을 치환하고 공백을 정리한 모델 입력 생성"""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
 
     parts: list[str] = []
     last_end = 0
 
-    # URL 내부 숫자가 전화번호나 계좌번호로 오인되지 않도록 URL부터 분리합니다.
     for match in URL_PATTERN.finditer(text):
         parts.append(mask_pii(text[last_end : match.start()]))
         parts.append("[URL]")
@@ -81,7 +87,7 @@ def normalize_text(text: str) -> str:
 
 
 def extract_struct_features(text: str, *, has_url: bool | None = None) -> list[int]:
-    """단일 원문 SMS에서 고정 순서의 구조 피처 6개를 추출합니다."""
+    """단일 원문 SMS에서 고정 순서의 구조 피처 6개를 추출"""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
 
@@ -102,7 +108,7 @@ def extract_struct_feature_matrix(
     texts: Iterable[str] | pd.Series,
     has_urls: Iterable[bool] | pd.Series | None = None,
 ) -> np.ndarray:
-    """여러 원문 SMS의 구조 피처를 ``(n_samples, 6)`` 배열로 반환합니다."""
+    """여러 원문 SMS의 구조 피처를 ``(n_samples, 6)`` 배열로 반환"""
     text_list = list(texts)
 
     if has_urls is None:

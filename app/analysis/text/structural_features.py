@@ -8,21 +8,28 @@ from dataclasses import dataclass
 import numpy as np
 
 from app.analysis.text.preprocessing import (
-    ACCOUNT_PATTERN,
     AMOUNT_PATTERN,
     CARD_PATTERN,
     PHONE_PATTERN,
     SHORT_URL_PATTERN,
     URL_PATTERN,
     WEB_TAG_PATTERN,
+    contains_account_number,
 )
 
 
-# 개인정보 및 인증정보 요구 표현
-PERSONAL_INFO_PATTERN = re.compile(
+# 자격증명을 가리키는 표현
+CREDENTIAL_TERMS = (
     r"개인정보|주민(?:등록)?번호|신분증|인증번호|"
-    r"비밀번호|보안카드|OTP|공동인증서|"
-    r"계좌번호를?\s*(?:입력|전송|회신)",
+    r"비밀번호|보안카드|OTP|공동인증서|계좌번호"
+)
+
+# 제3자에게 넘기라는 요구
+HANDOVER_TERMS = r"알려|불러|전송|회신|보내|공유|말씀|제공|드리면"
+
+# 개인정보 및 인증정보 "요구" 표현
+PERSONAL_INFO_PATTERN = re.compile(
+    rf"(?:{CREDENTIAL_TERMS})[^.!?\n]{{0,20}}?(?:{HANDOVER_TERMS})",
     re.IGNORECASE,
 )
 
@@ -119,7 +126,7 @@ def extract_stacking_structural_features(
             bool(URL_PATTERN.search(text)),
             bool(SHORT_URL_PATTERN.search(text)),
             bool(PHONE_PATTERN.search(text) or "[PHONE]" in text),
-            bool(ACCOUNT_PATTERN.search(text) or "[ACCOUNT]" in text),
+            bool(contains_account_number(text) or "[ACCOUNT]" in text),
             bool(CARD_PATTERN.search(text) or "[CARD]" in text),
             bool(AMOUNT_PATTERN.search(text) or "[AMOUNT]" in text),
             bool(WEB_TAG_PATTERN.search(text)),
