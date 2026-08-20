@@ -37,7 +37,7 @@ from data_science.SMSModel.train_sms import (
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
 
-STACKING_ARTIFACT_VERSION = "v3"
+STACKING_ARTIFACT_VERSION = "v4"
 
 STACKING_ARTIFACT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
@@ -60,23 +60,23 @@ STACKING_REPORT_DIRECTORY = (
     / f"stacking_{STACKING_ARTIFACT_VERSION}"
 )
 
+EXPERIMENT_SUFFIX = "-experiment"
+
 TARGET_RECALL = 0.95
 
-# 자동 경고가 잘못 울릴 정상 문자의 상한.
-# 하루 정상 문자 15건 기준으로 0.01은 주 1회 오경보에 해당한다(#85).
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.01
 EXPECTED_DATASET_FINGERPRINT = (
-    "46aa236b5c70453bc5b5e91664f4a43"
-    "d499fffd9a3f103eec9178a30aab85f22"
+    "29d0aa8b4faaf4a57490f3fe7d1b102"
+    "b3689551a924089fd776791eb54912793"
 )
 
-EXPECTED_TOTAL_CSV_ROWS = 3078
-EXPECTED_TRAINING_POOL_ROWS = 804
+EXPECTED_TOTAL_CSV_ROWS = 3242
+EXPECTED_TRAINING_POOL_ROWS = 968
 EXPECTED_HOLDOUT_ROWS = 280
 EXPECTED_SPLIT_COUNTS = {
-    "train": 565,
-    "validation": 122,
-    "test": 117,
+    "train": 683,
+    "validation": 146,
+    "test": 139,
 }
 
 
@@ -144,6 +144,23 @@ def validate_dataset_fingerprint() -> str:
         )
     return str(actual)
 
+def resolve_artifact_paths(
+    max_false_positive_rate: float,
+) -> tuple[Path, Path]:
+    """정책 상한을 지켰는지에 따라 artifact와 리포트 경로 선택"""
+    if max_false_positive_rate == MAX_NORMAL_FALSE_POSITIVE_RATE:
+        return STACKING_ARTIFACT_DIRECTORY, STACKING_REPORT_DIRECTORY
+
+    return (
+        STACKING_ARTIFACT_DIRECTORY.with_name(
+            STACKING_ARTIFACT_DIRECTORY.name + EXPERIMENT_SUFFIX
+        ),
+        STACKING_REPORT_DIRECTORY.with_name(
+            STACKING_REPORT_DIRECTORY.name + EXPERIMENT_SUFFIX
+        ),
+    )
+
+
 def save_artifact(
         classifier: StackingPhishingClassifier,
     *,
@@ -151,10 +168,17 @@ def save_artifact(
     overwrite: bool,
     dataset_counts: dict[str, int],
     split_counts: dict[str, int],
+    artifact_directory: Path | None = None,
     verification_df: pd.DataFrame | None = None,
     expected_probabilities: np.ndarray | None = None,
 ) -> None:
     """모델과 비민감 metadata를 저장하고 재로드 검증"""
+
+    if artifact_directory is None:
+        artifact_directory = STACKING_ARTIFACT_DIRECTORY
+
+    model_path = artifact_directory / "model.joblib"
+    metadata_path = artifact_directory / "metadata.json"
 
     missing_dataset_keys = {
         "total_csv_rows",
@@ -173,15 +197,15 @@ def save_artifact(
         )
 
     if (
-        STACKING_MODEL_PATH.exists()
-        or STACKING_METADATA_PATH.exists()
+        model_path.exists()
+        or metadata_path.exists()
     ) and not overwrite:
         raise FileExistsError(
             "stacking artifact already exists; "
             "use --overwrite-artifacts to replace it"
         )
 
-    STACKING_ARTIFACT_DIRECTORY.mkdir(
+    artifact_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
@@ -191,9 +215,9 @@ def save_artifact(
         "classifier": classifier,
     }
 
-    joblib.dump(payload, STACKING_MODEL_PATH)
+    joblib.dump(payload, model_path)
 
-    loaded = joblib.load(STACKING_MODEL_PATH)
+    loaded = joblib.load(model_path)
 
     if loaded.get("schema_version") != 1:
         raise RuntimeError("invalid stacking artifact schema")
@@ -263,11 +287,9 @@ def save_artifact(
             "test_used_for_tuning": False,
             "random_state": 42,
         },
-        "split_manifest": "sms_split_v3.csv",
+        "split_manifest": SPLIT_MANIFEST_PATH.name,
         "split_manifest_sha256": calculate_sha256(SPLIT_MANIFEST_PATH),
-        "model_sha256": calculate_sha256(
-            STACKING_MODEL_PATH
-        ),
+        "model_sha256": calculate_sha256(model_path),
         "model_configuration_sha256": calculate_json_sha256(
             model_configuration
         ),
@@ -277,7 +299,7 @@ def save_artifact(
         ).as_posix(),
     }
 
-    STACKING_METADATA_PATH.write_text(
+    metadata_path.write_text(
         json.dumps(
             metadata,
             ensure_ascii=False,
@@ -288,18 +310,22 @@ def save_artifact(
         encoding="utf-8",
     )
 
-def train_stacking(*, overwrite_artifacts: bool) -> None:
+def train_stacking(
+    *,
+    overwrite_artifacts: bool,
+    max_false_positive_rate: float = MAX_NORMAL_FALSE_POSITIVE_RATE,
+) -> None:
     """Stacking artifact를 학습하고 고정된 test split을 한 번 평가"""
 
-    # committed v2 manifest가 없으면 실행 중단
+    # committed v4 manifest가 없으면 실행 중단
     if not SPLIT_MANIFEST_PATH.is_file():
         raise FileNotFoundError(
             f"split manifest is required: {SPLIT_MANIFEST_PATH}"
         )
 
-    if SPLIT_MANIFEST_PATH.name != "sms_split_v3.csv":
+    if SPLIT_MANIFEST_PATH.name != "sms_split_v4.csv":
         raise ValueError(
-            "Stacking must use sms_split_v3.csv"
+            "Stacking must use sms_split_v4.csv"
         )
 
     # 3,002건 원본에서 학습 pool 885건과 holdout 210건 분리
@@ -376,7 +402,7 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         validation_probabilities,
         splits.validation["label"],
         target_recall=TARGET_RECALL,
-        max_false_positive_rate=MAX_NORMAL_FALSE_POSITIVE_RATE,
+        max_false_positive_rate=max_false_positive_rate,
     )
     threshold = threshold_selection.threshold
     validation_metrics = threshold_selection.to_validation_metrics()
@@ -402,13 +428,18 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         test_predictions,
     )
 
-    # v2 전용 경로에 artifact 저장
+    # 정책 상한을 지킨 실행만 정규 경로에 저장된다
+    artifact_directory, report_directory = resolve_artifact_paths(
+        max_false_positive_rate
+    )
+
     save_artifact(
         classifier,
         validation_metrics=validation_metrics,
         overwrite=overwrite_artifacts,
         dataset_counts=dataset_counts,
         split_counts=actual_counts,
+        artifact_directory=artifact_directory,
         verification_df=splits.test,
         expected_probabilities=test_probabilities,
     )
@@ -422,7 +453,7 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
         metrics=test_metrics,
         threshold=threshold,
         unavailable_models=test_unavailable,
-        output_directory=STACKING_REPORT_DIRECTORY,
+        output_directory=report_directory,
         artifact_version=STACKING_ARTIFACT_VERSION,
     )
 
@@ -435,7 +466,7 @@ def train_stacking(*, overwrite_artifacts: bool) -> None:
     print(f"  test_accuracy={test_metrics.accuracy:.4f}")
     print(f"  test_recall={test_metrics.recall:.4f}")
     print(f"  test_f2={test_metrics.f2:.4f}")
-    print(f"  artifact={STACKING_MODEL_PATH}")
+    print(f"  artifact={artifact_directory / 'model.joblib'}")
 
 def main() -> None:
     """CLI 인자를 읽어 stacking 학습을 실행"""
@@ -446,10 +477,28 @@ def main() -> None:
         "--overwrite-artifacts",
         action="store_true",
     )
+    parser.add_argument(
+        "--max-false-positive-rate",
+        type=float,
+        default=MAX_NORMAL_FALSE_POSITIVE_RATE,
+        help=(
+            "정상 오탐 상한. 기본값은 채택 기준과 같으며, 완화하면 단독 운영 "
+            "후보가 아닌 실험용 artifact가 만들어진다."
+        ),
+    )
     arguments = parser.parse_args()
 
+    if arguments.max_false_positive_rate != MAX_NORMAL_FALSE_POSITIVE_RATE:
+        print(
+            "[Stacking] 경고: 정상 오탐 상한을 "
+            f"{MAX_NORMAL_FALSE_POSITIVE_RATE}에서 "
+            f"{arguments.max_false_positive_rate}로 완화했다. "
+            "이 artifact는 단독 운영 후보가 아니다."
+        )
+
     train_stacking(
-        overwrite_artifacts=arguments.overwrite_artifacts
+        overwrite_artifacts=arguments.overwrite_artifacts,
+        max_false_positive_rate=arguments.max_false_positive_rate,
     )
 
 if __name__ == "__main__":

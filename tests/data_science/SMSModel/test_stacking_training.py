@@ -176,3 +176,28 @@ def test_rejects_incomplete_counts(
             dataset_counts={"total_csv_rows": 3002},
             split_counts={"train": 623, "validation": 126, "test": 136},
         )
+
+
+def test_policy_run_uses_the_canonical_artifact_path() -> None:
+    """상한을 지킨 실행만 정규 경로에 저장된다"""
+    artifact, report = training.resolve_artifact_paths(
+        training.MAX_NORMAL_FALSE_POSITIVE_RATE
+    )
+
+    assert artifact == training.STACKING_ARTIFACT_DIRECTORY
+    assert report == training.STACKING_REPORT_DIRECTORY
+
+
+def test_relaxed_run_is_kept_out_of_the_canonical_path() -> None:
+    """완화한 실행이 정규 artifact를 덮어쓰면 안 된다
+
+    분석 스크립트는 정규 경로를 기본으로 읽는다. 완화한 산출물이 거기에
+    들어가면 단독 운영 후보가 아닌 artifact가 판정 대상이 된다.
+    """
+    relaxed = training.MAX_NORMAL_FALSE_POSITIVE_RATE + 0.04
+    artifact, report = training.resolve_artifact_paths(relaxed)
+
+    assert artifact != training.STACKING_ARTIFACT_DIRECTORY
+    assert report != training.STACKING_REPORT_DIRECTORY
+    assert artifact.name.endswith(training.EXPERIMENT_SUFFIX)
+    assert report.name.endswith(training.EXPERIMENT_SUFFIX)

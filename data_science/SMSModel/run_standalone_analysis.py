@@ -21,6 +21,11 @@ from data_science.SMSModel.evaluation.threshold import (
     ThresholdInfeasibleError,
     select_probability_threshold,
 )
+from data_science.SMSModel.run_stacking_training import (
+    MAX_NORMAL_FALSE_POSITIVE_RATE,
+    STACKING_MODEL_PATH,
+    TARGET_RECALL,
+)
 from data_science.SMSModel.run_error_analysis import (
     load_classifier,
     score_frame,
@@ -33,9 +38,8 @@ from data_science.SMSModel.train_sms import (
 )
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
-DEFAULT_MODEL_PATH = (
-    SMS_MODEL_DIRECTORY / "artifacts" / "stacking" / "v3" / "model.joblib"
-)
+# artifact 버전은 학습 스크립트를 따른다. 여기서 따로 고정하지 않는다.
+DEFAULT_MODEL_PATH = STACKING_MODEL_PATH
 DEFAULT_OUTPUT_PATH = (
     SMS_MODEL_DIRECTORY / "reports" / "standalone_analysis.json"
 )
@@ -89,11 +93,6 @@ def compare_threshold_policies(
     labels,
 ) -> dict[str, object]:
     """상한 도입 전후로 어떤 임계값이 선택되는지 나란히 기록"""
-    from data_science.SMSModel.run_stacking_training import (
-        MAX_NORMAL_FALSE_POSITIVE_RATE,
-        TARGET_RECALL,
-    )
-
     before = select_probability_threshold(
         probabilities,
         labels,

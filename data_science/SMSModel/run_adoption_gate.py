@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from data_science.SMSModel.evaluation.adoption import (
     AdoptionCriteria,
@@ -18,6 +20,9 @@ from data_science.SMSModel.evaluation.standalone_bands import (
     BandEdgesUnreachableError,
     select_standalone_bands,
     summarize_bands,
+)
+from data_science.SMSModel.run_stacking_training import (
+    STACKING_MODEL_PATH,
 )
 from data_science.SMSModel.run_error_analysis import load_classifier
 from data_science.SMSModel.run_standalone_analysis import (
@@ -32,14 +37,21 @@ from data_science.SMSModel.train_sms import (
 )
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
-DEFAULT_MODEL_PATH = (
-    SMS_MODEL_DIRECTORY / "artifacts" / "stacking" / "v3" / "model.joblib"
-)
+DEFAULT_MODEL_PATH = STACKING_MODEL_PATH
 DEFAULT_OUTPUT_PATH = (
     SMS_MODEL_DIRECTORY / "reports" / "adoption_gate.json"
 )
 
 JUDGING_SPLIT = "real_holdout"
+
+
+def fingerprint_judging_set(frame: pd.DataFrame) -> str:
+    """판정 split의 구성이 바뀌지 않았는지 확인할 지문"""
+    canonical = "\n".join(
+        sorted(frame["text_fingerprint"].astype(str))
+    )
+
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def build_report(classifier) -> dict[str, object]:
@@ -80,9 +92,15 @@ def build_report(classifier) -> dict[str, object]:
 
     synthetic = select_synthetic_stress(holdout)
 
+    judging_frame = select_real_holdout(holdout)
+
     return {
         "selection_split": SELECTION_SPLIT,
         "judging_split": JUDGING_SPLIT,
+        "judging_set": {
+            "sample_count": int(len(judging_frame)),
+            "fingerprint": fingerprint_judging_set(judging_frame),
+        },
         "edges": edges.to_dict(),
         "criteria": AdoptionCriteria().__dict__,
         "measured": judged,
