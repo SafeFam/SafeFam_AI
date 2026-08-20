@@ -116,13 +116,20 @@ def test_feature_matrix_width_matches_names() -> None:
     assert matrix.shape == (2, len(STACKING_STRUCTURAL_FEATURE_NAMES))
 
 
-def test_advertising_features_are_appended_last() -> None:
+def test_new_features_are_appended_last() -> None:
     """열 순서 호환을 위해 새 특징은 항상 마지막에 있어야 한다"""
     # 콤마 누락으로 인접 문자열이 암묵적으로 이어붙으면 개수부터 어긋난다.
-    assert len(STACKING_STRUCTURAL_FEATURE_NAMES) == 14
-    assert STACKING_STRUCTURAL_FEATURE_NAMES[-2:] == (
+    assert len(STACKING_STRUCTURAL_FEATURE_NAMES) == 18
+    # 광고 특징(#84)은 자리를 지켜야 기존 열 인덱스가 보존된다.
+    assert STACKING_STRUCTURAL_FEATURE_NAMES[12:14] == (
         "has_ad_disclosure",
         "has_opt_out",
+    )
+    assert STACKING_STRUCTURAL_FEATURE_NAMES[-4:] == (
+        "has_family_impersonation",
+        "has_chatroom_invite",
+        "has_job_offer_lure",
+        "has_investment_lure",
     )
 
 
@@ -247,3 +254,109 @@ def test_imperative_handover_forms_are_still_flagged() -> None:
         values = dict(zip(result.names, result.values, strict=True))
 
         assert values["has_personal_info_request"] == 1.0, text
+
+
+def test_family_impersonation_is_flagged() -> None:
+    """가족을 사칭하며 연락 수단이 바뀌었다고 둘러대는 형태
+
+    문체가 일상 대화와 같아 어휘만으로는 걸러지지 않는다. 친족 호칭과
+    폰 고장/임시번호/대리 송금이 함께 오는 구조로 잡는다.
+    """
+    for text in (
+        "엄마 나 폰 수리 맡겼는데 주민등록증 사진 보내줘",
+        "아빠 휴대폰이 고장 나서 임시번호야. 급한 병원비 70만원만 보내줘.",
+        "장모님 저 대신 먼저 보내주시면 안되나해서요 401만 원이에요",
+        "형수님 공인인증서가 만료가 되어서 이체가 안되는데 부탁드려도 될까요",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_family_impersonation"] == 1.0, text
+
+
+def test_ordinary_family_talk_is_not_impersonation() -> None:
+    """호칭만으로 걸리면 일상 대화가 통째로 오탐이 된다"""
+    for text in (
+        "엄마 오늘 저녁 뭐야?",
+        "아빠 주말에 등산 가신대",
+        "누나 생일 선물 뭐 살까",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_family_impersonation"] == 0.0, text
+
+
+def test_chatroom_invite_is_flagged() -> None:
+    """통신사 문자 밖 대화방으로 넘기려는 유도"""
+    for text in (
+        "오늘 급등 종목 무료 공개. 오픈채팅 입장 후 투자금 입금 바랍니다.",
+        "즉시 저희 방에 놀러오세요. 아래 링크 누르시고 밴드에 입장하시면",
+        "VIP 정보방 입장 코드: 7771",
+        "채용 담당자 추가 후 상세 정보 확인 가능 .카톡ID: ******",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_chatroom_invite"] == 1.0, text
+
+
+def test_plus_friend_registration_is_not_a_chatroom_invite() -> None:
+    """플러스친구 등록은 합법 광고의 표준 문구다
+
+    이 문구를 대화방 유도로 보면 정상 광고 문자가 통째로 걸린다.
+    """
+    text = (
+        "[Web발신] (광고)경희한의원 "
+        "카카오톡 플러스 친구 등록 후 추가 혜택 받으세요!!"
+    )
+    result = extract_stacking_structural_features(text)
+    values = dict(zip(result.names, result.values, strict=True))
+
+    assert values["has_chatroom_invite"] == 0.0
+
+
+def test_job_offer_lure_is_flagged() -> None:
+    """손쉬운 고수익을 내세운 채용 및 부업 유인"""
+    for text in (
+        "리뷰 작성 재택업무 일급 30만원. 업무 시작 전 예치금이 필요합니다.",
+        "온라인 아르바이트 모집 중, 시급: 10,000, 급여 실시간 지급",
+        "아르바이트, 풀타임 모두 가능하며 하루 20-112만 원의 추가 수입",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_job_offer_lure"] == 1.0, text
+
+
+def test_investment_lure_is_flagged() -> None:
+    """종목 추천이나 수익률을 내세운 투자 유인"""
+    for text in (
+        "우수 고객 무료 추천 종목 서비스 당첨되셨습니다.",
+        "매주 수익률이 최대 33.59%에 달하는 우량주를 준비했어요. "
+        "채팅방에 참여하시면 즉시 5000원을 드리고요",
+        "[단독입수] 3일 만에 300% 폭등할 하반기 주도주 무료 공개!",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert values["has_investment_lure"] == 1.0, text
+
+
+def test_casual_conversation_triggers_no_lure_feature() -> None:
+    """일상 대화에서는 네 유인 특징이 하나도 켜지지 않아야 한다"""
+    lure_names = (
+        "has_family_impersonation",
+        "has_chatroom_invite",
+        "has_job_offer_lure",
+        "has_investment_lure",
+    )
+    for text in (
+        "동탄신도시도 아니고 몽탄신도시는 도대체 어디야?ㅋㅋ",
+        "ㅎㅎ나도 그래. 어떤 경기를 볼 수 있을지 너무 기대된다.",
+        "배달기사입니다. 문앞에 놓고갑니다. 맛있게 드세요.",
+    ):
+        result = extract_stacking_structural_features(text)
+        values = dict(zip(result.names, result.values, strict=True))
+
+        assert not any(values[name] for name in lure_names), text
