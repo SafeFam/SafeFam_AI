@@ -41,7 +41,7 @@ artifact `artifacts/stacking/v4` · 판정 split `real_holdout`
 | 피싱 포착률 | 0.8916 | **0.7831** | ≥ 0.95 | **미달** |
 | 자동 경고 오탐률 | 0.0541 | **0.0135** | ≤ 0.01 | **미달** |
 | '의심' 정상 비율 | 0.0676 | 0.0676 | ≤ 0.10 | 통과 |
-| P95 지연시간 | 9.70 ms | 13.97 ms | ≤ 50 ms | 통과 |
+| P95 지연시간 | 9.70 ms | 15.79 ms | ≤ 50 ms | 통과 |
 
 ### 종합: `FAIL` — 승격하지 않는다
 
@@ -54,7 +54,7 @@ artifact `artifacts/stacking/v4` · 판정 split `real_holdout`
 | Recall 0.95에 필요한 FPR | 0.1406 | **0.0349** |
 | FPR 1%에서 가능한 Recall | 0.638 | **0.750** |
 
-다만 상한 1%로는 여전히 운영점이 없어 학습이 중단된다. artifact는 `--max-false-positive-rate 0.05`로 완화해 만든 **실험용**이며 단독 운영 후보가 아니다. 완화한 값은 metadata에 기록된다.
+다만 상한 1%로는 여전히 운영점이 없어 학습이 중단된다. artifact는 `--max-false-positive-rate 0.05`로 완화해 만든 **실험용**이며 단독 운영 후보가 아니다. 완화한 실행은 `artifacts/stacking/v4-experiment`에 저장되고 정규 경로 `v4`는 비어 있으며, 완화한 값은 metadata에 기록된다.
 
 ## 4. 미달 원인: 구조 특징이 희석됐다
 
@@ -121,6 +121,6 @@ artifact `artifacts/stacking/v4` · 판정 split `real_holdout`
 | `data_science/Data/SMSData/sms_real_additions_v4.csv` | 수집 원본 166건 |
 | `data_science/SMSModel/reports/real_additions_merge_v4.json` | 병합 리포트 |
 | `data_science/SMSModel/splits/sms_split_v4.csv` | 재생성한 split manifest |
-| `data_science/SMSModel/artifacts/stacking/v4/` | 실험용 artifact |
+| `data_science/SMSModel/artifacts/stacking/v4-experiment/` | 실험용 artifact. 정규 경로 `v4`는 비어 있다 |
 | `data_science/SMSModel/reports/adoption_gate.json` | 재판정 결과 |
 | `data_science/SMSModel/reports/error_analysis_v4.json` | 유형별 오탐 분석 |

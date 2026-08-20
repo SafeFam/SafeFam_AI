@@ -14,6 +14,6 @@ Threshold selection: validation only; final metrics: test only.
 | FP | 10 |
 | FN | 15 |
 | TP | 40 |
-| Mean latency (ms) | 8.756 |
-| P50 latency (ms) | 7.597 |
-| P95 latency (ms) | 18.939 |
+| Mean latency (ms) | 11.895 |
+| P50 latency (ms) | 10.305 |
+| P95 latency (ms) | 24.848 |
