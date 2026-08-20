@@ -60,6 +60,56 @@ LINK_ACTION_PATTERN = re.compile(
 )
 
 
+# 사칭에 동원되는 친족 호칭
+KINSHIP_TERMS = (
+    r"엄마|아빠|어머니|아버지|딸|아들|형수|장모|장인|처형|"
+    r"누나|오빠|언니|삼촌|이모|고모|사위|며느리"
+)
+
+# 연락 수단이 바뀐 사정을 설명하는 표현
+CONTACT_TROUBLE_TERMS = (
+    r"임시\s*번호|이\s*번호로|폰|핸드폰|휴대폰|액정|수리|대리점|"
+    r"고장|깨(?:져|졌)|분실|인증\s*이?\s*안|공인인증서"
+)
+
+# 본인 대신 송금해 달라는 요구
+PROXY_TRANSFER_TERMS = (
+    r"(?:대신|먼저|저대신)[^\n]{0,20}?(?:보내|이체|송금|입금)"
+)
+
+# 가족을 사칭해 접근하는 표현
+FAMILY_IMPERSONATION_PATTERN = re.compile(
+    rf"(?:{KINSHIP_TERMS})[^\n]{{0,100}}?(?:{CONTACT_TROUBLE_TERMS})"
+    rf"|(?:{CONTACT_TROUBLE_TERMS})[^\n]{{0,100}}?(?:{KINSHIP_TERMS})"
+    rf"|(?:{KINSHIP_TERMS})[^\n]{{0,100}}?{PROXY_TRANSFER_TERMS}"
+)
+
+# 통신사 문자를 벗어나 통제 밖 대화방으로 유도하는 표현
+CHATROOM_INVITE_PATTERN = re.compile(
+    r"(?:카\s*톡|카카오\s*톡|오픈\s*채팅|채팅\s*방|정보\s*방|밴드|텔레그램)"
+    r"[^\n]{0,25}?(?:아이디|ID|입장|참여|초대|추가|코드|오세요|놀러)"
+    r"|(?:입장|참여)\s*(?:코드|하시면)|저희\s*방",
+    re.IGNORECASE,
+)
+
+PLUS_FRIEND_PATTERN = re.compile(r"플러스\s*친구")
+
+# 손쉬운 고수익을 내세운 채용 및 부업 유인
+JOB_OFFER_LURE_PATTERN = re.compile(
+    r"(?:재택|알바|아르바이트|부업|투잡|모집|채용)"
+    r"[^\n]{0,120}?"
+    r"(?:시급|일급|일당|고수익|추가\s*수입|급여|예치금|"
+    r"(?:하루|일)\s*[\d,\-~]+\s*만)"
+)
+
+# 종목 추천이나 수익률을 내세운 투자 유인
+INVESTMENT_LURE_PATTERN = re.compile(
+    r"(?:종목|급등|폭등|수익률|상한가|우량주|주도주|코인|이더|리딩)"
+    r"[^\n]{0,80}?(?:무료|공개|추천|당첨|입장|참여|방|수익|드리)"
+    r"|(?:무료|단독)[^\n]{0,30}?(?:종목|급등|공개)"
+)
+
+
 # 합법 광고 문자의 법정 표기
 AD_DISCLOSURE_PATTERN = re.compile(
     r"\(\s*광고\s*\)|\[\s*광고\s*\]|^광고",
@@ -89,6 +139,10 @@ STACKING_STRUCTURAL_FEATURE_NAMES: tuple[str, ...] = (
     "is_long_text",
     "has_ad_disclosure",
     "has_opt_out",
+    "has_family_impersonation",
+    "has_chatroom_invite",
+    "has_job_offer_lure",
+    "has_investment_lure",
 )
 
 
@@ -141,6 +195,13 @@ def extract_stacking_structural_features(
             len(text) > 100,
             bool(AD_DISCLOSURE_PATTERN.search(text)),
             bool(OPT_OUT_PATTERN.search(text)),
+            bool(FAMILY_IMPERSONATION_PATTERN.search(text)),
+            bool(
+                CHATROOM_INVITE_PATTERN.search(text)
+                and not PLUS_FRIEND_PATTERN.search(text)
+            ),
+            bool(JOB_OFFER_LURE_PATTERN.search(text)),
+            bool(INVESTMENT_LURE_PATTERN.search(text)),
         ],
         dtype=np.float64,
     )

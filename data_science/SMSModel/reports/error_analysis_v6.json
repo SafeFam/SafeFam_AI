@@ -1,0 +1,775 @@
+{
+  "artifact_threshold": 0.4539631422516468,
+  "splits": [
+    {
+      "extreme_samples": {
+        "highest_scoring_normals": [
+          {
+            "probability": 0.963825456704733,
+            "text_fingerprint": "edbc32617ba53e87dc27ccadb713e7b754ad3762050081fac8270bdd3d4a0b4c",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.8475345859083327,
+            "text_fingerprint": "1e3d67ae8cf7b7b80e63153ce5e20941a75f5b05ac84972dd4143781ba15404c",
+            "type": "정상공공기관알림"
+          },
+          {
+            "probability": 0.7761585376597964,
+            "text_fingerprint": "86596a3b5b9be6ab74d172e9345e72c1c77ec1d99520a4919c4753a408b9a30e",
+            "type": "정상공공기관알림"
+          },
+          {
+            "probability": 0.7332862206164096,
+            "text_fingerprint": "7b03ef9bdb9069327e164e255526d8779ae45959641b91eb7e5c0f7b74cd17de",
+            "type": "정상택배배송안내"
+          },
+          {
+            "probability": 0.6144751183553063,
+            "text_fingerprint": "63fac6a7e948aa2daef3f106f0315a48e2361f6cd07047ce725966ccd42075cc",
+            "type": "기타정상"
+          },
+          {
+            "probability": 0.585280734927749,
+            "text_fingerprint": "86cbfd1a1849968c107a94e0520dbd09508700deb1588449c373ebf6e3cc4ad7",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.5800779328413447,
+            "text_fingerprint": "a5bd16e9e8c638a07feac44cc91021ad0b5b5a56523b4f7a52050065625e0907",
+            "type": "정상공공기관알림"
+          },
+          {
+            "probability": 0.5578270708389377,
+            "text_fingerprint": "816a34bc44207409d7857182e0a3ba1d8ff1d42411a200536f96e545d69642bb",
+            "type": "기타정상"
+          },
+          {
+            "probability": 0.41401823070189453,
+            "text_fingerprint": "4f1e4fc47a013ea590fc16b4b58612530d756b7971dd1f9d306f898dfc41005c",
+            "type": "정상공공기관알림"
+          },
+          {
+            "probability": 0.3565072467003556,
+            "text_fingerprint": "ad942990feda8771c64d278166c14493ea842449d6ba34a29f0bebaf65c68c98",
+            "type": "기타정상"
+          },
+          {
+            "probability": 0.3534359656347547,
+            "text_fingerprint": "fded9f3fbe3d5f29002813c835ac6a0e6a88033e9785cf5ac7424f4df3eb0711",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.3518507525858744,
+            "text_fingerprint": "426bf67c21cfb764413d9498ec94efe6f94c07c4999a4c5bd9591e63f5b263c4",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.3389876406977626,
+            "text_fingerprint": "061121ea6e5a60f9512b6ff0fee3292a4adf8ed5bf1e7c3b9edd4aec854eee0c",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.3343441417648991,
+            "text_fingerprint": "74ac6e366b1ecfc66f2603b555ea1593f4747d0ef70221d8bc6c30193435b52c",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.3191509526788981,
+            "text_fingerprint": "8e7be615a41ee7c1d9a183ff0966fa02be2f37d0cc15eac763fe0763f0eddfec",
+            "type": "일상대화"
+          }
+        ],
+        "lowest_scoring_phishing": [
+          {
+            "probability": 0.30449555037832987,
+            "text_fingerprint": "6963063fc3c9796c06e46059dbbcd00d021b820b9d2374a82313f617fa65820f",
+            "type": "중고거래사기"
+          },
+          {
+            "probability": 0.3476736408393764,
+            "text_fingerprint": "77b81d18dc5de0e4539eae4029aed9b4e8c1dd6ba45dd38469449f488a4ce4d2",
+            "type": "계정정지본인인증유도"
+          },
+          {
+            "probability": 0.4539631422516468,
+            "text_fingerprint": "5d9bc43f9fc6069106615b11d80ef6471b46d313e089c334212a2b6b306337f9",
+            "type": "이벤트당첨사칭"
+          },
+          {
+            "probability": 0.5206929149730969,
+            "text_fingerprint": "a4e0ae3d2d6c2869ed1693c3d6889cea119d3793c2c32d1ab6f84cff9eb497bc",
+            "type": "정부공공기관사칭"
+          },
+          {
+            "probability": 0.6439701037342137,
+            "text_fingerprint": "9397997bc5d97edb5de9a4c887e8d0a260eac8df3f9b2bdbdac52ec775e6b51c",
+            "type": "악성링크앱설치유도"
+          },
+          {
+            "probability": 0.7759170710045675,
+            "text_fingerprint": "f30d63141b4845a656b058c240a2eb4d8f99c8f34da27131d70dce948618c2f5",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.7769646273237535,
+            "text_fingerprint": "eb8f6d7e5925e119738ba91c9b0ed18f2ecb8d9b2a3a3bff7ae366435b3681d4",
+            "type": "정부공공기관사칭"
+          },
+          {
+            "probability": 0.9192606162185675,
+            "text_fingerprint": "c43b8807d618669045d21ea37afba443fbb9787ee4f215b02dbcfad29aa85f3e",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.9300222113296873,
+            "text_fingerprint": "5928d47de7d591fa513b33f445095e7bdf6e4156257d054d7daa871fee874140",
+            "type": "경조사사칭"
+          },
+          {
+            "probability": 0.9376286012169422,
+            "text_fingerprint": "e8fd0ea787a039d859c2ab5c6282d183d9fd820b4337c6d45a7a444e3df8c4d8",
+            "type": "경조사사칭"
+          },
+          {
+            "probability": 0.937972354881021,
+            "text_fingerprint": "32ebfadcc9ae33421da8f8246b2309ec4be9846cd569d9ed45df0407b714acc0",
+            "type": "이벤트당첨사칭"
+          },
+          {
+            "probability": 0.947624817858297,
+            "text_fingerprint": "decbd26769f4dcde0dad039cd04c2de4bdaf87e3e18d38b851316eef10c87b9f",
+            "type": "경조사사칭"
+          },
+          {
+            "probability": 0.9496964404101279,
+            "text_fingerprint": "79b09641fc8c18ef9d43e8956c47c96cebcea18d63a355b147e3d43822f74a09",
+            "type": "정부공공기관사칭"
+          },
+          {
+            "probability": 0.9662533619529906,
+            "text_fingerprint": "7a7244609a658e5720305b4a6c09bc488152fe7e2e23dcc280e945ed8de7cb6f",
+            "type": "택배배송사칭"
+          },
+          {
+            "probability": 0.967620043080524,
+            "text_fingerprint": "82d58d02cbcd579703de5525cab7b7a10420a5b46ebf9a4e9b86351aa85ae1bf",
+            "type": "금융기관사칭"
+          }
+        ]
+      },
+      "false_positives_at_artifact_threshold": {
+        "by_type": {
+          "기타정상": {
+            "false_positive": 2,
+            "false_positive_rate": 0.3333333333333333,
+            "sample_count": 6
+          },
+          "일상대화": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 21
+          },
+          "정상공공기관알림": {
+            "false_positive": 3,
+            "false_positive_rate": 0.5,
+            "sample_count": 6
+          },
+          "정상광고프로모션": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 18
+          },
+          "정상금융알림": {
+            "false_positive": 2,
+            "false_positive_rate": 0.18181818181818182,
+            "sample_count": 11
+          },
+          "정상인증알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 9
+          },
+          "정상카드결제알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 4
+          },
+          "정상택배배송안내": {
+            "false_positive": 1,
+            "false_positive_rate": 0.2,
+            "sample_count": 5
+          },
+          "정상포인트소멸알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 2
+          }
+        },
+        "false_positive_count": 8,
+        "false_positive_rate": 0.0975609756097561,
+        "normal_count": 82,
+        "threshold": 0.4539631422516468
+      },
+      "normal_count": 82,
+      "operating_points": [
+        {
+          "max_recall": 0.851063829787234,
+          "missed_phishing": 7,
+          "target_fpr": 0.02,
+          "threshold": 0.9192606162185675
+        },
+        {
+          "max_recall": 0.9148936170212766,
+          "missed_phishing": 4,
+          "target_fpr": 0.05,
+          "threshold": 0.6439701037342137
+        },
+        {
+          "max_recall": 0.9574468085106383,
+          "missed_phishing": 2,
+          "target_fpr": 0.1,
+          "threshold": 0.4539631422516468
+        },
+        {
+          "max_recall": 0.9787234042553191,
+          "missed_phishing": 1,
+          "target_fpr": 0.15,
+          "threshold": 0.3476736408393764
+        },
+        {
+          "max_recall": 1.0,
+          "missed_phishing": 0,
+          "target_fpr": 0.2,
+          "threshold": 0.30449555037832987
+        }
+      ],
+      "phishing_count": 47,
+      "pr_auc": 0.9764242951693194,
+      "roc_auc": 0.9849507005708356,
+      "sample_count": 129,
+      "split": "validation"
+    },
+    {
+      "extreme_samples": {
+        "highest_scoring_normals": [
+          {
+            "probability": 0.872749775112443,
+            "text_fingerprint": "41ea20c00b25c732d8918155f31644b566d77339883659af9f900b7bb51c8fe3",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.8042420258395602,
+            "text_fingerprint": "c7c82e86da5b0f6e3c05168160860a320ed27896d58823c0a18ca017fd8c3d9d",
+            "type": "일상대화"
+          },
+          {
+            "probability": 0.7774875566495058,
+            "text_fingerprint": "af129827c3283f2218baef8752bf17dc48159f820b6793985bfcd7c83213f83b",
+            "type": "기타정상"
+          },
+          {
+            "probability": 0.6182445653155254,
+            "text_fingerprint": "2f2502108c4181956a65110cc8f5237a78fb8e9f5278201a2f898320e196f565",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.6167963647831415,
+            "text_fingerprint": "537c1de6a5e3721f7ead8729753bdd226f4cf4184329323eb77aa132170b3e22",
+            "type": "기타정상"
+          },
+          {
+            "probability": 0.5783778763075292,
+            "text_fingerprint": "f16d09ba067c6bde1b482404a3f3e251cd634d5e4fee1e7dde6f8aed198b91f0",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.5732073018747117,
+            "text_fingerprint": "ccce2b7f00a16f8446b78440ca74d229f7f29faf08ae1b8b34ddebc43bee98fb",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.44291971757661425,
+            "text_fingerprint": "c93b8bcf3754cd8d9921df04f274c9bbadd47527e802113dd4751ddbd96ad7bd",
+            "type": "정상택배배송안내"
+          },
+          {
+            "probability": 0.4306491674383378,
+            "text_fingerprint": "78b6d6297b0b5a5455ad018efd6397e7c110b6d6694f7d15b0ccff33760fac1d",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.4109350737048461,
+            "text_fingerprint": "e14cafbff49aa7a3e2397a2ede7aeef4ff0003e2a3a9c144b1139a0597211374",
+            "type": "정상공공기관알림"
+          },
+          {
+            "probability": 0.40958732455646596,
+            "text_fingerprint": "cc8d0bb2a49bd34a471c0d7bd88040ca0d3fbab90e0c5a420acca2c9ac3366fa",
+            "type": "기타정상"
+          },
+          {
+            "probability": 0.3979863724192364,
+            "text_fingerprint": "c5babe9c424ae174ff88e7c8842a9d164fa67c2526f0c9d3e4a4e3ce418f70b4",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.34410504681495196,
+            "text_fingerprint": "5ad5b9a5a0ccac50101757bc42636299f5d01ebe8399764cf1132e5bf5f2e9d8",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.3370690081333793,
+            "text_fingerprint": "ca2cc85429e4f60699f865d1d80b5c708f28279ee57bb2a21303dad7d10bfa37",
+            "type": "일상대화"
+          },
+          {
+            "probability": 0.28547405961571476,
+            "text_fingerprint": "834771d380fd2b13133224da42ca21e35b3c22cdc67b1c4a1405e89160fe9330",
+            "type": "정상포인트소멸알림"
+          }
+        ],
+        "lowest_scoring_phishing": [
+          {
+            "probability": 0.2284858401883384,
+            "text_fingerprint": "057af781b64233fc26bb19129616eaefc14d5d78ea7b771e85c2daaf33cc0d11",
+            "type": "채용부업사기"
+          },
+          {
+            "probability": 0.45783152301220975,
+            "text_fingerprint": "102ecec1e3c66b3d3b2fee43a9b766dfbeea6807a2862be01d6e115b97ab909e",
+            "type": "기타피싱"
+          },
+          {
+            "probability": 0.5735916232269493,
+            "text_fingerprint": "9a0ccdc653a1b419e18959b07bb5430d1f4f84ec49401574e9fc4468d294602f",
+            "type": "계정정지본인인증유도"
+          },
+          {
+            "probability": 0.6505045226563816,
+            "text_fingerprint": "491b286c331247578d2219a39639efb65f3bb633612e25bad9c8b929ac42b7ef",
+            "type": "복합피싱"
+          },
+          {
+            "probability": 0.6626913523532474,
+            "text_fingerprint": "db048dd893aa9e801ccb48204b85e7376337220151a7c489523b40b90d470490",
+            "type": "악성링크앱설치유도"
+          },
+          {
+            "probability": 0.6770471672264127,
+            "text_fingerprint": "fd2d19d83512b7149a8be03805c12950e64fe7db3708134956cac385580a37ab",
+            "type": "투자리딩방사기"
+          },
+          {
+            "probability": 0.6794158411397219,
+            "text_fingerprint": "f6f7b2609f4183cb615936eb4ff94578d76999248691f37b32e10a5008cd4924",
+            "type": "정부공공기관사칭"
+          },
+          {
+            "probability": 0.7215502261328124,
+            "text_fingerprint": "d8b87294730c72da113cdba5e9248674805c582c7940070e42f29e85b64c1333",
+            "type": "이벤트당첨사칭"
+          },
+          {
+            "probability": 0.7289148030027034,
+            "text_fingerprint": "e68dc3228107c728df275478de2c35da3c26a96ea5c1b2c24cfd9fe2186c4440",
+            "type": "정부공공기관사칭"
+          },
+          {
+            "probability": 0.8084128016456357,
+            "text_fingerprint": "1b4632392cc594cbd7f73cedfdb7cfe61384a76a8937ec34c9709142d490f8e9",
+            "type": "결제환불사칭"
+          },
+          {
+            "probability": 0.8231249713749141,
+            "text_fingerprint": "ce74e0f177cfe56bb75f15eba80d8619fc772fcb858b8bac3a429973fd7e2512",
+            "type": "지인가족사칭"
+          },
+          {
+            "probability": 0.8546891134844307,
+            "text_fingerprint": "549d0c87ec693085e33c5bfb17ce113e1220b093f84b6d675ebcc833a5901932",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.8650143475681514,
+            "text_fingerprint": "bc7b681f430be9f6abfcd8b2e82cd5acd1d377deb00a57ac1a639326337f8db9",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.9485274515555638,
+            "text_fingerprint": "40d9fae89d485e95e4f166059682c864c1b01a6aae887f848e4b418c00a32f4a",
+            "type": "택배배송사칭"
+          },
+          {
+            "probability": 0.9534607336981431,
+            "text_fingerprint": "0c4eec4898c345f4c4c9ba05723ead5c0c261c6d7e867fedcbbe4304eda3f806",
+            "type": "택배배송사칭"
+          }
+        ]
+      },
+      "false_positives_at_artifact_threshold": {
+        "by_type": {
+          "기타정상": {
+            "false_positive": 2,
+            "false_positive_rate": 0.3333333333333333,
+            "sample_count": 6
+          },
+          "일상대화": {
+            "false_positive": 1,
+            "false_positive_rate": 0.047619047619047616,
+            "sample_count": 21
+          },
+          "정상공공기관알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 6
+          },
+          "정상광고프로모션": {
+            "false_positive": 1,
+            "false_positive_rate": 0.05555555555555555,
+            "sample_count": 18
+          },
+          "정상금융알림": {
+            "false_positive": 3,
+            "false_positive_rate": 0.2727272727272727,
+            "sample_count": 11
+          },
+          "정상인증알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 9
+          },
+          "정상카드결제알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 1
+          },
+          "정상택배배송안내": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 5
+          },
+          "정상포인트소멸알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 2
+          }
+        },
+        "false_positive_count": 7,
+        "false_positive_rate": 0.08860759493670886,
+        "normal_count": 79,
+        "threshold": 0.4539631422516468
+      },
+      "normal_count": 79,
+      "operating_points": [
+        {
+          "max_recall": 0.8085106382978723,
+          "missed_phishing": 9,
+          "target_fpr": 0.02,
+          "threshold": 0.8084128016456357
+        },
+        {
+          "max_recall": 0.9361702127659575,
+          "missed_phishing": 3,
+          "target_fpr": 0.05,
+          "threshold": 0.6505045226563816
+        },
+        {
+          "max_recall": 0.9787234042553191,
+          "missed_phishing": 1,
+          "target_fpr": 0.1,
+          "threshold": 0.45783152301220975
+        },
+        {
+          "max_recall": 0.9787234042553191,
+          "missed_phishing": 1,
+          "target_fpr": 0.15,
+          "threshold": 0.45783152301220975
+        },
+        {
+          "max_recall": 0.9787234042553191,
+          "missed_phishing": 1,
+          "target_fpr": 0.2,
+          "threshold": 0.45783152301220975
+        }
+      ],
+      "phishing_count": 47,
+      "pr_auc": 0.9783926791258444,
+      "roc_auc": 0.9862644761648263,
+      "sample_count": 126,
+      "split": "test"
+    },
+    {
+      "extreme_samples": {
+        "highest_scoring_normals": [
+          {
+            "probability": 0.9137218281022493,
+            "text_fingerprint": "142e893e7abf8d1250e4746b52b5ffc12d95fe74ed00971f4f7bebdfcf8aec60",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.8850616153664671,
+            "text_fingerprint": "b839897a2b91ffce0e4f1636a326e927dd60c4108d9b6519a26c13be7f4365a4",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.8764369212030888,
+            "text_fingerprint": "98b159e62b613bf2336834b16aaff6767eaabeeac7efcb31799181f67cae0524",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.8746158822385637,
+            "text_fingerprint": "ea37b2f365f48362140d6d2faa06a9ac6365ce9ae4c2e13d56d880e08c20f942",
+            "type": "정상택배배송안내"
+          },
+          {
+            "probability": 0.8289361517449958,
+            "text_fingerprint": "ad8aef5dca65b9d427dce72cdf8a082f084e6cac7ea671beefc0f62ad840ad5c",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.8122315051499934,
+            "text_fingerprint": "eb39ce7f026426e4959672fdd274afdbe8a8791052372d2501631eae9eb41244",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.787267510492944,
+            "text_fingerprint": "78f84761c2d3c78e0423cbddad17817052df948672bffd62c380b32cbbdbec87",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.7286878500111116,
+            "text_fingerprint": "59be7e2227bda93451eccd3661526cbf6e085baaf654840800a601153f51efb4",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.7277578533195184,
+            "text_fingerprint": "fa744c13158f675ec99818e8f32585876a4d77c625f583f61d146cd638070e42",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.7235455324319673,
+            "text_fingerprint": "bd90ffd2d9d870557aa19508ea75f2d92a66b1e7d6a2ecd91dc0fae2988a3ac7",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.7126355594503029,
+            "text_fingerprint": "954a8cd7f96bd877aa1e3f6cf091e1edb574ffa2b7fc70cd6049c5731cbd41cd",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.7053067366535346,
+            "text_fingerprint": "95d83f20949d40719770963a92c1ba0422d65468fdbb3d01d4c686baf50bf8fa",
+            "type": "정상금융알림"
+          },
+          {
+            "probability": 0.7043283330825227,
+            "text_fingerprint": "9f5b789f6e41de6df9911938eb03541ed782ce02a034d44af1d486044283c694",
+            "type": "정상광고프로모션"
+          },
+          {
+            "probability": 0.6612090020303995,
+            "text_fingerprint": "59511465e1f18c2fcff2d3f87ceb1a6c88b06c20a5b5157cccdeac8c1df198d4",
+            "type": "정상카드결제알림"
+          },
+          {
+            "probability": 0.6582973092566972,
+            "text_fingerprint": "87398dd164f90665601ea4f6a2a32229a1ad7353ec92f7db7a26723db6e49c48",
+            "type": "정상택배배송안내"
+          }
+        ],
+        "lowest_scoring_phishing": [
+          {
+            "probability": 0.056770978039843135,
+            "text_fingerprint": "9a17e496aea032ec4edc7355bfa89673f14a14bd017bec19bdc0c316cacd41b4",
+            "type": "투자리딩방사기"
+          },
+          {
+            "probability": 0.06033111439264531,
+            "text_fingerprint": "2717c495b40216b748632e4da0eb0a30dc073b9c8a77582aaab21ac0b7ea1539",
+            "type": "채용부업사기"
+          },
+          {
+            "probability": 0.11458698190121533,
+            "text_fingerprint": "4f497e918721762642d62776843e758fe66b7c594b937b4c16fee9697f49e56b",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.1364862950083005,
+            "text_fingerprint": "9dcf8eba95462d95ccd882dcf3ce83ef31221a9304c8c3e8e1848a32e6a921ef",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.14008705830532575,
+            "text_fingerprint": "88ef80d822eca8cfe738955e75cc0efc7a0e89ece5162a4319a71ee17edfd798",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.198494473618424,
+            "text_fingerprint": "b64fd98cc25a5b4dc35c12ec6bd28e26f545f04a3af2f20b603f842974ab18ac",
+            "type": "채용부업사기"
+          },
+          {
+            "probability": 0.24212732958584374,
+            "text_fingerprint": "829fea59062a71258522b9c5cc465d68b271418a21b667825e9e41e699928603",
+            "type": "지인가족사칭"
+          },
+          {
+            "probability": 0.2812422810056947,
+            "text_fingerprint": "a81efa689e5bab91577bbfd3c0ae3e32a941d3c8c7b18566cc15e6abf4479070",
+            "type": "투자리딩방사기"
+          },
+          {
+            "probability": 0.3224905480878762,
+            "text_fingerprint": "6042b81b11cfa5a8c9db730e483d9ca119afda3caa0a9e2831fa3ca066689d92",
+            "type": "지인가족사칭"
+          },
+          {
+            "probability": 0.38627864953185936,
+            "text_fingerprint": "c4cc3cc9180aaf5e13a6b0f4807eb637afee02a6675ed00df3e5dd2ce8205dec",
+            "type": "금융기관사칭"
+          },
+          {
+            "probability": 0.43573641884356235,
+            "text_fingerprint": "3a6048f2cc45147d555c7416de1fbf811a438bb9ddb9b057ab2d38fead39b9c0",
+            "type": "투자리딩방사기"
+          },
+          {
+            "probability": 0.43799138099406976,
+            "text_fingerprint": "db6fa1e8200183d485a1386d0d097415a832912f89d9c6c9079a9c91020e4955",
+            "type": "지인가족사칭"
+          },
+          {
+            "probability": 0.4573254506421179,
+            "text_fingerprint": "30e8097bdc1813eae34b105c20b4c92722a0d09cc0f212e1ac91fd32bb5e3831",
+            "type": "경조사사칭"
+          },
+          {
+            "probability": 0.4946337464534871,
+            "text_fingerprint": "e748c7274d6ce8ee555f9f8cd5e86a67927ef282c831ed5ace423f7e7a7a4cc1",
+            "type": "지인가족사칭"
+          },
+          {
+            "probability": 0.5281730603055473,
+            "text_fingerprint": "41f5bb6108ef76446fbdb8e19be660b9ff53d89b9e9d1b5e90847deae2c1a24e",
+            "type": "금융기관사칭"
+          }
+        ]
+      },
+      "false_positives_at_artifact_threshold": {
+        "by_type": {
+          "기타정상": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 33
+          },
+          "일상대화": {
+            "false_positive": 2,
+            "false_positive_rate": 0.04081632653061224,
+            "sample_count": 49
+          },
+          "정상공공기관알림": {
+            "false_positive": 1,
+            "false_positive_rate": 0.03225806451612903,
+            "sample_count": 31
+          },
+          "정상광고프로모션": {
+            "false_positive": 12,
+            "false_positive_rate": 0.3157894736842105,
+            "sample_count": 38
+          },
+          "정상금융알림": {
+            "false_positive": 8,
+            "false_positive_rate": 0.23529411764705882,
+            "sample_count": 34
+          },
+          "정상인증알림": {
+            "false_positive": 0,
+            "false_positive_rate": 0.0,
+            "sample_count": 44
+          },
+          "정상카드결제알림": {
+            "false_positive": 4,
+            "false_positive_rate": 0.14814814814814814,
+            "sample_count": 27
+          },
+          "정상택배배송안내": {
+            "false_positive": 6,
+            "false_positive_rate": 0.20689655172413793,
+            "sample_count": 29
+          },
+          "정상포인트소멸알림": {
+            "false_positive": 6,
+            "false_positive_rate": 0.2608695652173913,
+            "sample_count": 23
+          }
+        },
+        "false_positive_count": 39,
+        "false_positive_rate": 0.1266233766233766,
+        "normal_count": 308,
+        "threshold": 0.4539631422516468
+      },
+      "normal_count": 308,
+      "operating_points": [
+        {
+          "max_recall": 0.7469879518072289,
+          "missed_phishing": 21,
+          "target_fpr": 0.02,
+          "threshold": 0.7984831354499945
+        },
+        {
+          "max_recall": 0.7831325301204819,
+          "missed_phishing": 18,
+          "target_fpr": 0.05,
+          "threshold": 0.6882242490255658
+        },
+        {
+          "max_recall": 0.8192771084337349,
+          "missed_phishing": 15,
+          "target_fpr": 0.1,
+          "threshold": 0.5466420626560534
+        },
+        {
+          "max_recall": 0.891566265060241,
+          "missed_phishing": 9,
+          "target_fpr": 0.15,
+          "threshold": 0.38627864953185936
+        },
+        {
+          "max_recall": 0.891566265060241,
+          "missed_phishing": 9,
+          "target_fpr": 0.2,
+          "threshold": 0.38627864953185936
+        }
+      ],
+      "phishing_count": 83,
+      "pr_auc": 0.8872836906373848,
+      "roc_auc": 0.9347128774839618,
+      "sample_count": 391,
+      "split": "real_holdout"
+    }
+  ],
+  "structural_feature_names": [
+    "naive_bayes_score",
+    "logistic_regression_score",
+    "linear_svm_score",
+    "has_url",
+    "has_short_url",
+    "has_phone",
+    "has_account",
+    "has_card",
+    "has_amount",
+    "has_web_tag",
+    "has_urgency",
+    "has_transfer_request",
+    "has_personal_info_request",
+    "has_link_action",
+    "is_long_text",
+    "has_ad_disclosure",
+    "has_opt_out",
+    "has_family_impersonation",
+    "has_chatroom_invite",
+    "has_job_offer_lure",
+    "has_investment_lure"
+  ]
+}
