@@ -20,6 +20,8 @@ from data_science.SMSModel.train_sms import (
     DATA_PATH,
     HOLDOUT_SOURCES,
     REAL_HOLDOUT_SOURCES,
+    load_data,
+    select_real_holdout,
 )
 
 EVAL_SOURCE = "real_holdout_v5"
@@ -31,9 +33,6 @@ ADDITIONS_PATH = (
     / "sms_eval_additions_v5.csv"
 )
 
-# 이 추가분을 넣기 전 판정셋(real_holdout)의 정상 표본 수
-EXISTING_JUDGING_NORMAL_COUNT = 74
-
 
 @pytest.fixture(scope="module")
 def additions() -> pd.DataFrame:
@@ -42,15 +41,11 @@ def additions() -> pd.DataFrame:
 
 
 @pytest.fixture(scope="module")
-def dataset_fingerprints() -> set[str]:
-    """기존 데이터셋 전체의 마스킹 후 지문"""
-    dataset = pd.read_csv(DATA_PATH)
+def judging_set() -> pd.DataFrame:
+    """학습에 쓰이지 않는 실제 문자 판정셋(real_holdout)"""
+    _, holdout = load_data(DATA_PATH)
 
-    return set(
-        dataset["text"].map(
-            lambda text: create_text_fingerprint(normalize_text(text))
-        )
-    )
+    return select_real_holdout(holdout)
 
 
 def test_source_is_registered_everywhere() -> None:
@@ -107,26 +102,33 @@ def test_has_url_matches_the_text(additions: pd.DataFrame) -> None:
     assert additions["has_url"].astype(bool).equals(expected)
 
 
-def test_additions_clear_the_adoption_sample_floor(
+def test_additions_reach_the_judging_set(
     additions: pd.DataFrame,
-    dataset_fingerprints: set[str],
+    judging_set: pd.DataFrame,
 ) -> None:
-    """채택 기준의 정상 표본 하한을 넘길 만큼 순증해야 한다
+    """추가분이 학습 pool이 아니라 판정셋에 실제로 도착해야 한다
 
-    기존 데이터셋과 지문이 겹치는 행은 병합에서 잘려나가므로, 수집 건수가
-    아니라 순증 건수로 따져야 한다. rule of three로 3/n <= 1%를 주장하려면
-    판정셋 정상이 min_normal_samples 이상이어야 한다.
+    source 화이트리스트 등록만으로는 부족하다. #89은 등록 자체를 빠뜨려
+    164건이 통째로 학습에 쓰였으므로, 라우팅 결과를 직접 확인한다.
     """
-    net_new = sum(
-        create_text_fingerprint(normalize_text(text))
-        not in dataset_fingerprints
-        for text in additions["text"]
-    )
-    required = (
-        AdoptionCriteria().min_normal_samples - EXISTING_JUDGING_NORMAL_COUNT
-    )
+    landed = int(judging_set["source"].eq(EVAL_SOURCE).sum())
 
-    assert net_new >= required
+    assert landed > 0
+    assert landed <= len(additions)
+
+
+def test_judging_set_clears_the_adoption_sample_floor(
+    judging_set: pd.DataFrame,
+) -> None:
+    """판정셋 정상 표본이 채택 기준의 하한을 넘겨야 한다
+
+    rule of three로 오탐 0건에서 상한 1%를 주장하려면 3/n <= 0.01, 즉 정상
+    표본이 min_normal_samples 이상이어야 한다. 이 하한을 못 넘기면 어떤
+    artifact도 INSUFFICIENT_EVIDENCE를 벗어날 수 없다.
+    """
+    normal_count = int(judging_set["label"].eq("normal").sum())
+
+    assert normal_count >= AdoptionCriteria().min_normal_samples
 
 
 def test_collection_covers_the_missing_types(
