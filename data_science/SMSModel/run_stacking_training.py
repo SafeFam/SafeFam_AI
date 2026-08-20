@@ -147,7 +147,7 @@ def validate_dataset_fingerprint() -> str:
 def resolve_artifact_paths(
     max_false_positive_rate: float,
 ) -> tuple[Path, Path]:
-    """정책 상한을 지켰는지에 따라 artifact와 리포트 경로 선택""
+    """정책 상한을 지켰는지에 따라 artifact와 리포트 경로 선택"""
     if max_false_positive_rate == MAX_NORMAL_FALSE_POSITIVE_RATE:
         return STACKING_ARTIFACT_DIRECTORY, STACKING_REPORT_DIRECTORY
 
