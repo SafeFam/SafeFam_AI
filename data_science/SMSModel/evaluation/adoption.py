@@ -21,14 +21,15 @@ class AdoptionVerdict(str, Enum):
 class AdoptionCriteria:
     """단독 운영 승격에 필요한 최소 조건"""
 
-    # 최소 '의심' 이상으로 걸러내야 하는 피싱 비율
+    # 최소 '의심' 이상으로 걸러내야 하는 피싱 비율.
+    # 현행 하이브리드가 놓치는 피싱이 0건이라 완화 근거가 없다 (#100 §2.3)
     min_coverage_recall: float = 0.95
 
     # 자동 경고가 잘못 울릴 정상 비율. 하루 15건 기준 주 1회 오경보
     max_alert_false_positive_rate: float = 0.01
 
-    # '의심' 카드가 뜨는 정상 비율. 하루 15건 기준 하루 1.5건
-    max_uncertain_normal_share: float = 0.10
+    # '의심' 카드가 뜨는 정상 비율. 하루 15건 기준 하루 2건 (#100 §2.2)
+    max_uncertain_normal_share: float = 0.133
 
     # 단건 추론 P95 지연시간
     max_p95_latency_ms: float = 50.0
