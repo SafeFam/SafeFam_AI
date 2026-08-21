@@ -38,7 +38,7 @@ from data_science.SMSModel.train_sms import (
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
 
-STACKING_ARTIFACT_VERSION = "v7"
+STACKING_ARTIFACT_VERSION = "v8"
 
 STACKING_ARTIFACT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
@@ -70,16 +70,16 @@ TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 # 사용자 대면 오탐 보장은 판정셋에서 alert_false_positive_rate가 담당한다.
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.10
 EXPECTED_DATASET_FINGERPRINT = (
-    "69236fa9b54e4f2246049e6cefc0691"
-    "79b5e914770854194216ee9a37ea08ae5"
+    "c29414e5fbf154fbc2d62d0838e778"
+    "1a60ff56ce46f35429e26d3b506f5e368f"
 )
 
-EXPECTED_TOTAL_CSV_ROWS = 3476
-EXPECTED_TRAINING_POOL_ROWS = 836
+EXPECTED_TOTAL_CSV_ROWS = 3493
+EXPECTED_TRAINING_POOL_ROWS = 853
 EXPECTED_HOLDOUT_ROWS = 514
 EXPECTED_SPLIT_COUNTS = {
-    "train": 581,
-    "validation": 129,
+    "train": 604,
+    "validation": 123,
     "test": 126,
 }
 
@@ -327,9 +327,9 @@ def train_stacking(
             f"split manifest is required: {SPLIT_MANIFEST_PATH}"
         )
 
-    if SPLIT_MANIFEST_PATH.name != "sms_split_v5.csv":
+    if SPLIT_MANIFEST_PATH.name != "sms_split_v6.csv":
         raise ValueError(
-            "Stacking must use sms_split_v5.csv"
+            "Stacking must use sms_split_v6.csv"
         )
 
     # 원본에서 학습 pool과 holdout을 분리. 실제 행 수는 아래에서 대조한다.

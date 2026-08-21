@@ -53,6 +53,7 @@ ALLOWED_DATA_SOURCES = {
     "real_collected_v4",
     "real_holdout",
     "real_holdout_v5",
+    "real_phishing_v6",
 }
 
 REAL_HOLDOUT_SOURCES = (
@@ -77,7 +78,7 @@ DATA_PATH = (
 ARTIFACTS_DIR = SMS_MODEL_DIR / "artifacts"
 MODEL_PATH = ARTIFACTS_DIR / "phishing_model_artifact.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "phishing_vectorizer.pkl"
-SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v5.csv"
+SPLIT_MANIFEST_PATH = SMS_MODEL_DIR / "splits" / "sms_split_v6.csv"
 
 # 보고서 경로
 REPORTS_DIR = SMS_MODEL_DIR / "reports"
