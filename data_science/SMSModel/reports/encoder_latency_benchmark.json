@@ -1,0 +1,51 @@
+{
+  "budget": {
+    "current_pipeline_p95_ms": 10.18245,
+    "max_p95_latency_ms": 50.0,
+    "remaining_ms": 39.81755
+  },
+  "measurements": [
+    {
+      "fits_remaining_budget": true,
+      "latency": {
+        "max_ms": 20.03369999874849,
+        "mean_ms": 12.21806800000195,
+        "p50_ms": 10.958499995467719,
+        "p95_ms": 18.81974999705562,
+        "p99_ms": 19.696158996230224,
+        "sample_count": 200
+      },
+      "max_length": 128,
+      "truncation": {
+        "dropped_token_share": 0.27482719628406854,
+        "token_length_max": 537,
+        "token_length_median": 45.5,
+        "truncated_count": 26,
+        "truncated_share": 0.13
+      }
+    },
+    {
+      "fits_remaining_budget": true,
+      "latency": {
+        "max_ms": 31.85970000049565,
+        "mean_ms": 14.10104800008412,
+        "p50_ms": 12.720200007606763,
+        "p95_ms": 23.84796499318327,
+        "p99_ms": 30.493590995756666,
+        "sample_count": 200
+      },
+      "max_length": 256,
+      "truncation": {
+        "dropped_token_share": 0.25418475806147356,
+        "token_length_max": 537,
+        "token_length_median": 45.5,
+        "truncated_count": 4,
+        "truncated_share": 0.02
+      }
+    }
+  ],
+  "model_id": "beomi/KcELECTRA-small-v2022",
+  "parameter_count": 16532096,
+  "schema_version": 1,
+  "torch_threads": 6
+}

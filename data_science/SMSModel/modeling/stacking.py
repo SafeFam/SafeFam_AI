@@ -21,6 +21,9 @@ from data_science.SMSModel.modeling.base import (
     ScoreOutput,
     ScoreType,
 )
+from data_science.SMSModel.modeling.korean_encoder import (
+    KoreanEncoderPhishingClassifier,
+)
 from data_science.SMSModel.modeling.linear_svm import (
     LinearSvmPhishingClassifier,
 )
@@ -37,11 +40,7 @@ DEFAULT_RANDOM_STATE = 42
 
 
 def _build_text_only_naive_bayes() -> BasePhishingClassifier:
-    """구조 특징을 중복 사용하지 않는 Naive Bayes를 생성합니다.
-
-    Artifact 직렬화를 지원하려면 factory가 pickle로 참조 가능한 모듈
-    최상위 함수여야 합니다. 지역 lambda는 joblib로 저장할 수 없습니다.
-    """
+    """구조 특징을 중복 사용하지 않는 Naive Bayes를 생성"""
 
     return NaiveBayesPhishingClassifier(
         include_structural_features=False
@@ -69,6 +68,8 @@ def _default_base_model_factories(
         "naive_bayes": _build_text_only_naive_bayes,
         "logistic_regression": LogisticRegressionPhishingClassifier,
         "linear_svm": LinearSvmPhishingClassifier,
+        # 학습 표본이 유형당 2~6건인 구간을 사전학습 표현으로 보완 (#98)
+        "korean_encoder": KoreanEncoderPhishingClassifier,
     }
 
 def normalize_base_scores(output: ScoreOutput) -> np.ndarray:
