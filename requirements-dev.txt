@@ -2,3 +2,8 @@
 
 pytest>=8.0.0,<9.0.0
 pytest-asyncio>=0.23.0,<1.0.0
+
+# 인코더 지연시간 벤치마크(#98)용. 배포 이미지에는 넣지 않는다.
+# 운영이 로드하는 artifacts/stacking/model.joblib에는 인코더가 없다.
+torch>=2.6.0
+transformers>=4.40.0
