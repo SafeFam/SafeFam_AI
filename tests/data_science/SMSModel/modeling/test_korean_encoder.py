@@ -167,3 +167,4 @@ def test_metadata_records_the_encoder_settings(
     assert metadata["encoder"]["model_id"] == DEFAULT_MODEL_ID
     assert metadata["encoder"]["max_length"] == DEFAULT_MAX_LENGTH
     assert metadata["encoder"]["weights_frozen"] is True
+    assert metadata["encoder"]["pooling"] == "mean"

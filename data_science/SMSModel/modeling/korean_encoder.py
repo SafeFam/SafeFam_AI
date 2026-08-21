@@ -18,12 +18,15 @@ DEFAULT_MODEL_ID = "beomi/KcELECTRA-small-v2022"
 # 벤치마크에서 p95 23.85ms, 절단 2.0%로 확인한 값
 DEFAULT_MAX_LENGTH = 256
 
-DEFAULT_BATCH_SIZE = 32
-
 DEFAULT_CLASS_WEIGHT = "balanced"
 DEFAULT_C = 1.0
 DEFAULT_RANDOM_STATE = 42
 DEFAULT_MAX_ITER = 1_000
+
+# 파인튜닝 하이퍼파라미터. 581건에 맞춰 짧게 돈다
+FINE_TUNE_EPOCHS = 3
+FINE_TUNE_BATCH_SIZE = 16
+FINE_TUNE_LEARNING_RATE = 2e-5
 
 
 class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
@@ -34,11 +37,11 @@ class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
         *,
         model_id: str = DEFAULT_MODEL_ID,
         max_length: int = DEFAULT_MAX_LENGTH,
-        batch_size: int = DEFAULT_BATCH_SIZE,
+        fine_tune: bool = False,
     ) -> None:
         self.model_id = model_id
         self.max_length = max_length
-        self.batch_size = batch_size
+        self.fine_tune = fine_tune
 
         self.model = LogisticRegression(
             C=DEFAULT_C,
@@ -118,18 +121,21 @@ class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
                 )
 
     def embed(self, texts: pd.Series) -> np.ndarray:
-        """attention mask를 반영한 mean pooling 임베딩"""
+        """mean pooling 임베딩. 한 건씩 처리해 배치 불변을 지킨다
+
+        묶어서 패딩하면 같은 문자라도 배치 구성에 따라 float32 누적 순서가
+        달라져 1e-7 수준으로 흔들린다. 평가는 묶어서 하고 운영은 단건으로 하는
+        구조라 그 차이가 그대로 재현성 문제가 된다. 짧은 문자가 대부분이라
+        패딩 낭비가 커서 묶어도 빨라지지 않는다.
+        """
         import torch
 
         encoder, tokenizer = self._load_encoder()
-        text_list = [str(value) for value in texts]
         vectors: list[np.ndarray] = []
 
-        for start in range(0, len(text_list), self.batch_size):
-            batch = text_list[start : start + self.batch_size]
+        for value in texts:
             encoded = tokenizer(
-                batch,
-                padding=True,
+                str(value),
                 truncation=True,
                 max_length=self.max_length,
                 return_tensors="pt",
@@ -138,15 +144,99 @@ class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
             with torch.no_grad():
                 hidden = encoder(**encoded).last_hidden_state
 
-            mask = encoded["attention_mask"].unsqueeze(-1).to(hidden.dtype)
-            pooled = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)
-            vectors.append(pooled.numpy())
+            vectors.append(hidden.mean(dim=1).numpy())
 
         return np.vstack(vectors).astype(np.float64)
 
+    def _fit_fine_tuned(self, train_df: pd.DataFrame) -> Self:
+        """인코더 가중치까지 함께 학습"""
+        import torch
+        from torch.utils.data import DataLoader, TensorDataset
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        torch.manual_seed(DEFAULT_RANDOM_STATE)
+
+        self._tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+        encoder = AutoModelForSequenceClassification.from_pretrained(
+            self.model_id,
+            num_labels=2,
+        )
+
+        encoded = self._tokenizer(
+            [str(value) for value in train_df["text_norm"]],
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        targets = torch.tensor(
+            (train_df["label"].astype(str) == "phishing").to_numpy(),
+            dtype=torch.long,
+        )
+
+        # 정상이 많은 쪽으로 기울지 않도록 손실에 역빈도 가중
+        counts = torch.bincount(targets, minlength=2).to(torch.float64)
+        weights = (counts.sum() / (2.0 * counts.clamp(min=1))).to(torch.float32)
+        loss_function = torch.nn.CrossEntropyLoss(weight=weights)
+
+        loader = DataLoader(
+            TensorDataset(
+                encoded["input_ids"],
+                encoded["attention_mask"],
+                targets,
+            ),
+            batch_size=FINE_TUNE_BATCH_SIZE,
+            shuffle=True,
+            generator=torch.Generator().manual_seed(DEFAULT_RANDOM_STATE),
+        )
+        optimizer = torch.optim.AdamW(
+            encoder.parameters(),
+            lr=FINE_TUNE_LEARNING_RATE,
+        )
+
+        encoder.train()
+        for _ in range(FINE_TUNE_EPOCHS):
+            for input_ids, attention_mask, batch_targets in loader:
+                optimizer.zero_grad()
+                logits = encoder(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                ).logits
+                loss_function(logits, batch_targets).backward()
+                optimizer.step()
+
+        encoder.eval()
+        self._encoder = encoder
+        self._is_fitted = True
+        return self
+
+    def _predict_fine_tuned(self, df: pd.DataFrame) -> np.ndarray:
+        """분류 헤드의 phishing 확률. 배치 불변을 위해 한 건씩 처리"""
+        import torch
+
+        probabilities: list[float] = []
+        for value in df["text_norm"]:
+            encoded = self._tokenizer(
+                str(value),
+                truncation=True,
+                max_length=self.max_length,
+                return_tensors="pt",
+            )
+            with torch.no_grad():
+                logits = self._encoder(**encoded).logits
+
+            probabilities.append(
+                float(torch.softmax(logits, dim=-1)[0, 1].item())
+            )
+
+        return np.asarray(probabilities, dtype=float)
+
     def fit(self, train_df: pd.DataFrame) -> Self:
-        """전달된 train split만 사용해 선형 분류기를 학습"""
+        """전달된 train split만 사용해 학습"""
         self._validate_dataframe(train_df, require_label=True)
+
+        if self.fine_tune:
+            return self._fit_fine_tuned(train_df)
 
         features = self.embed(train_df["text_norm"])
         labels = train_df["label"].astype(str)
@@ -168,13 +258,19 @@ class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
         if not self._is_fitted:
             raise RuntimeError("Korean encoder model is not fitted")
 
-        if not hasattr(self.model, "classes_"):
+        if not self.fine_tune and not hasattr(self.model, "classes_"):
             raise RuntimeError("Korean encoder model classes are unavailable")
 
     def predict_scores(self, df: pd.DataFrame) -> ScoreOutput:
         """각 메시지의 phishing 확률을 반환"""
         self._require_fitted()
         self._validate_dataframe(df, require_label=False)
+
+        if self.fine_tune:
+            return ScoreOutput(
+                values=self._predict_fine_tuned(df),
+                score_type=self.score_type,
+            )
 
         features = self.embed(df["text_norm"])
         probabilities = self.model.predict_proba(features)
@@ -190,8 +286,11 @@ class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
     def __getstate__(self) -> dict[str, Any]:
         """인코더 가중치는 artifact에 넣지 않기"""
         state = self.__dict__.copy()
-        state["_encoder"] = None
-        state["_tokenizer"] = None
+
+        if not self.fine_tune:
+            state["_encoder"] = None
+            state["_tokenizer"] = None
+
         return state
 
     def __setstate__(self, state: dict[str, Any]) -> None:
@@ -211,8 +310,8 @@ class KoreanEncoderPhishingClassifier(BasePhishingClassifier):
             "encoder": {
                 "model_id": self.model_id,
                 "max_length": self.max_length,
-                "pooling": "attention_masked_mean",
-                "weights_frozen": True,
+                "pooling": "mean",
+                "weights_frozen": not self.fine_tune,
             },
             "classifier": {
                 "type": "LogisticRegression",
