@@ -1,0 +1,15 @@
+{
+  "added_count": 17,
+  "added_label_distribution": {
+    "phishing": 17
+  },
+  "added_source_distribution": {
+    "real_phishing_v6": 17
+  },
+  "approved_addition_count": 17,
+  "duplicate_with_dataset_count": 0,
+  "duplicate_within_additions_count": 0,
+  "final_dataset_row_count": 3493,
+  "reviewed_row_count": 17,
+  "schema_version": 1
+}

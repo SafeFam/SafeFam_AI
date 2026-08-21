@@ -23,12 +23,12 @@ BASE_SOURCES = {
     "synthetic_fp_stress_train", "reviewed_reclassification_v2",
     "public_phishing_v2", "synthetic_diversity_v2", "synthetic_hard_negative_v2",
     "synthetic_normal_v3", "real_holdout", "real_collected_v4",
-    "real_holdout_v5",
+    "real_holdout_v5", "real_phishing_v6",
 }
 ADDITION_SOURCES = {
     "public_phishing_v2", "synthetic_diversity_v2",
     "synthetic_hard_negative_v2", "user_added", "synthetic_normal_v3",
-    "real_collected_v4", "real_holdout_v5",
+    "real_collected_v4", "real_holdout_v5", "real_phishing_v6",
 }
 REVIEW_COLUMNS = {"review_status", "reviewer", "review_note"}
 
