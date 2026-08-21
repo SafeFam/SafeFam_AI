@@ -38,9 +38,9 @@
       },
       {
         "detail": "단건 추론 P95 지연시간",
-        "measured": 38.223150000000004,
+        "measured": 54.89005,
         "name": "p95_latency_ms",
-        "outcome": "PASS",
+        "outcome": "FAIL",
         "required": 50.0
       }
     ],
@@ -63,6 +63,10 @@
     "sample_count": 391
   },
   "judging_split": "real_holdout",
+  "latency_environment": {
+    "cpu_count": 12,
+    "omp_num_threads": "2"
+  },
   "measured": {
     "alert_false_positive_rate": 0.0,
     "alert_recall": 0.5783132530120482,
@@ -100,7 +104,7 @@
     "sample_count": 391,
     "uncertain_share": 0.1585677749360614
   },
-  "p95_latency_ms": 38.223150000000004,
+  "p95_latency_ms": 54.89005,
   "selection_split": "validation",
   "synthetic_reference": {
     "note": "합성 스트레스 셋은 참고용이며 판정에 사용하지 않는다",

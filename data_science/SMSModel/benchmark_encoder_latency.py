@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import time
 from pathlib import Path
@@ -30,6 +31,21 @@ WARMUP_ITERATIONS = 10
 SAMPLE_COUNT = 200
 
 REPORT_SCHEMA_VERSION = 1
+
+
+def apply_thread_limit(threads: int | None) -> None:
+    """배포 환경의 CPU 할당량으로 맞춘다
+
+    측정 스레드 수를 적지 않으면 지연시간 숫자를 해석할 수 없다. t3.small은
+    2 vCPU이므로 개발 장비에서 6스레드로 잰 값은 운영을 대표하지 못한다.
+    BLAS 쪽은 프로세스 시작 전 환경변수라야 걸리므로 여기서는 torch만 다룬다.
+    """
+    if threads is None:
+        return
+
+    import torch
+
+    torch.set_num_threads(threads)
 
 
 def load_messages(sample_count: int) -> list[str]:
@@ -171,6 +187,7 @@ def build_report(
             sum(parameter.numel() for parameter in model.parameters())
         ),
         "torch_threads": int(torch.get_num_threads()),
+        "omp_num_threads": os.environ.get("OMP_NUM_THREADS"),
         "budget": {
             "max_p95_latency_ms": budget_ms,
             "current_pipeline_p95_ms": current_p95_ms,
@@ -186,7 +203,8 @@ def print_summary(report: dict[str, object]) -> None:
     print(f"[Encoder] {report['model_id']}")
     print(
         f"  파라미터 {report['parameter_count']:,} | "
-        f"torch threads {report['torch_threads']}"
+        f"torch threads {report['torch_threads']} | "
+        f"OMP_NUM_THREADS {report['omp_num_threads'] or '미지정'}"
     )
     print(
         f"  예산 {budget['max_p95_latency_ms']:.0f}ms"
@@ -228,10 +246,16 @@ def main() -> None:
         default=list(DEFAULT_MAX_LENGTHS),
     )
     parser.add_argument("--sample-count", type=int, default=SAMPLE_COUNT)
+    parser.add_argument(
+        "--threads",
+        type=int,
+        help="측정에 사용할 torch 스레드 수. 배포 환경의 vCPU 수를 넣는다.",
+    )
     parser.add_argument("--stacking-model-path", type=Path)
     parser.add_argument("--output", type=Path, default=DEFAULT_REPORT_PATH)
     arguments = parser.parse_args()
 
+    apply_thread_limit(arguments.threads)
     messages = load_messages(arguments.sample_count)
     current_p95_ms = measure_current_pipeline(arguments.stacking_model_path)
     report = build_report(
