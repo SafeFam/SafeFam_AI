@@ -1,18 +1,18 @@
 {
   "budget": {
-    "current_pipeline_p95_ms": 10.18245,
+    "current_pipeline_p95_ms": 61.98535,
     "max_p95_latency_ms": 50.0,
-    "remaining_ms": 39.81755
+    "remaining_ms": -11.985349999999997
   },
   "measurements": [
     {
-      "fits_remaining_budget": true,
+      "fits_remaining_budget": false,
       "latency": {
-        "max_ms": 20.03369999874849,
-        "mean_ms": 12.21806800000195,
-        "p50_ms": 10.958499995467719,
-        "p95_ms": 18.81974999705562,
-        "p99_ms": 19.696158996230224,
+        "max_ms": 37.247000000206754,
+        "mean_ms": 20.40100500005792,
+        "p50_ms": 18.228850000014063,
+        "p95_ms": 36.1511299994163,
+        "p99_ms": 37.04416799952014,
         "sample_count": 200
       },
       "max_length": 128,
@@ -25,13 +25,13 @@
       }
     },
     {
-      "fits_remaining_budget": true,
+      "fits_remaining_budget": false,
       "latency": {
-        "max_ms": 31.85970000049565,
-        "mean_ms": 14.10104800008412,
-        "p50_ms": 12.720200007606763,
-        "p95_ms": 23.84796499318327,
-        "p99_ms": 30.493590995756666,
+        "max_ms": 68.21499999932712,
+        "mean_ms": 22.21247849996871,
+        "p50_ms": 18.053300000246963,
+        "p95_ms": 44.56035000112022,
+        "p99_ms": 64.45571499880315,
         "sample_count": 200
       },
       "max_length": 256,
@@ -45,7 +45,8 @@
     }
   ],
   "model_id": "beomi/KcELECTRA-small-v2022",
+  "omp_num_threads": "2",
   "parameter_count": 16532096,
   "schema_version": 1,
-  "torch_threads": 6
+  "torch_threads": 2
 }

@@ -19,6 +19,7 @@ from data_science.SMSModel.evaluation.metrics import (
 from data_science.SMSModel.evaluation.threshold import (
     select_probability_threshold,
 )
+from data_science.SMSModel.evaluation.adoption import AdoptionCriteria
 from data_science.SMSModel.evaluation.stacking_reporting import (
     predict_probabilities_with_latency,
     save_stacking_test_report,
@@ -62,9 +63,12 @@ STACKING_REPORT_DIRECTORY = (
 
 EXPERIMENT_SUFFIX = "-experiment"
 
-TARGET_RECALL = 0.95
+# 단일 임계값 정책. 채택 기준과 재는 대상이 다르다 (#100 §2.4)
+TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 
-MAX_NORMAL_FALSE_POSITIVE_RATE = 0.01
+# validation 정상 82건이 분해할 수 있는 하한은 3/82 = 0.0366이다.
+# 사용자 대면 오탐 보장은 판정셋에서 alert_false_positive_rate가 담당한다.
+MAX_NORMAL_FALSE_POSITIVE_RATE = 0.10
 EXPECTED_DATASET_FINGERPRINT = (
     "69236fa9b54e4f2246049e6cefc0691"
     "79b5e914770854194216ee9a37ea08ae5"

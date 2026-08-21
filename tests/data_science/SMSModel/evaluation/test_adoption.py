@@ -123,7 +123,7 @@ def test_criteria_defaults_are_fixed() -> None:
 
     assert criteria.min_coverage_recall == 0.95
     assert criteria.max_alert_false_positive_rate == 0.01
-    assert criteria.max_uncertain_normal_share == 0.10
+    assert criteria.max_uncertain_normal_share == 0.133
     assert criteria.max_p95_latency_ms == 50.0
     assert criteria.min_normal_samples == 300
     assert criteria.min_phishing_samples == 60

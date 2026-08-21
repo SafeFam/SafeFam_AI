@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -93,6 +94,12 @@ def build_report(classifier) -> dict[str, object]:
     judging_frame = select_real_holdout(holdout)
 
     return {
+        # 지연시간은 측정 장비의 CPU 수에 좌우된다. 배포 환경과 다른 값으로
+        # 재면 통과·미달이 뒤집히므로 측정 조건을 함께 남긴다.
+        "latency_environment": {
+            "cpu_count": os.cpu_count(),
+            "omp_num_threads": os.environ.get("OMP_NUM_THREADS"),
+        },
         "selection_split": SELECTION_SPLIT,
         "judging_split": JUDGING_SPLIT,
         "judging_set": {
