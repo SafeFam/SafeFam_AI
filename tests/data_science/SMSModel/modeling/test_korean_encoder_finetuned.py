@@ -263,6 +263,72 @@ def test_metadata_records_the_fine_tuning_settings(
     assert metadata["fine_tuning"]["class_weight"] == "balanced"
 
 
+def test_constant_learning_rate_is_the_default(
+    classifier: FineTunedKoreanEncoderClassifier,
+) -> None:
+    """스케줄러 도입이 기존 artifact의 재현성을 깨면 안 된다.
+
+    warmup_ratio 기본값 0은 스케줄러를 아예 만들지 않아 고정 학습률로
+    학습하던 이전 동작을 그대로 유지한다.
+    """
+    assert classifier.warmup_ratio == 0.0
+    assert classifier._build_scheduler(object(), row_count=100) is None
+    assert classifier.get_metadata()["fine_tuning"]["lr_schedule"] == "constant"
+
+
+def test_warmup_schedule_ramps_up_then_decays(
+    monkeypatch: pytest.MonkeyPatch,
+    training_dataframe: pd.DataFrame,
+) -> None:
+    """warmup 구간에서 학습률이 0에서 올라간 뒤 끝에서 0으로 내려와야 한다"""
+    monkeypatch.setattr(
+        FineTunedKoreanEncoderClassifier,
+        "_build_model",
+        lambda self: _StubModel(),
+    )
+    monkeypatch.setattr(
+        FineTunedKoreanEncoderClassifier,
+        "_load_tokenizer",
+        lambda self: _StubTokenizer(),
+    )
+
+    classifier = FineTunedKoreanEncoderClassifier(
+        epochs=4,
+        batch_size=10,
+        learning_rate=0.1,
+        warmup_ratio=0.25,
+    )
+    optimizer = torch.optim.AdamW(_StubModel().parameters(), lr=0.1)
+    scheduler = classifier._build_scheduler(optimizer, row_count=40)
+
+    assert scheduler is not None
+
+    # 4 epoch x 4 step = 16 step, warmup은 앞 4 step
+    rates = []
+    for _ in range(16):
+        rates.append(optimizer.param_groups[0]["lr"])
+        optimizer.step()
+        scheduler.step()
+
+    assert rates[0] == pytest.approx(0.0)
+    assert rates[4] == pytest.approx(0.1)
+    assert rates[4] > rates[2] > rates[0]
+    assert rates[-1] < rates[4]
+    assert (
+        classifier.get_metadata()["fine_tuning"]["lr_schedule"]
+        == "linear_warmup_then_linear_decay"
+    )
+
+
+def test_invalid_warmup_ratio_is_rejected() -> None:
+    """1 이상이면 학습 내내 warmup만 하다 끝난다"""
+    with pytest.raises(ValueError):
+        FineTunedKoreanEncoderClassifier(warmup_ratio=1.0)
+
+    with pytest.raises(ValueError):
+        FineTunedKoreanEncoderClassifier(warmup_ratio=-0.1)
+
+
 def test_registered_as_a_stacking_base_model() -> None:
     """factory에 등록되지 않으면 학습에 전혀 참여하지 않는다"""
     factories = _default_base_model_factories()

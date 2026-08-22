@@ -36,6 +36,10 @@ DEFAULT_LEARNING_RATE = 2e-5
 DEFAULT_WEIGHT_DECAY = 0.01
 DEFAULT_RANDOM_STATE = 42
 
+# 전체 step 중 학습률을 0에서 목표치까지 올리는 데 쓰는 비율.
+# 0.0이면 스케줄러 없이 고정 학습률(기존 동작)이다.
+DEFAULT_WARMUP_RATIO = 0.0
+
 # MPS는 같은 시드로도 커널 구현에 따라 결과가 흔들려 다른 머신에서 재현되지
 # 않는다. 학습 규모가 작아(train 692건, 16.5M 파라미터) CPU로도 전체 학습이
 # 3분 이내라, 속도보다 재현성을 택한다.
@@ -57,6 +61,7 @@ class FineTunedKoreanEncoderClassifier(BasePhishingClassifier):
         batch_size: int = DEFAULT_BATCH_SIZE,
         learning_rate: float = DEFAULT_LEARNING_RATE,
         weight_decay: float = DEFAULT_WEIGHT_DECAY,
+        warmup_ratio: float = DEFAULT_WARMUP_RATIO,
         random_state: int = DEFAULT_RANDOM_STATE,
         device: str = DEFAULT_DEVICE,
     ) -> None:
@@ -66,12 +71,16 @@ class FineTunedKoreanEncoderClassifier(BasePhishingClassifier):
         if batch_size < 1:
             raise ValueError("batch_size must be at least 1")
 
+        if not 0.0 <= warmup_ratio < 1.0:
+            raise ValueError("warmup_ratio must be in [0, 1)")
+
         self.model_id = model_id
         self.max_length = max_length
         self.epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.warmup_ratio = warmup_ratio
         self.random_state = random_state
         self.device = device
 
@@ -201,6 +210,31 @@ class FineTunedKoreanEncoderClassifier(BasePhishingClassifier):
         weights = len(indices) / (len(LABEL_TO_INDEX) * counts)
         return torch.tensor(weights, dtype=torch.float32, device=self.device)
 
+    def _build_scheduler(self, optimizer, row_count: int):
+        """선형 warmup 후 선형 decay 하는 스케줄러를 만든다.
+
+        warmup_ratio가 0이면 None을 반환해 고정 학습률을 유지한다.
+        사전학습 가중치는 초반 큰 갱신에 취약해(catastrophic forgetting)
+        학습률을 0에서 서서히 올리는 것이 트랜스포머 파인튜닝의 관례다.
+        """
+        if self.warmup_ratio <= 0.0:
+            return None
+
+        from torch.optim.lr_scheduler import LambdaLR
+
+        steps_per_epoch = -(-row_count // self.batch_size)
+        total_steps = max(1, steps_per_epoch * self.epochs)
+        warmup_steps = int(total_steps * self.warmup_ratio)
+
+        def scale(step: int) -> float:
+            if step < warmup_steps:
+                return step / max(1, warmup_steps)
+
+            remaining = total_steps - step
+            return max(0.0, remaining / max(1, total_steps - warmup_steps))
+
+        return LambdaLR(optimizer, scale)
+
     def fit(self, train_df: pd.DataFrame) -> Self:
         """전달된 train split만 사용해 인코더까지 파인튜닝"""
         import torch
@@ -235,6 +269,8 @@ class FineTunedKoreanEncoderClassifier(BasePhishingClassifier):
         generator = np.random.default_rng(self.random_state)
         row_count = len(texts)
 
+        scheduler = self._build_scheduler(optimizer, row_count)
+
         for _ in range(self.epochs):
             order = generator.permutation(row_count)
 
@@ -259,6 +295,9 @@ class FineTunedKoreanEncoderClassifier(BasePhishingClassifier):
                 logits = model(**encoded).logits
                 loss_function(logits, targets).backward()
                 optimizer.step()
+
+                if scheduler is not None:
+                    scheduler.step()
 
         model.eval()
 
@@ -355,6 +394,12 @@ class FineTunedKoreanEncoderClassifier(BasePhishingClassifier):
                 "batch_size": self.batch_size,
                 "learning_rate": self.learning_rate,
                 "weight_decay": self.weight_decay,
+                "warmup_ratio": self.warmup_ratio,
+                "lr_schedule": (
+                    "linear_warmup_then_linear_decay"
+                    if self.warmup_ratio > 0.0
+                    else "constant"
+                ),
                 "class_weight": "balanced",
                 "random_state": self.random_state,
                 "device": self.device,

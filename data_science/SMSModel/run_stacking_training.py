@@ -70,17 +70,17 @@ TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 # 사용자 대면 오탐 보장은 판정셋에서 alert_false_positive_rate가 담당한다.
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.10
 EXPECTED_DATASET_FINGERPRINT = (
-    "500884cc4bd2ed9a45ce8b7dfbd16a"
-    "ff6c7672422bbe7959f5b190fcdc98b1b3"
+    "6fb005ba0fb276bbde36b745d4e86"
+    "3d7f579dc125cb30d31ad07b8c510317d36"
 )
 
-EXPECTED_TOTAL_CSV_ROWS = 3562
-EXPECTED_TRAINING_POOL_ROWS = 949
+EXPECTED_TOTAL_CSV_ROWS = 3540
+EXPECTED_TRAINING_POOL_ROWS = 927
 EXPECTED_HOLDOUT_ROWS = 510
 EXPECTED_SPLIT_COUNTS = {
-    "train": 678,
+    "train": 654,
     "validation": 136,
-    "test": 135,
+    "test": 137,
 }
 
 
