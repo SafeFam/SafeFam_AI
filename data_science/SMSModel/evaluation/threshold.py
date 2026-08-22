@@ -336,3 +336,47 @@ def select_probability_threshold(
         max_false_positive_rate=max_false_positive_rate,
         measurable_false_positive_rate=measurable_false_positive_rate,
     )
+
+
+def select_probability_threshold_with_fallback(
+    probabilities,
+    labels,
+    *,
+    target_recall: float,
+    max_false_positive_rate: float,
+) -> tuple[ProbabilityThresholdSelection, bool]:
+    """상한을 만족하는 threshold가 없으면 실제로 달성 가능한 최소 오탐률로
+    자동 완화해 재시도한다.
+
+    고정된 오탐 상한은 validation 구성이 바뀔 때마다 목표 recall에 필요한
+    오탐률과 어긋나기 쉬워, 매번 사람이 상한 값을 추측해 재실행해야 했다.
+    이 함수는 그 수작업을 없앤다. target_recall 자체가 이 validation에서
+    달성 불가능한 경우(완화로도 못 고치는 경우)에는 원래 예외를 그대로
+    전파한다 - 이건 상한 조정이 아니라 모델/데이터 문제이기 때문이다.
+
+    Returns:
+        (선택된 threshold, 상한을 완화했는지 여부)
+    """
+    try:
+        return (
+            select_probability_threshold(
+                probabilities,
+                labels,
+                target_recall=target_recall,
+                max_false_positive_rate=max_false_positive_rate,
+            ),
+            False,
+        )
+    except ThresholdInfeasibleError as error:
+        relaxed_ceiling = error.lowest_false_positive_rate_at_target_recall
+        if relaxed_ceiling >= 1.0:
+            raise
+        return (
+            select_probability_threshold(
+                probabilities,
+                labels,
+                target_recall=target_recall,
+                max_false_positive_rate=relaxed_ceiling,
+            ),
+            True,
+        )

@@ -17,7 +17,7 @@ from data_science.SMSModel.evaluation.metrics import (
     calculate_classification_metrics,
 )
 from data_science.SMSModel.evaluation.threshold import (
-    select_probability_threshold,
+    select_probability_threshold_with_fallback,
 )
 from data_science.SMSModel.evaluation.adoption import AdoptionCriteria
 from data_science.SMSModel.evaluation.stacking_reporting import (
@@ -402,12 +402,26 @@ def train_stacking(
             f"{unavailable}"
         )
 
-    threshold_selection = select_probability_threshold(
-        validation_probabilities,
-        splits.validation["label"],
-        target_recall=TARGET_RECALL,
-        max_false_positive_rate=max_false_positive_rate,
+    threshold_selection, ceiling_was_relaxed = (
+        select_probability_threshold_with_fallback(
+            validation_probabilities,
+            splits.validation["label"],
+            target_recall=TARGET_RECALL,
+            max_false_positive_rate=max_false_positive_rate,
+        )
     )
+    if ceiling_was_relaxed:
+        # 정책 상한(기본 0.10)은 데이터 구성이 바뀔 때마다 흔들린다 - split이
+        # 달라지면 목표 recall에 필요한 오탐률이 상한을 넘나들어 매번 사람이
+        # --max-false-positive-rate 값을 추측해 재실행해야 했다(#102 §5).
+        # resolve_artifact_paths가 상수와 다른 값을 감지해 항상 -experiment
+        # 경로로 저장하므로 "정책 후보가 아님"은 그대로 드러난다.
+        max_false_positive_rate = threshold_selection.max_false_positive_rate
+        print(
+            f"[Stacking] 경고: 정상 오탐 상한을 {max_false_positive_rate:.4f}로 "
+            "자동 완화했다 (validation에서 달성 가능한 최소치). "
+            "이 artifact는 단독 운영 후보가 아니다."
+        )
     threshold = threshold_selection.threshold
     validation_metrics = threshold_selection.to_validation_metrics()
 
