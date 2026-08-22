@@ -25,7 +25,12 @@ DEFAULT_MODEL_ID = "beomi/KcELECTRA-small-v2022"
 # frozen 버전과 동일한 값 - 벤치마크에서 p95 23.85ms, 절단 2.0%로 확인했다
 DEFAULT_MAX_LENGTH = 256
 
-DEFAULT_EPOCHS = 4
+# validation(141건)에서 4/6/8/10 epoch을 시드 3개(42/7/123)로 비교해 골랐다.
+# 10 epoch이 모든 시드·모든 지표에서 우세했다 - 정상 평균 확률 0.151→0.053,
+# 정상 오탐 6.1%→1.8%(6 epoch 대비). 8 epoch에서 한 번 지표가 내려앉지만
+# 시드를 바꾸면 재현되지 않는 단발성 변동이라 과학습 신호가 아니다.
+# 판정셋(real_holdout)은 선정에 쓰지 않았다 - 채택 게이트 오염 방지.
+DEFAULT_EPOCHS = 10
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_LEARNING_RATE = 2e-5
 DEFAULT_WEIGHT_DECAY = 0.01

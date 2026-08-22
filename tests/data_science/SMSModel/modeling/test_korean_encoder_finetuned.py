@@ -23,6 +23,9 @@ from data_science.SMSModel.modeling.korean_encoder_finetuned import (
     LABEL_TO_INDEX,
     FineTunedKoreanEncoderClassifier,
 )
+from data_science.SMSModel.modeling.stacking import (
+    _default_base_model_factories,
+)
 
 PHISHING_MARKERS = ("급등", "종목", "입장", "인증번호")
 
@@ -258,6 +261,27 @@ def test_metadata_records_the_fine_tuning_settings(
     assert metadata["encoder"]["weights_frozen"] is False
     assert metadata["fine_tuning"]["epochs"] == 30
     assert metadata["fine_tuning"]["class_weight"] == "balanced"
+
+
+def test_registered_as_a_stacking_base_model() -> None:
+    """factory에 등록되지 않으면 학습에 전혀 참여하지 않는다"""
+    factories = _default_base_model_factories()
+
+    assert "korean_encoder" in factories
+    assert isinstance(
+        factories["korean_encoder"](),
+        FineTunedKoreanEncoderClassifier,
+    )
+
+
+def test_default_epochs_matches_the_validation_selection() -> None:
+    """epoch은 validation에서 시드 3개로 골랐다 (#102).
+
+    4/6/8/10 비교에서 10이 모든 시드·모든 지표에서 우세했다. 8에서 한 번
+    지표가 내려앉지만 시드를 바꾸면 재현되지 않는 단발성 변동이라, 그
+    하락을 과학습으로 오해해 6으로 되돌리지 않도록 값을 고정한다.
+    """
+    assert FineTunedKoreanEncoderClassifier().epochs == 10
 
 
 def test_cpu_is_the_default_device() -> None:

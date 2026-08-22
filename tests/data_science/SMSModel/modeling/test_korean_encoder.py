@@ -146,12 +146,16 @@ def test_encoder_weights_are_not_serialized(
     assert restored._is_fitted
 
 
-def test_registered_as_a_stacking_base_model() -> None:
-    """factory에 등록되지 않으면 학습에 전혀 참여하지 않는다"""
+def test_no_longer_registered_as_a_stacking_base_model() -> None:
+    """stacking은 파인튜닝 버전을 쓴다 (#102).
+
+    얼린 범용 임베딩으로는 정상과 피싱의 표면이 거의 같은 "기관 안내문"
+    구간을 가르지 못해 FineTunedKoreanEncoderClassifier로 교체했다. 이
+    클래스 자체는 비교 기준선으로 남겨두되, 실제 학습에는 참여하지 않는다.
+    """
     factories = _default_base_model_factories()
 
-    assert "korean_encoder" in factories
-    assert isinstance(
+    assert not isinstance(
         factories["korean_encoder"](),
         KoreanEncoderPhishingClassifier,
     )
