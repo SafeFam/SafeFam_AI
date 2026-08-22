@@ -102,3 +102,57 @@ def test_lookalike_domain_is_not_falsely_treated_as_official():
 
     assert result["checked"] is True
     assert result["mismatch"] is True
+
+
+def test_official_phone_number_is_not_flagged():
+    result = analyze_institution_match(
+        "[국민은행] 고객센터 1588-9999로 문의하세요.", traced_url=None
+    )
+
+    assert result["phone_checked"] is True
+    assert result["phone_mismatch"] is False
+    assert result["text_phone_numbers"] == ["1588-9999"]
+    assert result["official_phone_numbers"] == ["1588-9999", "1599-9999", "1644-9999"]
+
+
+def test_mismatched_phone_number_is_flagged_without_url():
+    """대표번호 대조는 URL 유무와 무관하게 동작해야 한다 - URL 없는 발신번호 사칭형 문자에서
+    유일한 판정 신호가 될 수 있다."""
+    result = analyze_institution_match(
+        "[국민은행] 본인확인 위해 010-1234-5678로 즉시 연락주세요.", traced_url=None
+    )
+
+    assert result["checked"] is False
+    assert result["phone_checked"] is True
+    assert result["phone_mismatch"] is True
+    assert result["text_phone_numbers"] == ["010-1234-5678"]
+
+
+def test_no_phone_number_in_text_skips_phone_check():
+    result = analyze_institution_match("[국민은행] 계좌 확인 안내입니다.", traced_url=None)
+
+    assert result["phone_checked"] is False
+    assert result["phone_mismatch"] is False
+    assert result["text_phone_numbers"] == []
+
+
+def test_toll_free_style_phone_without_leading_zero_is_recognized():
+    """1588/1599 등 대표번호는 0으로 시작하지 않아 일반 PHONE_PATTERN만으로는 못 잡으므로
+    별도 패턴으로 인식해야 한다."""
+    result = analyze_institution_match(
+        "[우체국] 예금 문의는 1599-1900번으로 연락주세요.", traced_url=None
+    )
+
+    assert result["phone_checked"] is True
+    assert result["phone_mismatch"] is False
+    assert result["text_phone_numbers"] == ["1599-1900"]
+
+
+def test_incidental_three_digit_number_is_not_treated_as_phone():
+    """구분자 없는 짧은 숫자열(날짜/수량 등)을 전화번호로 오인해 오탐을 만들면 안 된다."""
+    result = analyze_institution_match(
+        "[경찰청] 관내 182건의 사건이 접수되었습니다.", traced_url=None
+    )
+
+    assert result["phone_checked"] is False
+    assert result["phone_mismatch"] is False

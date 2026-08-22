@@ -119,3 +119,23 @@ def test_institution_official_domain_does_not_add_mismatch_score():
 
     assert result["institution_match"]["mismatch"] is False
     assert not any("도메인 불일치" in r for r in result["matched_rules"])
+
+
+def test_institution_phone_mismatch_adds_score_even_without_url():
+    """URL이 없는 문자(발신번호 사칭형 등)에서도 대표번호 불일치만으로 점수가 반영돼야 한다."""
+    result = analyze_text_with_rules(
+        "[국민은행] 본인확인 위해 010-1234-5678로 즉시 연락주세요."
+    )
+
+    # 기관명 언급(15) + 대표번호 불일치(40) + 하이픈 구분 숫자열이 계좌번호 패턴과도
+    # 겹쳐서 계좌번호 매치(30)까지 함께 잡힌다(기존 계좌번호 규칙과의 중복 매치, 별도 이슈).
+    assert result["rule_score"] == 85
+    assert any("대표번호 불일치" in r for r in result["matched_rules"])
+    assert result["institution_match"]["phone_mismatch"] is True
+
+
+def test_institution_official_phone_does_not_add_mismatch_score():
+    result = analyze_text_with_rules("[국민은행] 고객센터 1588-9999로 문의하세요.")
+
+    assert result["institution_match"]["phone_mismatch"] is False
+    assert not any("대표번호 불일치" in r for r in result["matched_rules"])

@@ -241,6 +241,43 @@ def test_factory_maps_institution_match_not_checked() -> None:
     assert event.payload.ruleAnalysis.institutionMatch.textDomain is None
 
 
+def test_factory_maps_institution_phone_mismatch() -> None:
+    """URL 없이 대표번호 불일치만 감지된 경우도 그대로 반영해야 한다."""
+    request = _request()
+    result = _result()
+    result.rule_analysis["institution_match"] = {
+        "checked": False,
+        "mismatch": False,
+        "institution": "국민은행",
+        "official_domains": ["kbstar.com"],
+        "text_domain": None,
+        "phone_checked": True,
+        "phone_mismatch": True,
+        "text_phone_numbers": ["010-1234-5678"],
+        "official_phone_numbers": ["1588-9999", "1599-9999", "1644-9999"],
+    }
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=result,
+            failed_tracks=(),
+        ),
+    )
+
+    institution_match = event.payload.ruleAnalysis.institutionMatch
+    assert institution_match is not None
+    assert institution_match.phoneChecked is True
+    assert institution_match.phoneMismatch is True
+    assert institution_match.textPhoneNumbers == ["010-1234-5678"]
+    assert institution_match.officialPhoneNumbers == [
+        "1588-9999",
+        "1599-9999",
+        "1644-9999",
+    ]
+
+
 def test_factory_maps_failed_execution_without_message_content() -> None:
     request = _request()
     event = AnalysisResultEventFactory().create(

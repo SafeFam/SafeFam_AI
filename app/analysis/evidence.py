@@ -60,6 +60,16 @@ def build_evidence(
             )
         )
 
+    if institution_match.get("phone_mismatch"):
+        institution = institution_match.get("institution") or "해당 기관"
+        items.append(
+            _item(
+                EvidenceCategory.INSTITUTION_IMPERSONATION,
+                f"{institution}{_josa_eul_reul(institution)} 언급했지만 "
+                "문자 속 연락처가 공식 대표번호가 아닙니다.",
+            )
+        )
+
     if rule_analysis.get("has_account_or_card_pattern"):
         items.append(
             _item(
