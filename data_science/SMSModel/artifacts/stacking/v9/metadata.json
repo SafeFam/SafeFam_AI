@@ -1,0 +1,83 @@
+{
+  "artifact_version": "v9",
+  "created_at": "2026-08-22T13:32:27.747678+00:00",
+  "dataset": {
+    "dataset_fingerprint": "952ea283be57131f599cd5c5a4845ead30feba03383b97f3ff330a3b7dac3725",
+    "holdout_rows": 514,
+    "total_csv_rows": 3628,
+    "training_pool_rows": 988
+  },
+  "dataset_path": "Data/SMSData/phishing_total_dataset_reclassified.csv",
+  "library_versions": {
+    "joblib": "1.5.2",
+    "numpy": "2.3.5",
+    "pandas": "2.3.3",
+    "python": "3.13.9",
+    "scikit_learn": "1.8.0",
+    "scipy": "1.16.3"
+  },
+  "model": {
+    "base_models": [
+      "naive_bayes",
+      "logistic_regression",
+      "linear_svm",
+      "korean_encoder"
+    ],
+    "meta_classifier": "LogisticRegression",
+    "meta_feature_names": [
+      "naive_bayes_score",
+      "logistic_regression_score",
+      "linear_svm_score",
+      "korean_encoder_score",
+      "has_url",
+      "has_short_url",
+      "has_phone",
+      "has_account",
+      "has_card",
+      "has_amount",
+      "has_web_tag",
+      "has_urgency",
+      "has_transfer_request",
+      "has_personal_info_request",
+      "has_link_action",
+      "is_long_text",
+      "has_ad_disclosure",
+      "has_opt_out",
+      "has_family_impersonation",
+      "has_chatroom_invite",
+      "has_job_offer_lure",
+      "has_investment_lure"
+    ],
+    "model_name": "stacking_phishing_classifier",
+    "oof_splits": 5,
+    "random_state": 42,
+    "threshold": 0.2844484252248477
+  },
+  "model_configuration_sha256": "b9cae88fcc49e6de703863ab94905a43de1762b429b30eaac0d05b5e58a3e4ec",
+  "model_sha256": "8ff0930e21837136a60a553be225370c1d69105b3aced4502bc5d721dbad46ca",
+  "schema_version": 2,
+  "split_manifest": "sms_split_v6.csv",
+  "split_manifest_sha256": "dbb0c41b6513de2384245bc7d9567795c07c714dae897020a78df744efb8a1e7",
+  "splits": {
+    "test": 140,
+    "train": 700,
+    "validation": 148
+  },
+  "training_policy": {
+    "final_evaluation_split": "test",
+    "holdout_used_during_training": false,
+    "random_state": 42,
+    "test_used_for_tuning": false,
+    "threshold_selection_split": "validation",
+    "training_split": "train"
+  },
+  "validation": {
+    "f2": 0.9561752988047809,
+    "false_positive_rate": 0.0707070707070707,
+    "max_false_positive_rate": 0.1,
+    "measurable_false_positive_rate": 0.010101010101010102,
+    "recall": 0.9795918367346939,
+    "target_recall": 0.95,
+    "target_recall_met": true
+  }
+}

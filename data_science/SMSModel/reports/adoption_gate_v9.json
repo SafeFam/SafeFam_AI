@@ -1,0 +1,113 @@
+{
+  "assessment": {
+    "criteria": [
+      {
+        "detail": "오탐 0건이 상한 준수의 증거가 되려면 정상 표본이 필요하다",
+        "measured": 308.0,
+        "name": "normal_sample_size",
+        "outcome": "PASS",
+        "required": 300.0
+      },
+      {
+        "detail": "놓침 상한을 확인하는 데 필요한 피싱 표본",
+        "measured": 83.0,
+        "name": "phishing_sample_size",
+        "outcome": "PASS",
+        "required": 60.0
+      },
+      {
+        "detail": "최소 '의심' 이상으로 걸러낸 피싱 비율",
+        "measured": 0.9518072289156626,
+        "name": "coverage_recall",
+        "outcome": "PASS",
+        "required": 0.95
+      },
+      {
+        "detail": "자동 경고가 잘못 울린 정상 비율",
+        "measured": 0.02922077922077922,
+        "name": "alert_false_positive_rate",
+        "outcome": "FAIL",
+        "required": 0.01
+      },
+      {
+        "detail": "'의심' 카드가 뜬 정상 비율",
+        "measured": 0.18831168831168832,
+        "name": "uncertain_normal_share",
+        "outcome": "FAIL",
+        "required": 0.133
+      },
+      {
+        "detail": "단건 추론 P95 지연시간",
+        "measured": 23.4977085,
+        "name": "p95_latency_ms",
+        "outcome": "PASS",
+        "required": 50.0
+      }
+    ],
+    "verdict": "FAIL"
+  },
+  "criteria": {
+    "max_alert_false_positive_rate": 0.01,
+    "max_p95_latency_ms": 50.0,
+    "max_uncertain_normal_share": 0.133,
+    "min_coverage_recall": 0.95,
+    "min_normal_samples": 300,
+    "min_phishing_samples": 60
+  },
+  "edges": {
+    "normal_max": 0.339354420829217,
+    "phishing_min": 0.7311094287498854
+  },
+  "judging_set": {
+    "fingerprint": "44966a854774f669726a292e058886ce98e774724f08c0a89e44bc2ad3ea085e",
+    "sample_count": 391
+  },
+  "judging_split": "real_holdout",
+  "latency_environment": {
+    "cpu_count": 10,
+    "omp_num_threads": null
+  },
+  "measured": {
+    "alert_false_positive_rate": 0.02922077922077922,
+    "alert_recall": 0.7831325301204819,
+    "by_band": {
+      "certain_normal": {
+        "normal_count": 241,
+        "normal_share": 0.7824675324675324,
+        "phishing_count": 4,
+        "phishing_share": 0.04819277108433735,
+        "sample_count": 245
+      },
+      "certain_phishing": {
+        "normal_count": 9,
+        "normal_share": 0.02922077922077922,
+        "phishing_count": 65,
+        "phishing_share": 0.7831325301204819,
+        "sample_count": 74
+      },
+      "uncertain": {
+        "normal_count": 58,
+        "normal_share": 0.18831168831168832,
+        "phishing_count": 14,
+        "phishing_share": 0.1686746987951807,
+        "sample_count": 72
+      }
+    },
+    "coverage_recall": 0.9518072289156626,
+    "edges": {
+      "normal_max": 0.339354420829217,
+      "phishing_min": 0.7311094287498854
+    },
+    "missed_phishing_rate": 0.04819277108433735,
+    "normal_count": 308,
+    "phishing_count": 83,
+    "sample_count": 391,
+    "uncertain_share": 0.18414322250639387
+  },
+  "p95_latency_ms": 23.4977085,
+  "selection_split": "validation",
+  "synthetic_reference": {
+    "note": "합성 스트레스 셋은 참고용이며 판정에 사용하지 않는다",
+    "sample_count": 123
+  }
+}
