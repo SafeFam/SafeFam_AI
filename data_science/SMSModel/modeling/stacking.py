@@ -38,6 +38,16 @@ from data_science.SMSModel.modeling.naive_bayes import (
 DEFAULT_OOF_SPLITS = 5
 DEFAULT_RANDOM_STATE = 42
 
+# meta-classifier에서 제외하는 구조 특징. 학습 데이터에서는 정상(8.2%)이
+# 피싱(4.3%)보다 더 흔한데도 메타 계수는 양수(+0.83, 피싱 쪽)로 학습돼
+# 있었다 - 다른 피처와의 다중공선성으로 뒤집힌 것으로 보이며, 실측에서도
+# 정상 오탐 그룹(27.8%)이 정탐 그룹(17.0%)보다 이 특징을 더 흔히
+# 가지고 있었다(#102). "(광고)" 표기는 정보통신망법상 합법 광고의
+# 법정 표기라 위험 신호로 학습되면 안 된다.
+# extract_stacking_structural_features의 열 순서 자체는 건드리지 않는다
+# (#84 - 다른 소비자를 위해 안정적으로 유지). 여기서만 조용히 제외한다.
+EXCLUDED_STRUCTURAL_FEATURES = frozenset({"has_ad_disclosure"})
+
 
 def _build_text_only_naive_bayes() -> BasePhishingClassifier:
     """구조 특징을 중복 사용하지 않는 Naive Bayes를 생성"""
@@ -121,6 +131,8 @@ class StackingPhishingClassifier:
 
         self.base_models: dict[str, BasePhishingClassifier] = {}
         self.meta_feature_names: tuple[str, ...] | None = None
+        self.oof_probabilities_: np.ndarray | None = None
+        self.oof_labels_: np.ndarray | None = None
         self._is_fitted = False
 
     @staticmethod
@@ -164,12 +176,23 @@ class StackingPhishingClassifier:
         return tuple(self.base_model_factories)
 
     @property
+    def _included_structural_indices(self) -> list[int]:
+        """제외 목록(EXCLUDED_STRUCTURAL_FEATURES)을 뺀 구조 특징 열 인덱스"""
+
+        return [
+            index
+            for index, name in enumerate(STACKING_STRUCTURAL_FEATURE_NAMES)
+            if name not in EXCLUDED_STRUCTURAL_FEATURES
+        ]
+
+    @property
     def feature_names(self) -> tuple[str, ...]:
         """meta-classifier 입력 열 이름을 반환"""
 
+        included = self._included_structural_indices
         return (
             *(f"{name}_score" for name in self.model_names),
-            *STACKING_STRUCTURAL_FEATURE_NAMES,
+            *(STACKING_STRUCTURAL_FEATURE_NAMES[i] for i in included),
         )
 
     def _build_meta_features(
@@ -178,24 +201,29 @@ class StackingPhishingClassifier:
         base_scores: dict[str, np.ndarray],
         structural_features: np.ndarray,
     ) -> np.ndarray:
-        """모델 점수와 구조 특징을 하나의 행렬로 결합"""
+        """모델 점수와 구조 특징(제외 목록 제외)을 하나의 행렬로 결합"""
 
         score_columns = [
             np.asarray(base_scores[name], dtype=np.float64)
             for name in self.model_names
         ]
+        included = self._included_structural_indices
         return np.column_stack(
             [
                 *score_columns,
-                structural_features,
+                structural_features[:, included],
             ]
         )
 
     def _generate_oof_features(
         self,
         train_df: pd.DataFrame,
-    ) -> np.ndarray:
-        """train split 내부에서 OOF 예측값 생성"""
+    ) -> tuple[np.ndarray, list[tuple[np.ndarray, np.ndarray]]]:
+        """train split 내부에서 OOF 예측값 생성
+
+        나중에 메타 레벨 OOF(임계값 보정용)를 같은 fold 분할로 다시
+        재현할 수 있도록 fold별 (train_indices, oof_indices)도 함께 반환한다.
+        """
 
         labels = train_df["label"].astype(str).to_numpy()
         groups = train_df["template_group_id"].astype(str).to_numpy()
@@ -210,11 +238,13 @@ class StackingPhishingClassifier:
             name: np.full(len(train_df), np.nan, dtype=np.float64)
             for name in self.model_names
         }
+        folds: list[tuple[np.ndarray, np.ndarray]] = []
         for train_indices, oof_indices in splitter.split(
             train_df,
             y=labels,
             groups=groups,
         ):
+            folds.append((train_indices, oof_indices))
             fold_train = train_df.iloc[train_indices].reset_index(drop=True)
             fold_oof = train_df.iloc[oof_indices].reset_index(drop=True)
 
@@ -235,10 +265,52 @@ class StackingPhishingClassifier:
             train_df["text"].astype(str)
         )
 
-        return self._build_meta_features(
+        oof_features = self._build_meta_features(
             base_scores=base_scores,
             structural_features=structural_features,
         )
+        return oof_features, folds
+
+    def _generate_meta_oof_probabilities(
+        self,
+        oof_features: np.ndarray,
+        labels: pd.Series,
+        folds: list[tuple[np.ndarray, np.ndarray]],
+    ) -> np.ndarray:
+        """메타 분류기 자체도 같은 fold로 out-of-fold 확률을 낸다.
+
+        base 모델의 OOF 피처(oof_features)는 자기 행을 본 적 없는 모델이
+        만든 값이지만, 메타 분류기를 그 피처+라벨 전체로 학습한 뒤 같은
+        데이터에 predict_proba를 돌리면 메타 분류기 자신에게는 여전히
+        재대입(resubstitution)이라 낙관적으로 잡힌다. 같은 fold 분할을
+        재사용해 fold별로 메타 분류기를 다시 학습·예측하면, 각 fold의
+        확률이 그 fold를 전혀 보지 않은 메타 분류기에서 나온다 - 임계값을
+        internal validation(수십~백여 건) 대신 train pool 전체 규모로
+        보정할 때 이 정직한 확률이 필요하다 (그렇지 않으면 재대입
+        낙관 편향이 임계값을 그대로 왜곡한다).
+        """
+        phishing_probabilities = np.full(len(labels), np.nan, dtype=np.float64)
+
+        for train_indices, oof_indices in folds:
+            fold_meta = LogisticRegression(
+                class_weight="balanced",
+                random_state=self.random_state,
+                max_iter=1_000,
+                solver="liblinear",
+            )
+            fold_meta.fit(
+                oof_features[train_indices],
+                labels.iloc[train_indices],
+            )
+            phishing_index = list(fold_meta.classes_).index("phishing")
+            phishing_probabilities[oof_indices] = fold_meta.predict_proba(
+                oof_features[oof_indices]
+            )[:, phishing_index]
+
+        if np.isnan(phishing_probabilities).any():
+            raise RuntimeError("meta OOF probabilities are incomplete")
+
+        return phishing_probabilities
 
     def fit(self, train_df: pd.DataFrame) -> Self:
         """OOF 예측으로 meta 모델을 학습하고 base 모델을 재학습"""
@@ -249,11 +321,19 @@ class StackingPhishingClassifier:
             require_group=True,
         )
 
-        oof_features = self._generate_oof_features(train_df)
+        oof_features, folds = self._generate_oof_features(train_df)
         labels = train_df["label"].astype(str)
 
         # meta-classifier는 base 모델이 자기 학습 행을 보지 않은 OOF 예측값만 사용해 학습
         self.meta_classifier.fit(oof_features, labels)
+
+        # 임계값/구간 보정용 - 메타 분류기까지 out-of-fold인 정직한 확률.
+        # internal validation(수십~백여 건)보다 train pool 전체 규모라
+        # 임계값 선정의 표본 분산이 훨씬 작다.
+        self.oof_probabilities_ = self._generate_meta_oof_probabilities(
+            oof_features, labels, folds
+        )
+        self.oof_labels_ = labels.to_numpy()
 
         # 운영 추론해 사용할 base 모델은 전체 train split으로 다시 학습
         self.base_models = {}

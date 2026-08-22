@@ -27,8 +27,8 @@ from data_science.SMSModel.run_stacking_training import (
 )
 from data_science.SMSModel.run_error_analysis import load_classifier
 from data_science.SMSModel.run_standalone_analysis import (
-    SELECTION_SPLIT,
     collect_scored_splits,
+    resolve_selection_split,
 )
 from data_science.SMSModel.train_sms import (
     DATA_PATH,
@@ -57,10 +57,11 @@ def build_report(classifier) -> dict[str, object]:
     """경계 선정부터 판정까지 한 번에 수행"""
     criteria = AdoptionCriteria()
     scored = collect_scored_splits(classifier)
+    selection_split = resolve_selection_split(scored)
 
     try:
         edges = select_standalone_bands(
-            *scored[SELECTION_SPLIT],
+            *scored[selection_split],
             max_alert_false_positive_rate=(
                 criteria.max_alert_false_positive_rate
             ),
@@ -70,7 +71,7 @@ def build_report(classifier) -> dict[str, object]:
         return {
             "verdict": "INSUFFICIENT_EVIDENCE",
             "reason": str(error),
-            "selection_split": SELECTION_SPLIT,
+            "selection_split": selection_split,
             "judging_split": JUDGING_SPLIT,
         }
 
@@ -100,7 +101,7 @@ def build_report(classifier) -> dict[str, object]:
             "cpu_count": os.cpu_count(),
             "omp_num_threads": os.environ.get("OMP_NUM_THREADS"),
         },
-        "selection_split": SELECTION_SPLIT,
+        "selection_split": selection_split,
         "judging_split": JUDGING_SPLIT,
         "judging_set": {
             "sample_count": int(len(judging_frame)),
