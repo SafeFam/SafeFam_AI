@@ -38,7 +38,7 @@ from data_science.SMSModel.train_sms import (
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
 
-STACKING_ARTIFACT_VERSION = "v8"
+STACKING_ARTIFACT_VERSION = "v9"
 
 STACKING_ARTIFACT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
@@ -70,17 +70,17 @@ TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 # 사용자 대면 오탐 보장은 판정셋에서 alert_false_positive_rate가 담당한다.
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.10
 EXPECTED_DATASET_FINGERPRINT = (
-    "c29414e5fbf154fbc2d62d0838e778"
-    "1a60ff56ce46f35429e26d3b506f5e368f"
+    "952ea283be57131f599cd5c5a4845"
+    "ead30feba03383b97f3ff330a3b7dac3725"
 )
 
-EXPECTED_TOTAL_CSV_ROWS = 3493
-EXPECTED_TRAINING_POOL_ROWS = 853
+EXPECTED_TOTAL_CSV_ROWS = 3628
+EXPECTED_TRAINING_POOL_ROWS = 988
 EXPECTED_HOLDOUT_ROWS = 514
 EXPECTED_SPLIT_COUNTS = {
-    "train": 604,
-    "validation": 123,
-    "test": 126,
+    "train": 700,
+    "validation": 148,
+    "test": 140,
 }
 
 
