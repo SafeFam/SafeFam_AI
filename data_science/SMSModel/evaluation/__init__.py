@@ -37,6 +37,7 @@ from .threshold import (
     ThresholdInfeasibleError,
     ThresholdSelection,
     select_probability_threshold,
+    select_probability_threshold_with_fallback,
     select_validation_threshold,
 )
 
@@ -61,6 +62,7 @@ __all__ = [
     "measure_single_inference_latency",
     "save_model_evaluation_reports",
     "select_probability_threshold",
+    "select_probability_threshold_with_fallback",
     "select_standalone_bands",
     "select_validation_threshold",
     "summarize_bands",

@@ -7,6 +7,7 @@ import pytest
 from data_science.SMSModel.evaluation.threshold import (
     ThresholdInfeasibleError,
     select_probability_threshold,
+    select_probability_threshold_with_fallback,
     select_validation_threshold,
 )
 
@@ -295,4 +296,72 @@ def test_rejects_out_of_range_ceiling(ceiling: float) -> None:
             labels,
             target_recall=0.6,
             max_false_positive_rate=ceiling,
+        )
+
+
+def test_fallback_relaxes_ceiling_when_infeasible() -> None:
+    """상한을 만족하는 threshold가 없으면 예외 대신 완화된 결과를 낸다.
+
+    데이터 구성이 바뀔 때마다 고정 상한이 흔들려 매번 사람이
+    --max-false-positive-rate 값을 추측해 재실행해야 했던 문제(#102 §5)의
+    회귀 테스트.
+    """
+    probabilities, labels = build_ceiling_case()
+
+    # 상한 0.0으로는 target_recall=1.0을 만족할 수 없다
+    # (test_raises_when_both_targets_cannot_be_met에서 이미 확인됨).
+    selection, was_relaxed = select_probability_threshold_with_fallback(
+        probabilities,
+        labels,
+        target_recall=1.0,
+        max_false_positive_rate=0.0,
+    )
+
+    assert was_relaxed is True
+    assert selection.recall == 1.0
+    assert selection.target_recall_met is True
+    # 완화된 상한 = 실제 선택된 threshold의 오탐률과 같아야 한다
+    # (그 값이 곧 "이 validation에서 달성 가능한 최소 오탐률"이므로).
+    assert selection.max_false_positive_rate == pytest.approx(
+        selection.false_positive_rate
+    )
+    assert selection.max_false_positive_rate < 1.0
+
+
+def test_fallback_does_not_relax_when_ceiling_already_feasible() -> None:
+    """이미 만족 가능한 상한이면 원래 결과와 완전히 같아야 한다"""
+    probabilities, labels = build_ceiling_case()
+
+    direct = select_probability_threshold(
+        probabilities,
+        labels,
+        target_recall=0.6,
+        max_false_positive_rate=0.2,
+    )
+    selection, was_relaxed = select_probability_threshold_with_fallback(
+        probabilities,
+        labels,
+        target_recall=0.6,
+        max_false_positive_rate=0.2,
+    )
+
+    assert was_relaxed is False
+    assert selection == direct
+
+
+def test_fallback_reraises_when_recall_target_itself_unreachable() -> None:
+    """완화로도 못 고치는 경우(전체를 피싱으로 찍어야만 목표 recall 달성)는
+    그대로 실패해야 한다 - 상한 조정 문제가 아니라 모델/데이터 문제이므로.
+    """
+    # 피싱 표본 점수가 정상 표본과 동점 최저치라, recall=1.0을 내려면
+    # "전부 피싱"으로 찍어 오탐률 1.0을 감수하는 수밖에 없다.
+    probabilities = np.asarray([0.5, 0.5, 0.5])
+    labels = pd.Series(["normal", "normal", "phishing"])
+
+    with pytest.raises(ThresholdInfeasibleError):
+        select_probability_threshold_with_fallback(
+            probabilities,
+            labels,
+            target_recall=1.0,
+            max_false_positive_rate=0.0,
         )
