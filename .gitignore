@@ -22,3 +22,11 @@ scripts/benchmark/output/
 # A fresh clone must run --collect with AWS access before --offline can succeed.
 data_science/SMSModel/artifacts/stacking/llm_*_predictions.json
 data_science/SMSModel/artifacts/stacking/*.json.tmp
+
+# 파인튜닝 인코더가 들어간 stacking artifact (약 66MB).
+# 얼린 인코더를 쓰던 시절에는 2.5MB라 커밋했지만, 파인튜닝 가중치는
+# 모델 자체라 artifact에 포함해야 하고 재학습마다 히스토리에 영구
+# 누적된다(레포 .git 전체가 21MB). 학습을 CPU + 고정 시드로
+# 결정적으로 만들어 뒀으므로 run_stacking_training.py로 정확히
+# 재생성할 수 있고, metadata.json의 model_sha256으로 검증한다.
+data_science/SMSModel/artifacts/stacking/v9-experiment/model.joblib

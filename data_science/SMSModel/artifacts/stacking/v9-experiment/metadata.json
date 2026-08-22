@@ -1,11 +1,11 @@
 {
   "artifact_version": "v9",
-  "created_at": "2026-08-22T15:03:35.871661+00:00",
+  "created_at": "2026-08-22T18:38:41.936914+00:00",
   "dataset": {
-    "dataset_fingerprint": "06c0756121240d61a0619d967fe128295500f21a6fbc6fcd2887052ace17ff3c",
+    "dataset_fingerprint": "500884cc4bd2ed9a45ce8b7dfbd16aff6c7672422bbe7959f5b190fcdc98b1b3",
     "holdout_rows": 510,
-    "total_csv_rows": 3584,
-    "training_pool_rows": 971
+    "total_csv_rows": 3562,
+    "training_pool_rows": 949
   },
   "dataset_path": "Data/SMSData/phishing_total_dataset_reclassified.csv",
   "library_versions": {
@@ -48,19 +48,19 @@
       "has_investment_lure"
     ],
     "model_name": "stacking_phishing_classifier",
-    "oof_splits": 5,
+    "oof_splits": 10,
     "random_state": 42,
-    "threshold": 0.1501995113220475
+    "threshold": 0.1638286294849425
   },
-  "model_configuration_sha256": "6f10b756c8e963e7ad9afbc60f44ba6f570090a4f451eb0929ee41b25dcf2229",
-  "model_sha256": "f05284390cf1b3198145c726d4af464602fca161b4a4c6739467bd30ee5884fe",
+  "model_configuration_sha256": "f664233b082d1ddae8ae1c58954a4acf858eff6c8e016c89142852b5eba3d17a",
+  "model_sha256": "fed6acdde6ea325287d848d823b48e39c41acfb732cf3d8eee41987ee029c3ad",
   "schema_version": 2,
   "split_manifest": "sms_split_v6.csv",
-  "split_manifest_sha256": "5899694abbae33038b6df21b4470f5bff846a62712ed20f734360454630a73f1",
+  "split_manifest_sha256": "214dd3385689f18907720b8f29c8710390672c7f3410fe3acd1af1ee74af17b2",
   "splits": {
-    "test": 138,
-    "train": 692,
-    "validation": 141
+    "test": 135,
+    "train": 678,
+    "validation": 136
   },
   "training_policy": {
     "final_evaluation_split": "test",
@@ -71,18 +71,18 @@
     "training_split": "train"
   },
   "validation": {
-    "f2": 0.8587041373926619,
-    "false_positive_rate": 0.29718004338394793,
-    "max_false_positive_rate": 0.29718004338394793,
+    "f2": 0.9094903339191565,
+    "false_positive_rate": 0.13665943600867678,
+    "max_false_positive_rate": 0.13665943600867678,
     "measurable_false_positive_rate": 0.0021691973969631237,
-    "recall": 0.9523809523809523,
+    "recall": 0.9539170506912442,
     "target_recall": 0.95,
     "target_recall_met": true
   },
   "validation_reference": {
-    "false_positive_rate": 0.2826086956521739,
+    "false_positive_rate": 0.09782608695652174,
     "normal_count": 92,
-    "recall": 0.9591836734693877,
-    "sample_count": 141
+    "recall": 0.9318181818181818,
+    "sample_count": 136
   }
 }
