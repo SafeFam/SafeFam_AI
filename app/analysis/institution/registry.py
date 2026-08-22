@@ -35,7 +35,10 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
     OfficialInstitution("새마을금고", ("새마을금고",), ("kfcc.co.kr",), ("1599-9000", "1588-8801")),
     OfficialInstitution("신협", ("신협",), ("cu.co.kr",), ("1566-6000", "1644-6000")),
     OfficialInstitution(
-        "우체국", ("우체국", "우정사업본부"), ("epost.go.kr", "koreapost.go.kr"), ("1588-1300",)
+        "우체국",
+        ("우체국", "우정사업본부"),
+        ("epost.go.kr", "koreapost.go.kr", "epostbank.go.kr"),
+        ("1588-1300", "1599-1900", "1599-0100"),
     ),
 
     # 카드사
