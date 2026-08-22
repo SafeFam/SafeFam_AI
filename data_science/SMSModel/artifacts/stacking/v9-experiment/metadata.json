@@ -1,11 +1,11 @@
 {
   "artifact_version": "v9",
-  "created_at": "2026-08-22T13:32:27.747678+00:00",
+  "created_at": "2026-08-22T15:03:35.871661+00:00",
   "dataset": {
-    "dataset_fingerprint": "952ea283be57131f599cd5c5a4845ead30feba03383b97f3ff330a3b7dac3725",
-    "holdout_rows": 514,
-    "total_csv_rows": 3628,
-    "training_pool_rows": 988
+    "dataset_fingerprint": "06c0756121240d61a0619d967fe128295500f21a6fbc6fcd2887052ace17ff3c",
+    "holdout_rows": 510,
+    "total_csv_rows": 3584,
+    "training_pool_rows": 971
   },
   "dataset_path": "Data/SMSData/phishing_total_dataset_reclassified.csv",
   "library_versions": {
@@ -41,7 +41,6 @@
       "has_personal_info_request",
       "has_link_action",
       "is_long_text",
-      "has_ad_disclosure",
       "has_opt_out",
       "has_family_impersonation",
       "has_chatroom_invite",
@@ -51,33 +50,39 @@
     "model_name": "stacking_phishing_classifier",
     "oof_splits": 5,
     "random_state": 42,
-    "threshold": 0.2844484252248477
+    "threshold": 0.1501995113220475
   },
-  "model_configuration_sha256": "b9cae88fcc49e6de703863ab94905a43de1762b429b30eaac0d05b5e58a3e4ec",
-  "model_sha256": "8ff0930e21837136a60a553be225370c1d69105b3aced4502bc5d721dbad46ca",
+  "model_configuration_sha256": "6f10b756c8e963e7ad9afbc60f44ba6f570090a4f451eb0929ee41b25dcf2229",
+  "model_sha256": "f05284390cf1b3198145c726d4af464602fca161b4a4c6739467bd30ee5884fe",
   "schema_version": 2,
   "split_manifest": "sms_split_v6.csv",
-  "split_manifest_sha256": "dbb0c41b6513de2384245bc7d9567795c07c714dae897020a78df744efb8a1e7",
+  "split_manifest_sha256": "5899694abbae33038b6df21b4470f5bff846a62712ed20f734360454630a73f1",
   "splits": {
-    "test": 140,
-    "train": 700,
-    "validation": 148
+    "test": 138,
+    "train": 692,
+    "validation": 141
   },
   "training_policy": {
     "final_evaluation_split": "test",
     "holdout_used_during_training": false,
     "random_state": 42,
     "test_used_for_tuning": false,
-    "threshold_selection_split": "validation",
+    "threshold_selection_split": "train_oof",
     "training_split": "train"
   },
   "validation": {
-    "f2": 0.9561752988047809,
-    "false_positive_rate": 0.0707070707070707,
-    "max_false_positive_rate": 0.1,
-    "measurable_false_positive_rate": 0.010101010101010102,
-    "recall": 0.9795918367346939,
+    "f2": 0.8587041373926619,
+    "false_positive_rate": 0.29718004338394793,
+    "max_false_positive_rate": 0.29718004338394793,
+    "measurable_false_positive_rate": 0.0021691973969631237,
+    "recall": 0.9523809523809523,
     "target_recall": 0.95,
     "target_recall_met": true
+  },
+  "validation_reference": {
+    "false_positive_rate": 0.2826086956521739,
+    "normal_count": 92,
+    "recall": 0.9591836734693877,
+    "sample_count": 141
   }
 }

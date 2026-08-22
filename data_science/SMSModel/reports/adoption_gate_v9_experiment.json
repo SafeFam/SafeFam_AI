@@ -3,7 +3,7 @@
     "criteria": [
       {
         "detail": "오탐 0건이 상한 준수의 증거가 되려면 정상 표본이 필요하다",
-        "measured": 308.0,
+        "measured": 304.0,
         "name": "normal_sample_size",
         "outcome": "PASS",
         "required": 300.0
@@ -17,28 +17,28 @@
       },
       {
         "detail": "최소 '의심' 이상으로 걸러낸 피싱 비율",
-        "measured": 0.9518072289156626,
+        "measured": 0.9879518072289156,
         "name": "coverage_recall",
         "outcome": "PASS",
         "required": 0.95
       },
       {
         "detail": "자동 경고가 잘못 울린 정상 비율",
-        "measured": 0.02922077922077922,
+        "measured": 0.003289473684210526,
         "name": "alert_false_positive_rate",
-        "outcome": "FAIL",
+        "outcome": "PASS",
         "required": 0.01
       },
       {
         "detail": "'의심' 카드가 뜬 정상 비율",
-        "measured": 0.18831168831168832,
+        "measured": 0.4342105263157895,
         "name": "uncertain_normal_share",
         "outcome": "FAIL",
         "required": 0.133
       },
       {
         "detail": "단건 추론 P95 지연시간",
-        "measured": 23.4977085,
+        "measured": 22.810520699999998,
         "name": "p95_latency_ms",
         "outcome": "PASS",
         "required": 50.0
@@ -55,12 +55,12 @@
     "min_phishing_samples": 60
   },
   "edges": {
-    "normal_max": 0.339354420829217,
-    "phishing_min": 0.7311094287498854
+    "normal_max": 0.15019951132204748,
+    "phishing_min": 0.8533152910696998
   },
   "judging_set": {
-    "fingerprint": "44966a854774f669726a292e058886ce98e774724f08c0a89e44bc2ad3ea085e",
-    "sample_count": 391
+    "fingerprint": "55cd7d5b2687d233443079676109d177ce3e6f893ca5c32293e7c56922318c16",
+    "sample_count": 387
   },
   "judging_split": "real_holdout",
   "latency_environment": {
@@ -68,44 +68,44 @@
     "omp_num_threads": null
   },
   "measured": {
-    "alert_false_positive_rate": 0.02922077922077922,
-    "alert_recall": 0.7831325301204819,
+    "alert_false_positive_rate": 0.003289473684210526,
+    "alert_recall": 0.6987951807228916,
     "by_band": {
       "certain_normal": {
-        "normal_count": 241,
-        "normal_share": 0.7824675324675324,
-        "phishing_count": 4,
-        "phishing_share": 0.04819277108433735,
-        "sample_count": 245
+        "normal_count": 171,
+        "normal_share": 0.5625,
+        "phishing_count": 1,
+        "phishing_share": 0.012048192771084338,
+        "sample_count": 172
       },
       "certain_phishing": {
-        "normal_count": 9,
-        "normal_share": 0.02922077922077922,
-        "phishing_count": 65,
-        "phishing_share": 0.7831325301204819,
-        "sample_count": 74
+        "normal_count": 1,
+        "normal_share": 0.003289473684210526,
+        "phishing_count": 58,
+        "phishing_share": 0.6987951807228916,
+        "sample_count": 59
       },
       "uncertain": {
-        "normal_count": 58,
-        "normal_share": 0.18831168831168832,
-        "phishing_count": 14,
-        "phishing_share": 0.1686746987951807,
-        "sample_count": 72
+        "normal_count": 132,
+        "normal_share": 0.4342105263157895,
+        "phishing_count": 24,
+        "phishing_share": 0.2891566265060241,
+        "sample_count": 156
       }
     },
-    "coverage_recall": 0.9518072289156626,
+    "coverage_recall": 0.9879518072289156,
     "edges": {
-      "normal_max": 0.339354420829217,
-      "phishing_min": 0.7311094287498854
+      "normal_max": 0.15019951132204748,
+      "phishing_min": 0.8533152910696998
     },
-    "missed_phishing_rate": 0.04819277108433735,
-    "normal_count": 308,
+    "missed_phishing_rate": 0.012048192771084338,
+    "normal_count": 304,
     "phishing_count": 83,
-    "sample_count": 391,
-    "uncertain_share": 0.18414322250639387
+    "sample_count": 387,
+    "uncertain_share": 0.40310077519379844
   },
-  "p95_latency_ms": 23.4977085,
-  "selection_split": "validation",
+  "p95_latency_ms": 22.810520699999998,
+  "selection_split": "train_oof",
   "synthetic_reference": {
     "note": "합성 스트레스 셋은 참고용이며 판정에 사용하지 않는다",
     "sample_count": 123
