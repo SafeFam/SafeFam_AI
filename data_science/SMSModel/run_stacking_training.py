@@ -175,6 +175,7 @@ def save_artifact(
     artifact_directory: Path | None = None,
     verification_df: pd.DataFrame | None = None,
     expected_probabilities: np.ndarray | None = None,
+    validation_reference_metrics: dict[str, float] | None = None,
 ) -> None:
     """모델과 비민감 metadata를 저장하고 재로드 검증"""
 
@@ -276,6 +277,7 @@ def save_artifact(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model": model_configuration,
         "validation": validation_metrics,
+        "validation_reference": validation_reference_metrics,
         "dataset": {
             "total_csv_rows": dataset_counts["total_csv_rows"],
             "training_pool_rows": dataset_counts["training_pool_rows"],
@@ -285,7 +287,7 @@ def save_artifact(
         "splits": dict(split_counts),
         "training_policy": {
             "training_split": "train",
-            "threshold_selection_split": "validation",
+            "threshold_selection_split": "train_oof",
             "final_evaluation_split": "test",
             "holdout_used_during_training": False,
             "test_used_for_tuning": False,
@@ -389,7 +391,23 @@ def train_stacking(
     )
     classifier.fit(splits.train)
 
-    # validation 126건으로만 threshold 선정
+    # threshold는 internal validation(수십~백여 건) 대신 train pool 전체
+    # 규모의 메타 레벨 OOF 확률(classifier.oof_probabilities_)로 선정한다.
+    # validation만으로 뽑으면 "오탐 0건" 같은 극값 통계라 표본이 몇 건만
+    # 바뀌어도 경계가 크게 흔들렸다(#102 §5, 부트스트랩으로 확인:
+    # phishing_min 5~95% 구간이 0.39~0.72까지 벌어짐). OOF는 표본이
+    # 정상 기준 약 5배 커서 이 분산이 크게 줄어든다.
+    threshold_selection, ceiling_was_relaxed = (
+        select_probability_threshold_with_fallback(
+            classifier.oof_probabilities_,
+            classifier.oof_labels_,
+            target_recall=TARGET_RECALL,
+            max_false_positive_rate=max_false_positive_rate,
+        )
+    )
+
+    # validation은 더 이상 threshold 선정에 쓰지 않지만, 진짜 안 보인
+    # 데이터에서 이 threshold가 어떻게 나오는지 참고용으로는 계속 기록한다.
     validation_probabilities, unavailable = (
         classifier.predict_probabilities(
             splits.validation
@@ -401,15 +419,6 @@ def train_stacking(
             "base models unavailable during validation: "
             f"{unavailable}"
         )
-
-    threshold_selection, ceiling_was_relaxed = (
-        select_probability_threshold_with_fallback(
-            validation_probabilities,
-            splits.validation["label"],
-            target_recall=TARGET_RECALL,
-            max_false_positive_rate=max_false_positive_rate,
-        )
-    )
     if ceiling_was_relaxed:
         # 정책 상한(기본 0.10)은 데이터 구성이 바뀔 때마다 흔들린다 - split이
         # 달라지면 목표 recall에 필요한 오탐률이 상한을 넘나들어 매번 사람이
@@ -419,11 +428,33 @@ def train_stacking(
         max_false_positive_rate = threshold_selection.max_false_positive_rate
         print(
             f"[Stacking] 경고: 정상 오탐 상한을 {max_false_positive_rate:.4f}로 "
-            "자동 완화했다 (validation에서 달성 가능한 최소치). "
+            "자동 완화했다 (train pool OOF에서 달성 가능한 최소치). "
             "이 artifact는 단독 운영 후보가 아니다."
         )
     threshold = threshold_selection.threshold
     validation_metrics = threshold_selection.to_validation_metrics()
+
+    # 참고용 - 선정에는 안 쓰지만, 진짜 held-out인 validation에서 이
+    # threshold가 어떻게 나오는지 기록해 OOF 기반 선정이 과최적화되지
+    # 않았는지 확인할 수 있게 남긴다.
+    validation_predictions = (validation_probabilities >= threshold).astype(int)
+    validation_binary_labels = (
+        splits.validation["label"].astype(str) == "phishing"
+    ).astype(int)
+    _val_is_phishing = validation_binary_labels == 1
+    _val_is_normal = validation_binary_labels == 0
+    validation_reference_metrics = {
+        "recall": float(
+            (validation_predictions[_val_is_phishing] == 1).sum()
+            / max(int(_val_is_phishing.sum()), 1)
+        ),
+        "false_positive_rate": float(
+            (validation_predictions[_val_is_normal] == 1).sum()
+            / max(int(_val_is_normal.sum()), 1)
+        ),
+        "sample_count": int(len(splits.validation)),
+        "normal_count": int(_val_is_normal.sum()),
+    }
 
     classifier.set_threshold(threshold)
 
@@ -459,6 +490,7 @@ def train_stacking(
         artifact_directory=artifact_directory,
         verification_df=splits.test,
         expected_probabilities=test_probabilities,
+        validation_reference_metrics=validation_reference_metrics,
     )
 
     # 보고서 저장
