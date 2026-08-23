@@ -63,6 +63,36 @@ STACKING_REPORT_DIRECTORY = (
 
 EXPERIMENT_SUFFIX = "-experiment"
 
+# 배포 이미지가 실제로 로드하는 경로. requirements.txt에 torch/transformers가
+# 없으므로(#101) 인코더가 포함된 artifact는 여기 두면 로드에 실패한다.
+PRODUCTION_ARTIFACT_DIRECTORY = STACKING_ARTIFACT_DIRECTORY.parent
+PRODUCTION_REPORT_DIRECTORY = (
+    SMS_MODEL_DIRECTORY / "reports" / "stacking_production"
+)
+
+
+def build_deployable_base_model_factories():
+    """배포 이미지에서 실행 가능한 base model만 반환한다.
+
+    인코더는 torch/transformers를 요구하는데 배포 requirements에 없다.
+    프로덕션 artifact는 이 세 모델로만 만든다.
+    """
+    from data_science.SMSModel.modeling.linear_svm import (
+        LinearSvmPhishingClassifier,
+    )
+    from data_science.SMSModel.modeling.logistic_regression import (
+        LogisticRegressionPhishingClassifier,
+    )
+    from data_science.SMSModel.modeling.stacking import (
+        _build_text_only_naive_bayes,
+    )
+
+    return {
+        "naive_bayes": _build_text_only_naive_bayes,
+        "logistic_regression": LogisticRegressionPhishingClassifier,
+        "linear_svm": LinearSvmPhishingClassifier,
+    }
+
 # 단일 임계값 정책. 채택 기준과 재는 대상이 다르다 (#100 §2.4)
 TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 
@@ -320,6 +350,7 @@ def train_stacking(
     *,
     overwrite_artifacts: bool,
     max_false_positive_rate: float = MAX_NORMAL_FALSE_POSITIVE_RATE,
+    deployable: bool = False,
 ) -> None:
     """Stacking artifact를 학습하고 고정된 test split을 한 번 평가"""
 
@@ -397,6 +428,9 @@ def train_stacking(
     classifier = StackingPhishingClassifier(
         n_splits=10,
         random_state=42,
+        base_model_factories=(
+            build_deployable_base_model_factories() if deployable else None
+        ),
     )
     classifier.fit(splits.train)
 
@@ -486,9 +520,15 @@ def train_stacking(
         test_predictions,
     )
 
-    artifact_directory, report_directory = resolve_artifact_paths(
-        max_false_positive_rate
-    )
+    if deployable:
+        # 배포 경로에 바로 저장한다. 앱이 metadata.json의 model_sha256으로
+        # 무결성을 검증하므로 save_artifact가 만든 metadata를 그대로 쓴다.
+        artifact_directory = PRODUCTION_ARTIFACT_DIRECTORY
+        report_directory = PRODUCTION_REPORT_DIRECTORY
+    else:
+        artifact_directory, report_directory = resolve_artifact_paths(
+            max_false_positive_rate
+        )
 
     save_artifact(
         classifier,
@@ -536,6 +576,15 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--deployable",
+        action="store_true",
+        help=(
+            "배포 이미지에서 실행 가능한 구성(인코더 제외)으로 학습해 "
+            "프로덕션 경로(artifacts/stacking/)에 저장한다. requirements.txt에 "
+            "torch/transformers가 없어 인코더 포함 artifact는 로드에 실패한다."
+        ),
+    )
+    parser.add_argument(
         "--max-false-positive-rate",
         type=float,
         default=MAX_NORMAL_FALSE_POSITIVE_RATE,
@@ -557,6 +606,7 @@ def main() -> None:
     train_stacking(
         overwrite_artifacts=arguments.overwrite_artifacts,
         max_false_positive_rate=arguments.max_false_positive_rate,
+        deployable=arguments.deployable,
     )
 
 if __name__ == "__main__":
