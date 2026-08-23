@@ -41,6 +41,33 @@ def test_normal_message_has_no_risky_features() -> None:
     )
 
 
+def test_generic_deadline_wording_is_not_urgency() -> None:
+    """'마감'/'기한'만으로는 has_urgency가 아니어야 한다.
+
+    정상 이용안내문(사용기한·신청마감 등)에도 흔히 등장해 실제
+    정상 유형(택배·카드결제·공공기관 등)에서 오탐을 키웠다.
+    """
+    for text in (
+        "포인트 사용기한이 이번 달 말까지입니다.",
+        "이벤트 신청 마감이 임박했습니다.",
+        "제출 기한을 꼭 확인해 주세요.",
+    ):
+        result = extract_stacking_structural_features(text)
+        features = dict(zip(result.names, result.values, strict=True))
+        assert features["has_urgency"] == 0.0, text
+
+
+def test_genuine_pressure_wording_is_still_urgency() -> None:
+    """압박성 어휘(체납·압류·명의도용 등)는 여전히 잡혀야 한다"""
+    for text in (
+        "세금 체납으로 계좌가 압류될 수 있습니다.",
+        "명의도용이 의심되어 즉시 확인이 필요합니다.",
+    ):
+        result = extract_stacking_structural_features(text)
+        features = dict(zip(result.names, result.values, strict=True))
+        assert features["has_urgency"] == 1.0, text
+
+
 def test_returns_fixed_feature_order() -> None:
     result = extract_stacking_structural_features("테스트 메시지")
 

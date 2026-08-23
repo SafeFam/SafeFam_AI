@@ -38,7 +38,7 @@
       },
       {
         "detail": "단건 추론 P95 지연시간",
-        "measured": 22.600449899999997,
+        "measured": 22.810520699999998,
         "name": "p95_latency_ms",
         "outcome": "PASS",
         "required": 50.0
@@ -104,7 +104,7 @@
     "sample_count": 387,
     "uncertain_share": 0.40310077519379844
   },
-  "p95_latency_ms": 22.600449899999997,
+  "p95_latency_ms": 22.810520699999998,
   "selection_split": "train_oof",
   "synthetic_reference": {
     "note": "합성 스트레스 셋은 참고용이며 판정에 사용하지 않는다",

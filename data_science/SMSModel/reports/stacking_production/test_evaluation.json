@@ -1,0 +1,454 @@
+{
+  "error_samples": {
+    "false_negatives": [],
+    "false_positives": [
+      {
+        "text_fingerprint": "dd9c13a2c2f2747da2a12764030c3b1df5dbeb94dde8116dd4b4cdf9e93df172"
+      },
+      {
+        "text_fingerprint": "aa3767924ec276839cc80113cc88cced1ead09cac5c54cf76298c9221358d2c8"
+      },
+      {
+        "text_fingerprint": "a8eea65ccc27637fe47071d1d32ffa49d7c3aa0dc00d7d7c6f339435979650c6"
+      },
+      {
+        "text_fingerprint": "a207d39ed33c2cfec0f6ad39ae952facc7201fe2b40b4b2fb91c366f2caa8351"
+      },
+      {
+        "text_fingerprint": "ca2cc85429e4f60699f865d1d80b5c708f28279ee57bb2a21303dad7d10bfa37"
+      },
+      {
+        "text_fingerprint": "336f2ea0bca911f36db33934af9478bdfda1660eef31b80671f00b237d0026f3"
+      },
+      {
+        "text_fingerprint": "3fcf48e4d208808933ffa8ff1d2622f041394b125d571ec44160bf77e5d9d7c2"
+      },
+      {
+        "text_fingerprint": "e80b5d63b72e124ed19008d477838c9e6832d7ea7f4e6c85b8f3f2eb8e912fd6"
+      },
+      {
+        "text_fingerprint": "49225758d75143d92c6efaa5acf0b58588bf8ae9fb51d7804b4f299f4ea7f9f7"
+      },
+      {
+        "text_fingerprint": "e9b4563b8a4744dcf6fecb84f797914ba0b418f4e448e68b414a8ad6a3014c05"
+      },
+      {
+        "text_fingerprint": "aa1e827b72b61a28ff1909e0a6bbd61ce081706b551fd8294b00dd4a1cb666a8"
+      },
+      {
+        "text_fingerprint": "a5007297780e620bc2faa8afa2fad68cabfcab7567b7f294689bc289a1719183"
+      },
+      {
+        "text_fingerprint": "e5b594eb6a0a67c8933272f9959417bc713b30e6dd4d2ff156999d444d55243b"
+      },
+      {
+        "text_fingerprint": "9fee15c3ca4caeae00867a6712fca417bcf361961c8075ca1aaa8f0fe15fa805"
+      },
+      {
+        "text_fingerprint": "7e803a109f408087cdb6cfd6bf68485ec85ef31a3c21a0e46408fdc145c60722"
+      },
+      {
+        "text_fingerprint": "e74c1d56ba58a67391154c313cd91ff2bed0e8b9f489639dce5d86614e5ae32c"
+      },
+      {
+        "text_fingerprint": "fa9a518b8e529a6cf3ba22c869764ace7ba493fe109251e79b61ced209c73e52"
+      },
+      {
+        "text_fingerprint": "5f3a11655d8186c91d23c63b75028732eae5a0a84079196553c3050b3f5d713f"
+      },
+      {
+        "text_fingerprint": "330d6bc0ec647b5fba27876d80cdef79765306f85437ab452ffd6dad32a46bdc"
+      },
+      {
+        "text_fingerprint": "b43e88b94d86e1f23dc84b139eea1382356a9bc825039efff1ecf05495a255a5"
+      },
+      {
+        "text_fingerprint": "488f4f0fb3d03b9edf2f005449a4724573e8b2a888d51ae0ae1a23d608d79652"
+      },
+      {
+        "text_fingerprint": "ef74727f7a87cca63f06cdfaaad55e59a257585eba243376467b40cd3344f023"
+      },
+      {
+        "text_fingerprint": "23c0421d05ac9f4fc84035fd8a50d0c834a16f43a25b6ecbed006c3108367505"
+      },
+      {
+        "text_fingerprint": "ccce2b7f00a16f8446b78440ca74d229f7f29faf08ae1b8b34ddebc43bee98fb"
+      },
+      {
+        "text_fingerprint": "1a626e88a5a2a1de70cbba10a3aabe6ad032a5c70a1c8a11f78550399eaa1e40"
+      },
+      {
+        "text_fingerprint": "0d6c306bae070c05972675d90ddce6e5eb05d6b0da1e81a3b60ed35d7db5f7cf"
+      },
+      {
+        "text_fingerprint": "a7d8341214e380a6c472ee85c8db876855b444017030a711f002d9585a4349b3"
+      },
+      {
+        "text_fingerprint": "5a891d2da15231338edf5e98401e9a1defc448969b9414c1c3a886e4ab3f7008"
+      },
+      {
+        "text_fingerprint": "9461d258d9b5c9eb974aacd4a4c4de9b8cc408f8ea73ddb334159eee11442552"
+      },
+      {
+        "text_fingerprint": "c5babe9c424ae174ff88e7c8842a9d164fa67c2526f0c9d3e4a4e3ce418f70b4"
+      },
+      {
+        "text_fingerprint": "ae5dc4b45140f84ffaaf89cae4c958708ee3084587432338003267dcc5e71c04"
+      },
+      {
+        "text_fingerprint": "4193a250cddd975b2902c443c0cf290e8fc4cf31aa76c8d4abcae7d3aabbdd46"
+      },
+      {
+        "text_fingerprint": "bb6c9c557f4a478ec5179463abbc1cd78f82985b9f11a090d9dcff5bc7b97272"
+      },
+      {
+        "text_fingerprint": "217d199d1dd57ce5e7a1477fd99af926a96ac2d89c4a384ae5e594deb10c1a23"
+      },
+      {
+        "text_fingerprint": "fb1b844a7440e2e0ad37bbb6c1fdac27da3448e716708a7b5d06d7ac165edaf2"
+      },
+      {
+        "text_fingerprint": "86596a3b5b9be6ab74d172e9345e72c1c77ec1d99520a4919c4753a408b9a30e"
+      },
+      {
+        "text_fingerprint": "7f1ff9a852083fed49aaf369627dc18fb08823e382a17d95948d8510e6bd31ac"
+      },
+      {
+        "text_fingerprint": "82df7b57725c22fc684aa75c093794dd5660aff73dbd707cb1498e4155f2699e"
+      },
+      {
+        "text_fingerprint": "2146e4c3f1a4c0cd43e6b8869099ee78a2e4ee15d5749997f1a6e6f7678deac6"
+      },
+      {
+        "text_fingerprint": "eaa173cb2948c0197c03555dc2de8c59be8c33a62935d23f499b624d8e998404"
+      },
+      {
+        "text_fingerprint": "70ce1cb0c08ebe43836f2b75370cd4905ff034d130452528ca9b086445700ff8"
+      },
+      {
+        "text_fingerprint": "75937b3b7e10307ac0e0e0d6712a04673a2506926e0d9dca1d41b3496e39b94d"
+      },
+      {
+        "text_fingerprint": "240ccd4c599640eb66115efcae2b196a08f24bd5901e8ef72868064470312698"
+      },
+      {
+        "text_fingerprint": "13bd6675097bdead5008229ffd67761e4ed70560f3168659fa89f10939e28467"
+      },
+      {
+        "text_fingerprint": "e81899960b56cb578b9a8d6e96d7bc6b03c8f30c3854c384c1a6eaa3eafff6ea"
+      },
+      {
+        "text_fingerprint": "24e5896497133ed8d959ffaacc85a12d5907a47e17170a360f1cdf3874e62d3c"
+      },
+      {
+        "text_fingerprint": "9bf8286255652694b4bab771a0f26f80d544f886007d4b3b03232d751925f76a"
+      },
+      {
+        "text_fingerprint": "5e59556b7c4841e63adb2dbfb068f87b3a0aeb443a480b5eb9812b8f6b740a33"
+      },
+      {
+        "text_fingerprint": "fadb778dc6acc17bad5df6001c1e175227692c0fbee7cc49ab5346bec3a1b143"
+      }
+    ]
+  },
+  "latency_stats": {
+    "mean": 3.9191512391304344,
+    "p50": 3.5667915,
+    "p95": 5.497784900000002,
+    "sample_count": 138
+  },
+  "normal_by_type": {
+    "기타정상": {
+      "false_positive": 4,
+      "false_positive_rate": 0.6666666666666666,
+      "false_positive_rate_95_ci": {
+        "lower": 0.29998832134152864,
+        "upper": 0.9032306674407831
+      },
+      "sample_count": 6,
+      "true_negative": 2
+    },
+    "일상대화": {
+      "false_positive": 10,
+      "false_positive_rate": 0.47619047619047616,
+      "false_positive_rate_95_ci": {
+        "lower": 0.28343712296762946,
+        "upper": 0.6763078209973324
+      },
+      "sample_count": 21,
+      "true_negative": 11
+    },
+    "정상공공기관알림": {
+      "false_positive": 3,
+      "false_positive_rate": 0.5,
+      "false_positive_rate_95_ci": {
+        "lower": 0.18761280689940868,
+        "upper": 0.8123871931005913
+      },
+      "sample_count": 6,
+      "true_negative": 3
+    },
+    "정상광고프로모션": {
+      "false_positive": 6,
+      "false_positive_rate": 0.3333333333333333,
+      "false_positive_rate_95_ci": {
+        "lower": 0.1627855436366286,
+        "upper": 0.5625093065574964
+      },
+      "sample_count": 18,
+      "true_negative": 12
+    },
+    "정상금융알림": {
+      "false_positive": 4,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.5100999795960008,
+        "upper": 1.0
+      },
+      "sample_count": 4,
+      "true_negative": 0
+    },
+    "정상인증알림": {
+      "false_positive": 6,
+      "false_positive_rate": 0.6666666666666666,
+      "false_positive_rate_95_ci": {
+        "lower": 0.35419734749908977,
+        "upper": 0.879418401317257
+      },
+      "sample_count": 9,
+      "true_negative": 3
+    },
+    "정상카드결제알림": {
+      "false_positive": 8,
+      "false_positive_rate": 1.0,
+      "false_positive_rate_95_ci": {
+        "lower": 0.6755843804891231,
+        "upper": 1.0
+      },
+      "sample_count": 8,
+      "true_negative": 0
+    },
+    "정상택배배송안내": {
+      "false_positive": 4,
+      "false_positive_rate": 0.3076923076923077,
+      "false_positive_rate_95_ci": {
+        "lower": 0.12680497161618087,
+        "upper": 0.5763111218666236
+      },
+      "sample_count": 13,
+      "true_negative": 9
+    },
+    "정상포인트소멸알림": {
+      "false_positive": 4,
+      "false_positive_rate": 0.5714285714285714,
+      "false_positive_rate_95_ci": {
+        "lower": 0.2504542304090258,
+        "upper": 0.8417830777373732
+      },
+      "sample_count": 7,
+      "true_negative": 3
+    }
+  },
+  "overall_metrics": {
+    "accuracy": 0.644927536231884,
+    "confusion_matrix": {
+      "false_negative": 0,
+      "false_positive": 49,
+      "true_negative": 43,
+      "true_positive": 46
+    },
+    "f1_score": 0.6524822695035462,
+    "f2_score": 0.8243727598566308,
+    "precision": 0.4842105263157895,
+    "recall": 1.0
+  },
+  "phishing_by_type": {
+    "결제환불사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "경조사사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.6755843804891231,
+        "upper": 1.0
+      },
+      "sample_count": 8,
+      "true_positive": 8
+    },
+    "계정정지본인인증유도": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "금융기관사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.7008472464490407,
+        "upper": 1.0
+      },
+      "sample_count": 9,
+      "true_positive": 9
+    },
+    "기타피싱": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "대출사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "복합피싱": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "악성링크앱설치유도": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "이벤트당첨사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.7008472464490407,
+        "upper": 1.0
+      },
+      "sample_count": 9,
+      "true_positive": 9
+    },
+    "정부공공기관사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.5655085052479191,
+        "upper": 1.0
+      },
+      "sample_count": 5,
+      "true_positive": 5
+    },
+    "중고거래사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "지인가족사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.34237195288961925,
+        "upper": 1.0
+      },
+      "sample_count": 2,
+      "true_positive": 2
+    },
+    "채용부업사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    },
+    "택배배송사칭": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.5100999795960008,
+        "upper": 1.0
+      },
+      "sample_count": 4,
+      "true_positive": 4
+    },
+    "투자리딩방사기": {
+      "false_negative": 0,
+      "recall": 1.0,
+      "recall_95_ci": {
+        "lower": 0.20654329147389294,
+        "upper": 1.0
+      },
+      "sample_count": 1,
+      "true_positive": 1
+    }
+  },
+  "sample_summary": {
+    "failure_counts": {
+      "engine_failure": 0,
+      "exception": 0,
+      "missing_result": 0
+    },
+    "successful_samples": 138,
+    "total_samples": 138
+  },
+  "schema_version": 1,
+  "shared_metrics": {
+    "accuracy": 0.644927536231884,
+    "f1": 0.6524822695035462,
+    "f2": 0.8243727598566308,
+    "false_negative": 0,
+    "false_positive": 49,
+    "precision": 0.4842105263157895,
+    "recall": 1.0,
+    "sample_count": 138,
+    "true_negative": 43,
+    "true_positive": 46
+  },
+  "split": "test",
+  "threshold": 0.09572428195555654,
+  "unavailable_models": [],
+  "unique_template_metrics": {
+    "accuracy": 0.6097560975609756,
+    "f1_score": 0.5714285714285715,
+    "f2_score": 0.7692307692307692,
+    "false_negative": 0,
+    "false_positive": 48,
+    "precision": 0.4,
+    "recall": 1.0,
+    "sample_count": 123,
+    "true_negative": 43,
+    "true_positive": 32
+  }
+}

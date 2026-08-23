@@ -44,9 +44,15 @@ DEFAULT_OUTPUT_PATH = (
     SMS_MODEL_DIRECTORY / "reports" / "standalone_analysis.json"
 )
 
-SELECTION_SPLIT = "validation"
+# train pool OOF(정정 규모 ~5배)로 threshold/구간을 선정한다. validation
+# 수십~백여 건만으로 뽑으면 "오탐 0건" 같은 극값 통계라 표본이 몇 건만
+# 바뀌어도 경계가 크게 흔들린다(#102 §5, 부트스트랩으로 phishing_min
+# 5~95% 구간이 0.39~0.72까지 벌어짐을 확인). classifier.oof_probabilities_가
+# 없는 구버전 artifact는 validation으로 자동 폴백한다.
+SELECTION_SPLIT = "train_oof"
+_FALLBACK_SELECTION_SPLIT = "validation"
 
-SPLIT_ORDER = ("validation", "test", "real_holdout")
+SPLIT_ORDER = ("train_oof", "validation", "test", "real_holdout")
 
 ADOPTION_CRITERIA = AdoptionCriteria()
 
@@ -64,6 +70,15 @@ def collect_scored_splits(classifier) -> dict[str, tuple]:
 
     scored: dict[str, tuple] = {}
     for name in SPLIT_ORDER:
+        if name == "train_oof":
+            oof_probabilities = getattr(classifier, "oof_probabilities_", None)
+            oof_labels = getattr(classifier, "oof_labels_", None)
+            if oof_probabilities is None or oof_labels is None:
+                # 구버전 artifact 호환 - OOF가 없으면 이 항목은 건너뛴다.
+                continue
+            scored[name] = (oof_probabilities, oof_labels)
+            continue
+
         frame = score_frame(classifier, frames[name])
         scored[name] = (
             frame["probability"].to_numpy(),
@@ -71,6 +86,13 @@ def collect_scored_splits(classifier) -> dict[str, tuple]:
         )
 
     return scored
+
+
+def resolve_selection_split(scored: dict[str, tuple]) -> str:
+    """OOF가 없는 구버전 artifact는 validation으로 자동 폴백"""
+    if SELECTION_SPLIT in scored:
+        return SELECTION_SPLIT
+    return _FALLBACK_SELECTION_SPLIT
 
 
 def find_reference_edges(probabilities, labels) -> BandEdges | None:
@@ -137,9 +159,12 @@ def build_report(classifier) -> dict[str, object]:
     """split별 구간 측정과 경계 전이 결과를 한데 모음"""
     scored = collect_scored_splits(classifier)
     artifact_threshold = float(classifier.threshold)
+    selection_split = resolve_selection_split(scored)
 
     splits: list[dict[str, object]] = []
     for name in SPLIT_ORDER:
+        if name not in scored:
+            continue
         probabilities, labels = scored[name]
         splits.append(
             {
@@ -160,17 +185,17 @@ def build_report(classifier) -> dict[str, object]:
             }
         )
 
-    reference_edges = find_reference_edges(*scored[SELECTION_SPLIT])
+    reference_edges = find_reference_edges(*scored[selection_split])
 
     return {
         "artifact_threshold": artifact_threshold,
-        "selection_split": SELECTION_SPLIT,
-        "threshold_policy": compare_threshold_policies(*scored[SELECTION_SPLIT]),
+        "selection_split": selection_split,
+        "threshold_policy": compare_threshold_policies(*scored[selection_split]),
         "reference_edges": (
             reference_edges.to_dict() if reference_edges else None
         ),
         "edge_transfer": (
-            measure_edge_transfer(reference_edges, SELECTION_SPLIT, scored)
+            measure_edge_transfer(reference_edges, selection_split, scored)
             if reference_edges
             else []
         ),

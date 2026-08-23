@@ -38,7 +38,7 @@ from data_science.SMSModel.train_sms import (
 
 SMS_MODEL_DIRECTORY = Path(__file__).resolve().parent
 
-STACKING_ARTIFACT_VERSION = "v8"
+STACKING_ARTIFACT_VERSION = "v9"
 
 STACKING_ARTIFACT_DIRECTORY = (
     SMS_MODEL_DIRECTORY
@@ -63,6 +63,36 @@ STACKING_REPORT_DIRECTORY = (
 
 EXPERIMENT_SUFFIX = "-experiment"
 
+# 배포 이미지가 실제로 로드하는 경로. requirements.txt에 torch/transformers가
+# 없으므로(#101) 인코더가 포함된 artifact는 여기 두면 로드에 실패한다.
+PRODUCTION_ARTIFACT_DIRECTORY = STACKING_ARTIFACT_DIRECTORY.parent
+PRODUCTION_REPORT_DIRECTORY = (
+    SMS_MODEL_DIRECTORY / "reports" / "stacking_production"
+)
+
+
+def build_deployable_base_model_factories():
+    """배포 이미지에서 실행 가능한 base model만 반환한다.
+
+    인코더는 torch/transformers를 요구하는데 배포 requirements에 없다.
+    프로덕션 artifact는 이 세 모델로만 만든다.
+    """
+    from data_science.SMSModel.modeling.linear_svm import (
+        LinearSvmPhishingClassifier,
+    )
+    from data_science.SMSModel.modeling.logistic_regression import (
+        LogisticRegressionPhishingClassifier,
+    )
+    from data_science.SMSModel.modeling.stacking import (
+        _build_text_only_naive_bayes,
+    )
+
+    return {
+        "naive_bayes": _build_text_only_naive_bayes,
+        "logistic_regression": LogisticRegressionPhishingClassifier,
+        "linear_svm": LinearSvmPhishingClassifier,
+    }
+
 # 단일 임계값 정책. 채택 기준과 재는 대상이 다르다 (#100 §2.4)
 TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 
@@ -70,17 +100,17 @@ TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 # 사용자 대면 오탐 보장은 판정셋에서 alert_false_positive_rate가 담당한다.
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.10
 EXPECTED_DATASET_FINGERPRINT = (
-    "c29414e5fbf154fbc2d62d0838e778"
-    "1a60ff56ce46f35429e26d3b506f5e368f"
+    "06c0756121240d61a0619d967fe128"
+    "295500f21a6fbc6fcd2887052ace17ff3c"
 )
 
-EXPECTED_TOTAL_CSV_ROWS = 3493
-EXPECTED_TRAINING_POOL_ROWS = 853
-EXPECTED_HOLDOUT_ROWS = 514
+EXPECTED_TOTAL_CSV_ROWS = 3584
+EXPECTED_TRAINING_POOL_ROWS = 971
+EXPECTED_HOLDOUT_ROWS = 510
 EXPECTED_SPLIT_COUNTS = {
-    "train": 604,
-    "validation": 123,
-    "test": 126,
+    "train": 692,
+    "validation": 141,
+    "test": 138,
 }
 
 
@@ -175,6 +205,7 @@ def save_artifact(
     artifact_directory: Path | None = None,
     verification_df: pd.DataFrame | None = None,
     expected_probabilities: np.ndarray | None = None,
+    validation_reference_metrics: dict[str, float] | None = None,
 ) -> None:
     """모델과 비민감 metadata를 저장하고 재로드 검증"""
 
@@ -276,6 +307,7 @@ def save_artifact(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model": model_configuration,
         "validation": validation_metrics,
+        "validation_reference": validation_reference_metrics,
         "dataset": {
             "total_csv_rows": dataset_counts["total_csv_rows"],
             "training_pool_rows": dataset_counts["training_pool_rows"],
@@ -285,7 +317,7 @@ def save_artifact(
         "splits": dict(split_counts),
         "training_policy": {
             "training_split": "train",
-            "threshold_selection_split": "validation",
+            "threshold_selection_split": "train_oof",
             "final_evaluation_split": "test",
             "holdout_used_during_training": False,
             "test_used_for_tuning": False,
@@ -318,6 +350,7 @@ def train_stacking(
     *,
     overwrite_artifacts: bool,
     max_false_positive_rate: float = MAX_NORMAL_FALSE_POSITIVE_RATE,
+    deployable: bool = False,
 ) -> None:
     """Stacking artifact를 학습하고 고정된 test split을 한 번 평가"""
 
@@ -386,10 +419,29 @@ def train_stacking(
     classifier = StackingPhishingClassifier(
         n_splits=5,
         random_state=42,
+        base_model_factories=(
+            build_deployable_base_model_factories() if deployable else None
+        ),
     )
     classifier.fit(splits.train)
 
-    # validation 126건으로만 threshold 선정
+    # threshold는 internal validation(수십~백여 건) 대신 train pool 전체
+    # 규모의 메타 레벨 OOF 확률(classifier.oof_probabilities_)로 선정한다.
+    # validation만으로 뽑으면 "오탐 0건" 같은 극값 통계라 표본이 몇 건만
+    # 바뀌어도 경계가 크게 흔들렸다(#102 §5, 부트스트랩으로 확인:
+    # phishing_min 5~95% 구간이 0.39~0.72까지 벌어짐). OOF는 표본이
+    # 정상 기준 약 5배 커서 이 분산이 크게 줄어든다.
+    threshold_selection, ceiling_was_relaxed = (
+        select_probability_threshold_with_fallback(
+            classifier.oof_probabilities_,
+            classifier.oof_labels_,
+            target_recall=TARGET_RECALL,
+            max_false_positive_rate=max_false_positive_rate,
+        )
+    )
+
+    # validation은 더 이상 threshold 선정에 쓰지 않지만, 진짜 안 보인
+    # 데이터에서 이 threshold가 어떻게 나오는지 참고용으로는 계속 기록한다.
     validation_probabilities, unavailable = (
         classifier.predict_probabilities(
             splits.validation
@@ -401,15 +453,6 @@ def train_stacking(
             "base models unavailable during validation: "
             f"{unavailable}"
         )
-
-    threshold_selection, ceiling_was_relaxed = (
-        select_probability_threshold_with_fallback(
-            validation_probabilities,
-            splits.validation["label"],
-            target_recall=TARGET_RECALL,
-            max_false_positive_rate=max_false_positive_rate,
-        )
-    )
     if ceiling_was_relaxed:
         # 정책 상한(기본 0.10)은 데이터 구성이 바뀔 때마다 흔들린다 - split이
         # 달라지면 목표 recall에 필요한 오탐률이 상한을 넘나들어 매번 사람이
@@ -419,11 +462,33 @@ def train_stacking(
         max_false_positive_rate = threshold_selection.max_false_positive_rate
         print(
             f"[Stacking] 경고: 정상 오탐 상한을 {max_false_positive_rate:.4f}로 "
-            "자동 완화했다 (validation에서 달성 가능한 최소치). "
+            "자동 완화했다 (train pool OOF에서 달성 가능한 최소치). "
             "이 artifact는 단독 운영 후보가 아니다."
         )
     threshold = threshold_selection.threshold
     validation_metrics = threshold_selection.to_validation_metrics()
+
+    # 참고용 - 선정에는 안 쓰지만, 진짜 held-out인 validation에서 이
+    # threshold가 어떻게 나오는지 기록해 OOF 기반 선정이 과최적화되지
+    # 않았는지 확인할 수 있게 남긴다.
+    validation_predictions = (validation_probabilities >= threshold).astype(int)
+    validation_binary_labels = (
+        splits.validation["label"].astype(str) == "phishing"
+    ).astype(int)
+    _val_is_phishing = validation_binary_labels == 1
+    _val_is_normal = validation_binary_labels == 0
+    validation_reference_metrics = {
+        "recall": float(
+            (validation_predictions[_val_is_phishing] == 1).sum()
+            / max(int(_val_is_phishing.sum()), 1)
+        ),
+        "false_positive_rate": float(
+            (validation_predictions[_val_is_normal] == 1).sum()
+            / max(int(_val_is_normal.sum()), 1)
+        ),
+        "sample_count": int(len(splits.validation)),
+        "normal_count": int(_val_is_normal.sum()),
+    }
 
     classifier.set_threshold(threshold)
 
@@ -446,9 +511,15 @@ def train_stacking(
         test_predictions,
     )
 
-    artifact_directory, report_directory = resolve_artifact_paths(
-        max_false_positive_rate
-    )
+    if deployable:
+        # 배포 경로에 바로 저장한다. 앱이 metadata.json의 model_sha256으로
+        # 무결성을 검증하므로 save_artifact가 만든 metadata를 그대로 쓴다.
+        artifact_directory = PRODUCTION_ARTIFACT_DIRECTORY
+        report_directory = PRODUCTION_REPORT_DIRECTORY
+    else:
+        artifact_directory, report_directory = resolve_artifact_paths(
+            max_false_positive_rate
+        )
 
     save_artifact(
         classifier,
@@ -459,6 +530,7 @@ def train_stacking(
         artifact_directory=artifact_directory,
         verification_df=splits.test,
         expected_probabilities=test_probabilities,
+        validation_reference_metrics=validation_reference_metrics,
     )
 
     # 보고서 저장
@@ -495,6 +567,15 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--deployable",
+        action="store_true",
+        help=(
+            "배포 이미지에서 실행 가능한 구성(인코더 제외)으로 학습해 "
+            "프로덕션 경로(artifacts/stacking/)에 저장한다. requirements.txt에 "
+            "torch/transformers가 없어 인코더 포함 artifact는 로드에 실패한다."
+        ),
+    )
+    parser.add_argument(
         "--max-false-positive-rate",
         type=float,
         default=MAX_NORMAL_FALSE_POSITIVE_RATE,
@@ -516,6 +597,7 @@ def main() -> None:
     train_stacking(
         overwrite_artifacts=arguments.overwrite_artifacts,
         max_false_positive_rate=arguments.max_false_positive_rate,
+        deployable=arguments.deployable,
     )
 
 if __name__ == "__main__":

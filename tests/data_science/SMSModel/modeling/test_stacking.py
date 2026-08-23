@@ -12,6 +12,7 @@ from data_science.SMSModel.modeling.base import (
     ScoreType,
 )
 from data_science.SMSModel.modeling.stacking import (
+    EXCLUDED_STRUCTURAL_FEATURES,
     StackingPhishingClassifier,
     normalize_base_scores,
 )
@@ -124,6 +125,90 @@ def test_fits_with_oof_predictions(
         "model_b",
         "model_c",
     }
+
+
+def test_meta_classifier_excludes_ad_disclosure_feature(
+    stacking_training_dataframe: pd.DataFrame,
+) -> None:
+    """has_ad_disclosure는 meta-classifier 입력에서 빠져야 한다(#102).
+
+    학습 데이터에서는 정상(8.2%)이 피싱(4.3%)보다 더 흔한데도 메타 계수가
+    양수(피싱 쪽)로 학습돼 실제 정상 오탐을 키웠다. "(광고)" 표기는
+    정보통신망법상 합법 광고의 법정 표기라 위험 신호로 쓰면 안 된다.
+    extract_stacking_structural_features 자체의 열 순서(#84)는 그대로
+    유지하면서, stacking 메타 입력에서만 조용히 제외한다.
+    """
+    classifier = StackingPhishingClassifier(
+        n_splits=3,
+        base_model_factories=build_factories(),
+    )
+
+    classifier.fit(stacking_training_dataframe)
+
+    assert "has_ad_disclosure" in EXCLUDED_STRUCTURAL_FEATURES
+    assert "has_ad_disclosure" not in classifier.feature_names
+    assert len(classifier.meta_classifier.coef_[0]) == len(
+        classifier.feature_names
+    )
+
+
+def test_fit_exposes_meta_level_oof_probabilities(
+    stacking_training_dataframe: pd.DataFrame,
+) -> None:
+    """threshold 선정을 위해 train pool 규모의 OOF 확률을 노출해야 한다(#102 §5).
+
+    internal validation(수십~백여 건)만으로 임계값을 뽑으면 "오탐 0건" 같은
+    극값 통계라 표본이 몇 건만 바뀌어도 경계가 크게 흔들렸다. train pool
+    전체 규모의 OOF 확률로 대체하기 위한 전제 조건.
+    """
+    classifier = StackingPhishingClassifier(
+        n_splits=3,
+        base_model_factories=build_factories(),
+    )
+
+    classifier.fit(stacking_training_dataframe)
+
+    assert classifier.oof_probabilities_ is not None
+    assert classifier.oof_labels_ is not None
+    assert len(classifier.oof_probabilities_) == len(stacking_training_dataframe)
+    assert len(classifier.oof_labels_) == len(stacking_training_dataframe)
+    assert np.array_equal(
+        classifier.oof_labels_,
+        stacking_training_dataframe["label"].to_numpy(),
+    )
+    assert np.isfinite(classifier.oof_probabilities_).all()
+    assert ((classifier.oof_probabilities_ >= 0.0) & (classifier.oof_probabilities_ <= 1.0)).all()
+
+    # 이 합성 데이터는 "송금" 키워드로 완벽히 분리되므로, out-of-fold라도
+    # normal/phishing 평균 확률은 뚜렷하게 갈려야 한다.
+    is_phishing = classifier.oof_labels_ == "phishing"
+    assert (
+        classifier.oof_probabilities_[is_phishing].mean()
+        > classifier.oof_probabilities_[~is_phishing].mean()
+    )
+
+
+def test_meta_oof_probabilities_are_reproducible(
+    stacking_training_dataframe: pd.DataFrame,
+) -> None:
+    """같은 random_state면 OOF 확률도 결정론적이어야 한다"""
+    first = StackingPhishingClassifier(
+        n_splits=3,
+        random_state=7,
+        base_model_factories=build_factories(),
+    )
+    second = StackingPhishingClassifier(
+        n_splits=3,
+        random_state=7,
+        base_model_factories=build_factories(),
+    )
+
+    first.fit(stacking_training_dataframe)
+    second.fit(stacking_training_dataframe)
+
+    np.testing.assert_array_equal(
+        first.oof_probabilities_, second.oof_probabilities_
+    )
 
 
 def test_reports_failed_base_model(
