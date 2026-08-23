@@ -51,45 +51,6 @@ def test_institution_match_without_mismatch_produces_no_card():
     assert items == []
 
 
-def test_institution_phone_mismatch_produces_impersonation_card():
-    items = build_evidence(
-        rule_analysis={
-            "institution_match": {
-                "mismatch": False,
-                "phone_mismatch": True,
-                "institution": "국민은행",
-            }
-        },
-        url_analysis=None,
-        text_analysis=None,
-    )
-
-    assert len(items) == 1
-    assert items[0].category == EvidenceCategory.INSTITUTION_IMPERSONATION
-    assert items[0].description == (
-        "국민은행을 언급했지만 문자 속 연락처가 공식 대표번호가 아닙니다."
-    )
-
-
-def test_institution_domain_and_phone_mismatch_produce_two_cards():
-    items = build_evidence(
-        rule_analysis={
-            "institution_match": {
-                "mismatch": True,
-                "phone_mismatch": True,
-                "institution": "국민은행",
-            }
-        },
-        url_analysis=None,
-        text_analysis=None,
-    )
-
-    assert len(items) == 2
-    assert all(
-        item.category == EvidenceCategory.INSTITUTION_IMPERSONATION for item in items
-    )
-
-
 def test_account_or_card_pattern_produces_personal_info_card():
     items = build_evidence(
         rule_analysis={"has_account_or_card_pattern": True},

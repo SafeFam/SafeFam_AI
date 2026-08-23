@@ -3,7 +3,6 @@ import re
 
 from app.analysis.institution.analyzer import (
     INSTITUTION_MISMATCH_SCORE,
-    INSTITUTION_PHONE_MISMATCH_SCORE,
     analyze_institution_match,
 )
 
@@ -168,14 +167,6 @@ def analyze_text_with_rules(text: str, traced_url: str | None = None) -> dict:
             f"{institution_match['text_domain']}(으)로 유도"
         )
         score += INSTITUTION_MISMATCH_SCORE
-
-    if institution_match["phone_mismatch"]:
-        matched_rules.append(
-            f"기관명-대표번호 불일치: {institution_match['institution']} 명의로 "
-            f"공식 대표번호({', '.join(institution_match['official_phone_numbers'])})가 아닌 "
-            f"{', '.join(institution_match['text_phone_numbers'])}(으)로 연락 유도"
-        )
-        score += INSTITUTION_PHONE_MISMATCH_SCORE
 
     rule_score = min(score, 100)
 

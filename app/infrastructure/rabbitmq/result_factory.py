@@ -247,14 +247,6 @@ def _institution_match_detail(
             institution_match.get("official_domains") or []
         ),
         textDomain=institution_match.get("text_domain"),
-        phoneChecked=bool(institution_match.get("phone_checked", False)),
-        phoneMismatch=bool(institution_match.get("phone_mismatch", False)),
-        textPhoneNumbers=list(
-            institution_match.get("text_phone_numbers") or []
-        ),
-        officialPhoneNumbers=list(
-            institution_match.get("official_phone_numbers") or []
-        ),
     )
 
 
