@@ -100,17 +100,17 @@ TARGET_RECALL = AdoptionCriteria().min_coverage_recall
 # 사용자 대면 오탐 보장은 판정셋에서 alert_false_positive_rate가 담당한다.
 MAX_NORMAL_FALSE_POSITIVE_RATE = 0.10
 EXPECTED_DATASET_FINGERPRINT = (
-    "06c0756121240d61a0619d967fe128"
-    "295500f21a6fbc6fcd2887052ace17ff3c"
+    "500884cc4bd2ed9a45ce8b7dfbd16a"
+    "ff6c7672422bbe7959f5b190fcdc98b1b3"
 )
 
-EXPECTED_TOTAL_CSV_ROWS = 3584
-EXPECTED_TRAINING_POOL_ROWS = 971
+EXPECTED_TOTAL_CSV_ROWS = 3562
+EXPECTED_TRAINING_POOL_ROWS = 949
 EXPECTED_HOLDOUT_ROWS = 510
 EXPECTED_SPLIT_COUNTS = {
-    "train": 692,
-    "validation": 141,
-    "test": 138,
+    "train": 678,
+    "validation": 136,
+    "test": 135,
 }
 
 
@@ -415,9 +415,18 @@ def train_stacking(
             f"expected={EXPECTED_SPLIT_COUNTS}, actual={actual_counts}"
         )
 
-    # train 623건만 사용해 모델 학습
+    # train 692건만 사용해 모델 학습.
+    #
+    # n_splits를 5에서 10으로 올렸다(#102). base model이 파인튜닝 인코더로
+    # 바뀌면서 OOF가 최종 모델의 공정한 대리치가 아니게 됐기 때문이다 -
+    # 5-fold면 fold 모델은 554건으로 학습하는데 최종 모델은 692건을 쓴다.
+    # 얼린 인코더 위의 선형 분류기는 이 차이에 둔감했지만 파인튜닝은
+    # 학습량에 민감해, OOF가 최종 모델을 과소평가하고 임계값이 필요보다
+    # 훨씬 낮게 잡혔다(선정 normal_max 0.0597 vs 판정셋 필요값 약 0.42,
+    # uncertain_normal_share 0.65). 10-fold면 fold 학습량이 623건으로 늘어
+    # 격차가 줄어든다. base model 학습 횟수가 6회에서 11회로 늘어난다.
     classifier = StackingPhishingClassifier(
-        n_splits=5,
+        n_splits=10,
         random_state=42,
         base_model_factories=(
             build_deployable_base_model_factories() if deployable else None

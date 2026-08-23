@@ -21,8 +21,8 @@ from data_science.SMSModel.modeling.base import (
     ScoreOutput,
     ScoreType,
 )
-from data_science.SMSModel.modeling.korean_encoder import (
-    KoreanEncoderPhishingClassifier,
+from data_science.SMSModel.modeling.korean_encoder_finetuned import (
+    FineTunedKoreanEncoderClassifier,
 )
 from data_science.SMSModel.modeling.linear_svm import (
     LinearSvmPhishingClassifier,
@@ -78,8 +78,12 @@ def _default_base_model_factories(
         "naive_bayes": _build_text_only_naive_bayes,
         "logistic_regression": LogisticRegressionPhishingClassifier,
         "linear_svm": LinearSvmPhishingClassifier,
-        # 학습 표본이 유형당 2~6건인 구간을 사전학습 표현으로 보완 (#98)
-        "korean_encoder": KoreanEncoderPhishingClassifier,
+        # 학습 표본이 유형당 2~6건인 구간을 사전학습 표현으로 보완 (#98).
+        # frozen 임베딩(KoreanEncoderPhishingClassifier)에서 파인튜닝으로
+        # 교체했다 - 얼린 범용 표현으로는 정상과 피싱의 표면이 거의 같은
+        # "기관 안내문" 구간을 가르지 못했다. validation 기준 정상 오탐
+        # 13.0%→1.8%, ROC-AUC 0.924→0.966 (시드 3개 평균, #102).
+        "korean_encoder": FineTunedKoreanEncoderClassifier,
     }
 
 def normalize_base_scores(output: ScoreOutput) -> np.ndarray:

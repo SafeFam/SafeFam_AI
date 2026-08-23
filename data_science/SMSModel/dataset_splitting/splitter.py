@@ -1,7 +1,7 @@
 """그룹 보존과 클래스·유형 비율 최적화를 적용한 데이터 분할"""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import pandas as pd
@@ -91,6 +91,9 @@ def _candidate_score(
     type_column: str | None,
     type_values: list[str],
     type_weight: float,
+    selection_source_column: str | None = None,
+    selection_source: str | None = None,
+    selection_source_weight: float = 0.0,
 ) -> tuple[float, int, float, float]:
     """목표 행 비율과 클래스·유형 분포에 가까울수록 낮은 점수를 반환"""
     size_error = abs((len(selected) / len(full_data)) - target_size)
@@ -119,6 +122,23 @@ def _candidate_score(
             column=type_column,
             values=type_values,
         )
+
+    # 선정용 split은 지정 출처(실수집 데이터)로 채울수록 좋다. 유형 커버리지와
+    # 크기를 먼저 맞춘 뒤, 같은 조건이면 지정 출처 비율이 높은 후보를 고른다.
+    if (
+        selection_source is not None
+        and selection_source_column is not None
+        and selection_source_column in selected.columns
+        and selection_source_weight > 0.0
+        and len(selected) > 0
+    ):
+        off_source_share = float(
+            (
+                selected[selection_source_column].astype(str)
+                != selection_source
+            ).mean()
+        )
+        distribution_error += selection_source_weight * off_source_share
 
     # 유형이 통째로 빠지는 것을 가장 먼저 막고, 그다음 크기와 분포를 맞춘다.
     # 크기는 1%p 단위 등급으로 비교해 미세한 차이로 후보가 뒤집히지 않게 한다.
@@ -270,6 +290,9 @@ def _select_best_group_split(
             type_column=type_column,
             type_values=type_values,
             type_weight=config.type_weight,
+            selection_source_column=config.selection_source_column,
+            selection_source=config.selection_source,
+            selection_source_weight=config.selection_source_weight,
         )
         if score < best_score:
             best_score = score
@@ -308,13 +331,19 @@ def split_grouped_dataset(
     if df[config.group_column].nunique() < 3:
         raise ValueError("at least three template groups are required")
 
+    # test는 최종 평가용이라 전체 분포를 그대로 닮아야 한다 - 출처 선호를 걸지 않는다.
     train_validation, test = _select_best_group_split(
         df,
         selected_size=config.test_size,
-        config=config,
+        config=replace(
+            config,
+            selection_source=None,
+            selection_source_weight=0.0,
+        ),
         random_state_offset=0,
     )
     relative_validation_size = config.val_size / (config.train_size + config.val_size)
+    # validation은 임계값·경계 선정에 쓰이므로 판정셋과 난이도가 비슷해야 한다.
     train, validation = _select_best_group_split(
         train_validation,
         selected_size=relative_validation_size,
