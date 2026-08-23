@@ -4,16 +4,16 @@ Threshold selection: validation only; final metrics: test only.
 
 | Metric | Value |
 |---|---:|
-| Samples | 138 |
-| Accuracy | 0.644928 |
-| Precision | 0.484211 |
+| Samples | 135 |
+| Accuracy | 0.837037 |
+| Precision | 0.661538 |
 | Recall | 1.000000 |
-| F1 | 0.652482 |
-| F2 | 0.824373 |
-| TN | 43 |
-| FP | 49 |
+| F1 | 0.796296 |
+| F2 | 0.907173 |
+| TN | 70 |
+| FP | 22 |
 | FN | 0 |
-| TP | 46 |
-| Mean latency (ms) | 3.919 |
-| P50 latency (ms) | 3.567 |
-| P95 latency (ms) | 5.498 |
+| TP | 43 |
+| Mean latency (ms) | 4.101 |
+| P50 latency (ms) | 3.715 |
+| P95 latency (ms) | 5.567 |
