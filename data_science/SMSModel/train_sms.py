@@ -136,6 +136,13 @@ def build_dataset_split_config() -> DatasetSplitConfig:
         test_size=0.15,
         random_state=42,
         candidate_count=500,
+        # selection_source는 켜지 않는다. pool 정상의 60%가 증강 데이터라
+        # 선정용 split(validation)이 판정셋보다 쉬워지는 문제는 실재하지만
+        # (#102 §5.3), original 우선으로 채워도 48% -> 58%에서 천장을 친다.
+        # 실패 유형의 실데이터가 7~18건뿐이라 유형 커버리지를 지키려면
+        # 증강분을 섞을 수밖에 없기 때문이다. 지금 켜면 split이 바뀌어
+        # 문서 5장의 판정 수치만 무효가 되고 얻는 것이 없다.
+        # 실수집 데이터가 확보되면 그때 켠다.
     )
 
 
