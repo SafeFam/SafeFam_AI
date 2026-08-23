@@ -1,6 +1,6 @@
 {
   "artifact_version": "v9",
-  "created_at": "2026-08-22T18:38:41.936914+00:00",
+  "created_at": "2026-08-23T01:53:44.810570+00:00",
   "dataset": {
     "dataset_fingerprint": "500884cc4bd2ed9a45ce8b7dfbd16aff6c7672422bbe7959f5b190fcdc98b1b3",
     "holdout_rows": 510,
@@ -50,10 +50,10 @@
     "model_name": "stacking_phishing_classifier",
     "oof_splits": 10,
     "random_state": 42,
-    "threshold": 0.1638286294849425
+    "threshold": 0.12388533458915509
   },
-  "model_configuration_sha256": "f664233b082d1ddae8ae1c58954a4acf858eff6c8e016c89142852b5eba3d17a",
-  "model_sha256": "fed6acdde6ea325287d848d823b48e39c41acfb732cf3d8eee41987ee029c3ad",
+  "model_configuration_sha256": "026703bcc1f752854d5ffc2672e8fba5520d4d4f6a3037102cbcc2096f06992a",
+  "model_sha256": "47c0d6c104d1d6e9ac95812814970cac9a092f8124ac20918e65fd1f1514b06e",
   "schema_version": 2,
   "split_manifest": "sms_split_v6.csv",
   "split_manifest_sha256": "214dd3385689f18907720b8f29c8710390672c7f3410fe3acd1af1ee74af17b2",
@@ -71,9 +71,9 @@
     "training_split": "train"
   },
   "validation": {
-    "f2": 0.9094903339191565,
-    "false_positive_rate": 0.13665943600867678,
-    "max_false_positive_rate": 0.13665943600867678,
+    "f2": 0.8930112165660051,
+    "false_positive_rate": 0.1822125813449024,
+    "max_false_positive_rate": 0.1822125813449024,
     "measurable_false_positive_rate": 0.0021691973969631237,
     "recall": 0.9539170506912442,
     "target_recall": 0.95,
@@ -82,7 +82,7 @@
   "validation_reference": {
     "false_positive_rate": 0.09782608695652174,
     "normal_count": 92,
-    "recall": 0.9318181818181818,
+    "recall": 1.0,
     "sample_count": 136
   }
 }

@@ -2,9 +2,6 @@
   "error_samples": {
     "false_negatives": [
       {
-        "text_fingerprint": "057af781b64233fc26bb19129616eaefc14d5d78ea7b771e85c2daaf33cc0d11"
-      },
-      {
         "text_fingerprint": "102ecec1e3c66b3d3b2fee43a9b766dfbeea6807a2862be01d6e115b97ab909e"
       }
     ],
@@ -14,6 +11,12 @@
       },
       {
         "text_fingerprint": "63fac6a7e948aa2daef3f106f0315a48e2361f6cd07047ce725966ccd42075cc"
+      },
+      {
+        "text_fingerprint": "52b243ae5b2c5906b0f4edf3661eb1c72f176d74dfc9b8c8858fdd93929dae64"
+      },
+      {
+        "text_fingerprint": "3352ae1589dfba566e596eff5e5620e618998b4095267437e6b5e8b0bbc6b541"
       },
       {
         "text_fingerprint": "82bf23dc4e2ea1b0f2e88068e1bf3e139595263f342cc419c3cd0d006a357e22"
@@ -34,17 +37,14 @@
         "text_fingerprint": "8853af0f6c41fd563514f394e1ec8009fca3837827c0b68f1e7b28ed940d51f0"
       },
       {
-        "text_fingerprint": "13ba85cb5b06529e2a3dae04f316a6ae2129c0dfec1f2092016c24ee94bbf180"
-      },
-      {
         "text_fingerprint": "10adc14bcef5e4426f96c073a9574376d71bf0594276cdd5d47422cd875f88cc"
       }
     ]
   },
   "latency_stats": {
-    "mean": 10.656899007407405,
-    "p50": 9.48575,
-    "p95": 15.940691799999996,
+    "mean": 10.564942925925926,
+    "p50": 9.387291,
+    "p95": 15.340725099999998,
     "sample_count": 135
   },
   "normal_by_type": {
@@ -69,14 +69,14 @@
       "true_negative": 20
     },
     "정상공공기관알림": {
-      "false_positive": 1,
-      "false_positive_rate": 0.16666666666666666,
+      "false_positive": 2,
+      "false_positive_rate": 0.3333333333333333,
       "false_positive_rate_95_ci": {
-        "lower": 0.03005258587173032,
-        "upper": 0.563509436563646
+        "lower": 0.09676933255921683,
+        "upper": 0.7000116786584712
       },
       "sample_count": 6,
-      "true_negative": 5
+      "true_negative": 4
     },
     "정상광고프로모션": {
       "false_positive": 1,
@@ -109,14 +109,14 @@
       "true_negative": 9
     },
     "정상카드결제알림": {
-      "false_positive": 1,
-      "false_positive_rate": 0.125,
+      "false_positive": 2,
+      "false_positive_rate": 0.25,
       "false_positive_rate_95_ci": {
-        "lower": 0.02241690886329617,
-        "upper": 0.4708948057698615
+        "lower": 0.07147768885802763,
+        "upper": 0.5907301208974108
       },
       "sample_count": 8,
-      "true_negative": 7
+      "true_negative": 6
     },
     "정상택배배송안내": {
       "false_positive": 1,
@@ -129,28 +129,28 @@
       "true_negative": 12
     },
     "정상포인트소멸알림": {
-      "false_positive": 2,
-      "false_positive_rate": 0.2857142857142857,
+      "false_positive": 1,
+      "false_positive_rate": 0.14285714285714285,
       "false_positive_rate_95_ci": {
-        "lower": 0.0822171657090155,
-        "upper": 0.6410709098517873
+        "lower": 0.02567895594897479,
+        "upper": 0.51313450331903
       },
       "sample_count": 7,
-      "true_negative": 5
+      "true_negative": 6
     }
   },
   "overall_metrics": {
     "accuracy": 0.9111111111111111,
     "confusion_matrix": {
-      "false_negative": 2,
-      "false_positive": 10,
-      "true_negative": 82,
-      "true_positive": 41
+      "false_negative": 1,
+      "false_positive": 11,
+      "true_negative": 81,
+      "true_positive": 42
     },
-    "f1_score": 0.8723404255319148,
-    "f2_score": 0.9192825112107623,
-    "precision": 0.803921568627451,
-    "recall": 0.9534883720930233
+    "f1_score": 0.875,
+    "f2_score": 0.9333333333333332,
+    "precision": 0.7924528301886793,
+    "recall": 0.9767441860465116
   },
   "phishing_by_type": {
     "결제환불사칭": {
@@ -274,14 +274,14 @@
       "true_positive": 2
     },
     "채용부업사기": {
-      "false_negative": 1,
-      "recall": 0.0,
+      "false_negative": 0,
+      "recall": 1.0,
       "recall_95_ci": {
-        "lower": 0.0,
-        "upper": 0.7934567085261071
+        "lower": 0.20654329147389294,
+        "upper": 1.0
       },
       "sample_count": 1,
-      "true_positive": 0
+      "true_positive": 1
     },
     "택배배송사칭": {
       "false_negative": 0,
@@ -316,29 +316,29 @@
   "schema_version": 1,
   "shared_metrics": {
     "accuracy": 0.9111111111111111,
-    "f1": 0.8723404255319149,
-    "f2": 0.9192825112107623,
-    "false_negative": 2,
-    "false_positive": 10,
-    "precision": 0.803921568627451,
-    "recall": 0.9534883720930233,
+    "f1": 0.875,
+    "f2": 0.9333333333333333,
+    "false_negative": 1,
+    "false_positive": 11,
+    "precision": 0.7924528301886793,
+    "recall": 0.9767441860465116,
     "sample_count": 135,
-    "true_negative": 82,
-    "true_positive": 41
+    "true_negative": 81,
+    "true_positive": 42
   },
   "split": "test",
-  "threshold": 0.1638286294849425,
+  "threshold": 0.12388533458915509,
   "unavailable_models": [],
   "unique_template_metrics": {
     "accuracy": 0.904,
-    "f1_score": 0.8421052631578947,
-    "f2_score": 0.8988764044943819,
-    "false_negative": 2,
-    "false_positive": 10,
-    "precision": 0.7619047619047619,
-    "recall": 0.9411764705882353,
+    "f1_score": 0.846153846153846,
+    "f2_score": 0.9166666666666666,
+    "false_negative": 1,
+    "false_positive": 11,
+    "precision": 0.75,
+    "recall": 0.9705882352941176,
     "sample_count": 125,
-    "true_negative": 81,
-    "true_positive": 32
+    "true_negative": 80,
+    "true_positive": 33
   }
 }

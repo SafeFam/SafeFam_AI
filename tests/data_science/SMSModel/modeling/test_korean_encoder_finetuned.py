@@ -263,15 +263,19 @@ def test_metadata_records_the_fine_tuning_settings(
     assert metadata["fine_tuning"]["class_weight"] == "balanced"
 
 
-def test_constant_learning_rate_is_the_default(
-    classifier: FineTunedKoreanEncoderClassifier,
-) -> None:
-    """스케줄러 도입이 기존 artifact의 재현성을 깨면 안 된다.
+def test_constant_learning_rate_is_the_default() -> None:
+    """warmup은 판정셋에서 오히려 나빠져 기본값에서 뺐다(#102).
 
-    warmup_ratio 기본값 0은 스케줄러를 아예 만들지 않아 고정 학습률로
-    학습하던 이전 동작을 그대로 유지한다.
+    validation에서는 warmup 0.1 + lr 5e-5가 가장 좋아 보였으나
+    (AUC 0.9921 -> 0.9951) 판정셋에서는 uncertain_normal_share가
+    0.1908 -> 0.2928로, alert_false_positive_rate가 0.0033 -> 0.0230으로
+    나빠졌다. validation이 판정셋의 대리치가 못 된다는 뜻이라, 측정되지
+    않은 개선을 기본값으로 굳히지 않는다.
     """
+    classifier = FineTunedKoreanEncoderClassifier()
+
     assert classifier.warmup_ratio == 0.0
+    assert classifier.learning_rate == 2e-5
     assert classifier._build_scheduler(object(), row_count=100) is None
     assert classifier.get_metadata()["fine_tuning"]["lr_schedule"] == "constant"
 
