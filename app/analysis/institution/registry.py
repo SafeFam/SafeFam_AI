@@ -40,6 +40,16 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
         ("epost.go.kr", "koreapost.go.kr", "epostbank.go.kr"),
         ("1588-1300", "1599-1900", "1599-0100"),
     ),
+    OfficialInstitution(
+        "SC제일은행", ("SC제일은행",), ("sc.co.kr", "standardchartered.co.kr"), ("1588-1599",)
+    ),
+    OfficialInstitution(
+        "한국씨티은행", ("한국씨티은행", "씨티은행"), ("citibank.co.kr",), ("1588-7000",)
+    ),
+    OfficialInstitution("수협은행", ("수협은행",), ("suhyup-bank.com",), ("1588-1515", "1644-1515")),
+    OfficialInstitution(
+        "산업은행", ("산업은행", "KDB산업은행"), ("kdb.co.kr",), ("1588-1500", "1668-1500")
+    ),
 
     # 카드사
     OfficialInstitution("신한카드", ("신한카드",), ("shinhancard.com",), ("1544-7000",)),
@@ -48,6 +58,29 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
     OfficialInstitution("KB국민카드", ("KB국민카드", "국민카드"), ("kbcard.com",), ("1588-1688",)),
     OfficialInstitution("롯데카드", ("롯데카드",), ("lottecard.co.kr",), ("1588-8100",)),
     OfficialInstitution("우리카드", ("우리카드",), ("wooricard.com",), ("1588-9955", "1599-9955")),
+    OfficialInstitution("하나카드", ("하나카드",), ("hanacard.co.kr",), ("1800-1111",)),
+    OfficialInstitution("BC카드", ("BC카드", "비씨카드"), ("bccard.com",), ("1588-4000",)),
+    OfficialInstitution("NH농협카드", ("NH농협카드",), ("nonghyup.com",), ("1644-4000",)),
+    OfficialInstitution("씨티카드", ("씨티카드",), ("citibank.co.kr",), ("1566-1000",)),
+
+    # 증권사
+    OfficialInstitution(
+        "미래에셋증권", ("미래에셋증권",), ("securities.miraeasset.com",), ("1588-6800",)
+    ),
+    OfficialInstitution("삼성증권", ("삼성증권",), ("samsungpop.com",), ("1588-2323",)),
+    OfficialInstitution(
+        "한국투자증권",
+        ("한국투자증권",),
+        ("truefriend.com", "koreainvestment.com"),
+        ("1544-5000", "1588-0012"),
+    ),
+    OfficialInstitution("NH투자증권", ("NH투자증권",), ("nhqv.com", "nhsec.com")),
+    OfficialInstitution("키움증권", ("키움증권",), ("kiwoom.com",), ("1544-9000",)),
+
+    # 보험사
+    OfficialInstitution("삼성생명", ("삼성생명",), ("samsunglife.com",)),
+    OfficialInstitution("교보생명", ("교보생명",), ("kyobo.com",), ("1588-1001",)),
+    OfficialInstitution("한화생명", ("한화생명",), ("hanwhalife.com",), ("1588-6363",)),
 
     # 공공/사법기관
     OfficialInstitution("금융감독원", ("금융감독원",), ("fss.or.kr",), ("1332",)),
@@ -55,7 +88,7 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
     OfficialInstitution("경찰청", ("경찰청",), ("police.go.kr",), ("182",)),
     OfficialInstitution("검찰청", ("검찰청",), ("spo.go.kr",), ("1301",)),
 
-    # 홈택스(hometax.go.kr)는 국세청이 직접 운영하는 전자세정 서비스 도메인이라 함께 등록 
+    # 홈택스(hometax.go.kr)는 국세청이 직접 운영하는 전자세정 서비스 도메인이라 함께 등록
     OfficialInstitution("국세청", ("국세청",), ("nts.go.kr", "hometax.go.kr"), ("126",)),
     OfficialInstitution("관세청", ("관세청",), ("customs.go.kr",), ("125",)),
     OfficialInstitution(
@@ -64,4 +97,5 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
         ("nhis.or.kr",),
         ("1577-1000",),
     ),
+    OfficialInstitution("법원", ("법원", "대법원"), ("scourt.go.kr",), ("02-3480-1100",)),
 )
