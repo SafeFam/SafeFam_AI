@@ -1,13 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.analysis import router as analyze
 from app.analysis.service import SmishingAnalysisService
-from app.analysis.text import naive_bayes_analyzer
+from app.analysis.text.stacking_analyzer import is_stacking_model_loaded
 from app.chat import router as chat
 from app.core.config import settings
 from app.infrastructure.rabbitmq.connection import (
@@ -31,14 +30,9 @@ from app.infrastructure.rabbitmq.result_factory import (
 
 
 def validate_model_files() -> None:
-    """운영 시작 전에 필수 모델 파일이 존재하고 읽을 수 있는지 검증한다."""
-    required_files: tuple[Path, ...] = naive_bayes_analyzer.resolve_artifact_paths(
-        settings.NAIVE_BAYES_MODEL_PATH,
-        settings.NAIVE_BAYES_VECTORIZER_PATH,
-    )
-    missing = [str(path) for path in required_files if not path.is_file()]
-    if missing:
-        raise RuntimeError("Required AI model files are missing: " + ", ".join(missing))
+    """운영 시작 전에 실제 서비스가 사용하는 stacking 모델을 로드할 수 있는지 검증한다."""
+    if not is_stacking_model_loaded():
+        raise RuntimeError("Stacking model artifact is missing or invalid")
 
 
 def create_lifespan(
