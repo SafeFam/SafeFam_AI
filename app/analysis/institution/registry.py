@@ -60,7 +60,9 @@ OFFICIAL_INSTITUTIONS: tuple[OfficialInstitution, ...] = (
     OfficialInstitution("우리카드", ("우리카드",), ("wooricard.com",), ("1588-9955", "1599-9955")),
     OfficialInstitution("하나카드", ("하나카드",), ("hanacard.co.kr",), ("1800-1111",)),
     OfficialInstitution("BC카드", ("BC카드", "비씨카드"), ("bccard.com",), ("1588-4000",)),
-    OfficialInstitution("NH농협카드", ("NH농협카드",), ("nonghyup.com",), ("1644-4000",)),
+    OfficialInstitution(
+        "NH농협카드", ("NH농협카드", "농협카드"), ("nonghyup.com",), ("1644-4000",)
+    ),
     OfficialInstitution("씨티카드", ("씨티카드",), ("citibank.co.kr",), ("1566-1000",)),
 
     # 증권사
