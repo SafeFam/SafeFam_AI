@@ -1,7 +1,10 @@
 import pytest
 
 from app.analysis.hybrid_policy import ConditionalLlmPolicy, HybridThresholds
-from app.analysis.text.hybrid_analyzer import HybridTextAnalyzer
+from app.analysis.text.hybrid_analyzer import (
+    HybridTextAnalyzer,
+    _stacking_to_public_result,
+)
 
 
 def build_stacking_result(probability: float) -> dict:
@@ -37,6 +40,15 @@ def build_policy() -> ConditionalLlmPolicy:
     return ConditionalLlmPolicy(HybridThresholds(normal_max=0.2, phishing_min=0.8))
 
 
+def test_unavailable_stacking_result_uses_localized_reason():
+    result = _stacking_to_public_result(
+        {"is_available": False, "result": {"risk_score": None}}
+    )
+
+    assert result["reason"] == "문자 내용 분석을 마치지 못했습니다."
+    assert result["error_message"] == "STACKING_MODEL_UNAVAILABLE"
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("probability", [0.1, 0.9])
 async def test_skips_llm_for_confident_stacking(probability: float):
@@ -58,6 +70,10 @@ async def test_skips_llm_for_confident_stacking(probability: float):
     assert result["llm_called"] is False
     assert result["llm_available"] is False
     assert result["decision_source"] == "STACKING"
+    assert result["result"]["reason"] == (
+        "문자의 표현과 구성에서 사기 문자와 같은 특징이 확인됐습니다."
+    )
+    assert result["result"]["error_message"] is None
     assert result["gemini_called"] is False
     assert result["gemini"] is None
 
@@ -117,6 +133,9 @@ async def test_uses_stacking_when_llm_fails():
     assert result["decision_source"] == "STACKING_FALLBACK"
     assert result["fallback_applied"] is True
     assert result["result"]["risk_score"] == 50
+    assert result["result"]["reason"] == (
+        "문자의 표현과 구성에서 사기 문자와 같은 특징이 확인됐습니다."
+    )
     assert result["llm_available"] is False
 
 
@@ -159,6 +178,7 @@ async def test_does_not_fail_open_when_all_engines_fail():
 
     assert result["result"]["grade"] == "UNKNOWN"
     assert result["result"]["risk_score"] is None
+    assert result["result"]["reason"] == "문자 내용 분석을 할 수 없었습니다."
     assert result["result"]["error_message"] == "ALL_TEXT_ENGINES_UNAVAILABLE"
 
 

@@ -35,7 +35,7 @@ def _stacking_to_public_result(
             "risk_score": None,
             "tone_analysis": "",
             "evidence": [],
-            "reason": "The stacking model result is unavailable.",
+            "reason": "문자 내용 분석을 마치지 못했습니다.",
             "error_message": "STACKING_MODEL_UNAVAILABLE",
         }
 
@@ -44,7 +44,7 @@ def _stacking_to_public_result(
         "risk_score": risk_score,
         "tone_analysis": "",
         "evidence": [],
-        "reason": "The confident stacking model decision was used.",
+        "reason": "문자의 표현과 구성에서 사기 문자와 같은 특징이 확인됐습니다.",
         "error_message": None,
     }
 
@@ -172,7 +172,7 @@ class HybridTextAnalyzer:
                     "risk_score": None,
                     "tone_analysis": "",
                     "evidence": [],
-                    "reason": "The LLM analysis is unavailable.",
+                    "reason": "문맥 분석을 마치지 못해 나머지 검사 결과로만 판단했습니다.",
                     "error_message": "LLM_ANALYZER_FAILED",
                 },
             }
@@ -230,7 +230,7 @@ class HybridTextAnalyzer:
                     "risk_score": None,
                     "tone_analysis": "",
                     "evidence": [],
-                    "reason": "All text analysis engines are unavailable.",
+                    "reason": "문자 내용 분석을 할 수 없었습니다.",
                     "error_message": "ALL_TEXT_ENGINES_UNAVAILABLE",
                 },
                 "decision_source": "UNAVAILABLE",
