@@ -160,6 +160,7 @@ def test_factory_maps_successful_execution(
     assert event.traceId == request.traceId
     assert event.payload.finalScore == 82
     assert event.payload.riskGrade == "HIGH"
+    assert event.payload.phishingType == "OTHER"
     assert event.payload.rawScores.text == 84
     assert event.payload.rawScores.url == 90
     assert event.payload.rawScores.rules == 75
@@ -209,6 +210,26 @@ def test_factory_maps_empty_evidence_cards_on_failure() -> None:
     )
 
     assert event.payload.evidenceCards == []
+    assert event.payload.phishingType is None
+
+
+def test_factory_populates_phishing_type_from_request_content() -> None:
+    request = _request()
+    request.payload.content = "검찰 수사관입니다. 사건 확인이 필요합니다."
+
+    event = AnalysisResultEventFactory().create(
+        request=request,
+        execution=AnalysisExecution(
+            status=AnalysisExecutionStatus.COMPLETED,
+            result=_result(),
+            failed_tracks=(),
+        ),
+    )
+
+    assert event.payload.phishingType == "GOVERNMENT_AGENCY"
+    assert event.model_dump(mode="json")["payload"]["phishingType"] == (
+        "GOVERNMENT_AGENCY"
+    )
 
 
 def test_factory_maps_institution_match_not_checked() -> None:

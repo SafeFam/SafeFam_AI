@@ -6,6 +6,7 @@ from app.analysis.execution import (
     AnalysisExecution,
     AnalysisExecutionStatus,
 )
+from app.analysis.phishing_type import classify_phishing_type
 from app.infrastructure.rabbitmq.schemas import (
     AnalysisEventType,
     AnalysisRequestedEvent,
@@ -58,6 +59,8 @@ class AnalysisResultEventFactory:
             payload=build_payload(
                 result=result,
                 failed_tracks=execution.failed_tracks,
+                content=request.payload.content,
+                sender=request.payload.sender,
             ),
         )
 
@@ -65,6 +68,8 @@ class AnalysisResultEventFactory:
 def build_payload(
     result,
     failed_tracks: tuple[str, ...],
+    content: str,
+    sender: str | None = None,
 ) -> AnalysisResultPayload:
     """내부 분석 응답을 외부 결과 이벤트 payload로 변환합니다."""
     text = result.text_analysis or {}
@@ -89,7 +94,11 @@ def build_payload(
                 result.risk_grade,
             )
         ),
-        phishingType=None,
+        phishingType=(
+            None
+            if is_failed
+            else classify_phishing_type(content, sender=sender)
+        ),
         rawScores=RawScores(
             text=text_score,
             url=url_score,

@@ -11,6 +11,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.analysis.phishing_type import PhishingType
 from app.analysis.schemas import RiskGrade
 
 
@@ -199,7 +200,7 @@ class AnalysisResultPayload(BaseModel):
 
     finalScore: int | None = Field(default=None, ge=0, le=100)
     riskGrade: RiskGrade | None = None
-    phishingType: str | None = None
+    phishingType: PhishingType | None = None
 
     rawScores: RawScores
     weightedContributions: WeightedContributions | None = None
@@ -223,8 +224,9 @@ class AnalysisResultPayload(BaseModel):
             self.finalScore is not None
             or self.riskGrade is not None
             or self.weightedContributions is not None
+            or self.phishingType is not None
         ):
-            raise ValueError("failure payload must not contain successful score fields")
+            raise ValueError("failure payload must not contain successful result fields")
         return self
 
 
@@ -271,9 +273,10 @@ class AnalysisResultEvent(BaseModel):
                 self.payload.finalScore is not None
                 or self.payload.riskGrade is not None
                 or self.payload.weightedContributions is not None
+                or self.payload.phishingType is not None
             ):
                 raise ValueError(
-                    "failed event must not contain successful score fields"
+                    "failed event must not contain successful result fields"
                 )
 
         return self
