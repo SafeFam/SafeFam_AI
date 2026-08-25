@@ -83,6 +83,9 @@ async def test_llm_failures_fall_back_to_stacking(
     assert result["llm_available"] is False
     assert result["llm_provider"] == "AWS_BEDROCK"
     assert result["llm_model"] == "anthropic.claude-haiku-test"
+    assert result["llm"]["reason"] == (
+        "문맥을 분석하지 못해 다른 검사 결과를 종합했습니다."
+    )
     assert result["llm"]["error_message"] == expected_error
     assert result["fallback_applied"] is True
     assert result["decision_source"] == "STACKING_FALLBACK"
@@ -102,6 +105,7 @@ async def test_both_engines_unavailable_returns_unknown(
 
     assert result["result"]["grade"] == "UNKNOWN"
     assert result["result"]["risk_score"] is None
+    assert result["result"]["reason"] == "현재 문자 내용을 분석할 수 없습니다."
     assert result["result"]["error_message"] == "ALL_TEXT_ENGINES_UNAVAILABLE"
 
 

@@ -106,7 +106,7 @@ def _failure_result(
             "risk_score": None,
             "tone_analysis": "",
             "evidence": [],
-            "reason": "The LLM analysis is unavailable.",
+            "reason": "문맥을 분석하지 못해 다른 검사 결과를 종합했습니다.",
             "error_message": error_code,
         },
     }

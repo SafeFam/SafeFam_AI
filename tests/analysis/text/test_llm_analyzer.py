@@ -85,4 +85,7 @@ async def test_analyze_text_with_llm_normalizes_provider_error():
     )
 
     assert result["result"]["grade"] == "UNKNOWN"
+    assert result["result"]["reason"] == (
+        "문맥을 분석하지 못해 다른 검사 결과를 종합했습니다."
+    )
     assert result["result"]["error_message"] == "LLM_THROTTLED"
