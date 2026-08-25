@@ -11,6 +11,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.analysis.phishing_type import PhishingType
 from app.analysis.schemas import RiskGrade
 
 
@@ -199,7 +200,7 @@ class AnalysisResultPayload(BaseModel):
 
     finalScore: int | None = Field(default=None, ge=0, le=100)
     riskGrade: RiskGrade | None = None
-    phishingType: str | None = None
+    phishingType: PhishingType | None = None
 
     rawScores: RawScores
     weightedContributions: WeightedContributions | None = None
