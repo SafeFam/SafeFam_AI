@@ -106,7 +106,7 @@ def _failure_result(
             "risk_score": None,
             "tone_analysis": "",
             "evidence": [],
-            "reason": "문맥 분석을 마치지 못해 나머지 검사 결과로만 판단했습니다.",
+            "reason": "문맥을 분석하지 못해 다른 검사 결과를 종합했습니다.",
             "error_message": error_code,
         },
     }
