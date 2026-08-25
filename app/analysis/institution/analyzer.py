@@ -37,10 +37,14 @@ def _is_official_domain(domain: str, official_domains: tuple[str, ...]) -> bool:
 
 def _find_mentioned_institution(text: str) -> OfficialInstitution | None:
     tags = _RE_BRACKET_TAG.findall(text)
-    for institution in OFFICIAL_INSTITUTIONS:
-        if any(alias in tag for tag in tags for alias in institution.aliases):
-            return institution
-    return None
+    matches = (
+        (alias, institution)
+        for institution in OFFICIAL_INSTITUTIONS
+        for alias in institution.aliases
+        if any(alias in tag for tag in tags)
+    )
+    longest_match = max(matches, key=lambda match: len(match[0]), default=None)
+    return longest_match[1] if longest_match else None
 
 
 # 문자에 언급된 기관명과 실제 링크된 URL의 도메인이 그 기관의 공식 도메인과 일치하는지 대조

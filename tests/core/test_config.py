@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 from pydantic import ValidationError
 
@@ -82,36 +80,14 @@ def test_settings_reject_invalid_stacking_probability_bounds(
         )
 
 
-def test_model_validation_rejects_missing_files(monkeypatch, tmp_path):
-    missing_model = tmp_path / "missing-model.pkl"
-    missing_vectorizer = tmp_path / "missing-vectorizer.pkl"
+def test_model_validation_rejects_when_stacking_model_unavailable(monkeypatch):
+    monkeypatch.setattr("app.main.is_stacking_model_loaded", lambda: False)
 
-    monkeypatch.setattr(
-        "app.main.settings.NAIVE_BAYES_MODEL_PATH",
-        missing_model,
-    )
-    monkeypatch.setattr(
-        "app.main.settings.NAIVE_BAYES_VECTORIZER_PATH",
-        missing_vectorizer,
-    )
-
-    with pytest.raises(RuntimeError, match="Required AI model files"):
+    with pytest.raises(RuntimeError, match="Stacking model"):
         validate_model_files()
 
 
-def test_model_validation_accepts_readable_files(monkeypatch, tmp_path):
-    model_path = Path(tmp_path / "model.pkl")
-    vectorizer_path = Path(tmp_path / "vectorizer.pkl")
-    model_path.write_bytes(b"model")
-    vectorizer_path.write_bytes(b"vectorizer")
-
-    monkeypatch.setattr(
-        "app.main.settings.NAIVE_BAYES_MODEL_PATH",
-        model_path,
-    )
-    monkeypatch.setattr(
-        "app.main.settings.NAIVE_BAYES_VECTORIZER_PATH",
-        vectorizer_path,
-    )
+def test_model_validation_accepts_when_stacking_model_available(monkeypatch):
+    monkeypatch.setattr("app.main.is_stacking_model_loaded", lambda: True)
 
     validate_model_files()

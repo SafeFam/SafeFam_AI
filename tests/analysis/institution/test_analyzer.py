@@ -1,3 +1,5 @@
+import pytest
+
 from app.analysis.institution.analyzer import analyze_institution_match
 
 
@@ -65,6 +67,14 @@ def test_official_subdomain_is_recognized():
 
     assert result["checked"] is True
     assert result["mismatch"] is False
+
+
+@pytest.mark.parametrize("sender_name", ["NH농협카드", "농협카드"])
+def test_longest_alias_match_selects_nh_card_over_nh_bank(sender_name):
+    result = analyze_institution_match(f"[{sender_name}] 이용 안내", traced_url=None)
+
+    assert result["institution"] == "NH농협카드"
+    assert result["official_domains"] == ["nonghyup.com"]
 
 
 def test_institution_name_outside_bracket_tag_is_not_treated_as_sender():
