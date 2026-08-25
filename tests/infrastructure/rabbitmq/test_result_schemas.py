@@ -101,3 +101,13 @@ def test_failed_event_cannot_be_low_risk() -> None:
                 failureCode="ALL_TRACKS_FAILED",
             ),
         )
+
+
+def test_failure_payload_cannot_have_phishing_type() -> None:
+    """분석 실패 페이로드에 피싱 유형 설정을 금지한다."""
+    with pytest.raises(ValidationError):
+        AnalysisResultPayload(
+            phishingType="LOAN",
+            rawScores=RawScores(),
+            failureCode="ALL_TRACKS_FAILED",
+        )

@@ -224,8 +224,9 @@ class AnalysisResultPayload(BaseModel):
             self.finalScore is not None
             or self.riskGrade is not None
             or self.weightedContributions is not None
+            or self.phishingType is not None
         ):
-            raise ValueError("failure payload must not contain successful score fields")
+            raise ValueError("failure payload must not contain successful result fields")
         return self
 
 
@@ -272,9 +273,10 @@ class AnalysisResultEvent(BaseModel):
                 self.payload.finalScore is not None
                 or self.payload.riskGrade is not None
                 or self.payload.weightedContributions is not None
+                or self.payload.phishingType is not None
             ):
                 raise ValueError(
-                    "failed event must not contain successful score fields"
+                    "failed event must not contain successful result fields"
                 )
 
         return self
