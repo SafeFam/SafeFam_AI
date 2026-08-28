@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.chat.schemas import AnalysisContext, ChatMessage, ChatRequest
+from app.core.config import settings
 
 
 def _analysis_context(**overrides) -> AnalysisContext:
@@ -51,6 +52,56 @@ def test_chat_message_rejects_invalid_role():
 def test_chat_message_rejects_blank_content():
     with pytest.raises(ValidationError):
         ChatMessage(role="user", content="   ")
+
+
+def test_chat_message_accepts_content_at_max_length():
+    message = ChatMessage(
+        role="user", content="가" * settings.MAX_CHAT_CONTENT_LENGTH
+    )
+
+    assert len(message.content) == settings.MAX_CHAT_CONTENT_LENGTH
+
+
+def test_chat_message_rejects_content_over_max_length():
+    with pytest.raises(ValidationError):
+        ChatMessage(
+            role="user", content="가" * (settings.MAX_CHAT_CONTENT_LENGTH + 1)
+        )
+
+
+def test_chat_message_oversized_content_is_not_leaked_in_error():
+    """hide_input_in_errors=True 로 챗 원문(PII)이 에러에 담기지 않아야 한다."""
+    secret_marker = "01012345678-비밀번호"
+    with pytest.raises(ValidationError) as exception_info:
+        ChatMessage(
+            role="user",
+            content=secret_marker + "가" * settings.MAX_CHAT_CONTENT_LENGTH,
+        )
+
+    assert secret_marker not in str(exception_info.value)
+
+
+def test_chat_request_accepts_messages_at_max_count():
+    request = ChatRequest(
+        analysisContext=_analysis_context(),
+        messages=[
+            {"role": "user", "content": "질문"}
+            for _ in range(settings.MAX_CHAT_MESSAGES)
+        ],
+    )
+
+    assert len(request.messages) == settings.MAX_CHAT_MESSAGES
+
+
+def test_chat_request_rejects_messages_over_max_count():
+    with pytest.raises(ValidationError):
+        ChatRequest(
+            analysisContext=_analysis_context(),
+            messages=[
+                {"role": "user", "content": "질문"}
+                for _ in range(settings.MAX_CHAT_MESSAGES + 1)
+            ],
+        )
 
 
 def test_analysis_context_rejects_blank_explanation():
