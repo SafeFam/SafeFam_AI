@@ -37,6 +37,7 @@ class AnalysisRequestedPayload(BaseModel):
     @field_validator("content")
     @classmethod
     def validate_content(cls, value: str) -> str:
+        """공백이거나 상한을 초과하는 문자 본문을 거부한다(issue #120)."""
         if not value.strip():
             raise ValueError("content must not be blank")
         if len(value) > settings.MAX_ANALYSIS_CONTENT_LENGTH:

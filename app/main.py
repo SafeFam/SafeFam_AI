@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.analysis import router as analyze
@@ -9,6 +10,7 @@ from app.analysis.service import SmishingAnalysisService
 from app.analysis.text.stacking_analyzer import is_stacking_model_loaded
 from app.chat import router as chat
 from app.core.config import settings
+from app.core.exception_handlers import validation_exception_handler
 from app.core.middleware import BodySizeLimitMiddleware
 from app.infrastructure.rabbitmq.connection import (
     RabbitMQConnection,
@@ -123,6 +125,12 @@ def create_app(
     application.add_middleware(
         BodySizeLimitMiddleware,
         max_body_bytes=settings.MAX_REQUEST_BODY_BYTES,
+    )
+
+    # 검증 실패(422) 응답에서 원문(PII)이 반사되지 않도록 처리.
+    application.add_exception_handler(
+        RequestValidationError,
+        validation_exception_handler,
     )
 
     application.include_router(analyze.router, prefix="/api")
