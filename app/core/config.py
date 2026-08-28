@@ -85,6 +85,22 @@ class Settings(BaseSettings):
         default=40,
         ge=1,
     )
+    # analysisContext는 BE가 생성해 전달하며 LLM 시스템 프롬프트로 주입되므로
+    # (explanation/category/indicators) 무제한 유입을 막는 안전 상한을 둔다.
+    MAX_CHAT_CONTEXT_TEXT_LENGTH: int = Field(
+        default=2_000,
+        ge=1,
+    )
+    MAX_CHAT_INDICATORS: int = Field(
+        default=20,
+        ge=1,
+    )
+    # HTTP 바디 크기 상한(바이트). 스키마 문자 제한 이전에 초대형 바디를 파싱 전 차단.
+    # 스키마상 최대 유효 요청(챗 40메시지+컨텍스트)이 대략 0.5MiB라 1MiB로 여유를 둔다.
+    MAX_REQUEST_BODY_BYTES: int = Field(
+        default=1_048_576,
+        ge=1,
+    )
 
     # Stacking 모델 임계값
     STACKING_NORMAL_PROBABILITY_MAX: float = Field(

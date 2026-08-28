@@ -116,6 +116,74 @@ def test_analysis_context_indicator_requires_type_and_description():
         _analysis_context(indicators=[{"description": "악성 이력이 확인된 URL입니다."}])
 
 
+def test_analysis_context_accepts_explanation_at_max_length():
+    context = _analysis_context(
+        explanation="가" * settings.MAX_CHAT_CONTEXT_TEXT_LENGTH
+    )
+
+    assert len(context.explanation) == settings.MAX_CHAT_CONTEXT_TEXT_LENGTH
+
+
+def test_analysis_context_rejects_explanation_over_max_length():
+    with pytest.raises(ValidationError):
+        _analysis_context(
+            explanation="가" * (settings.MAX_CHAT_CONTEXT_TEXT_LENGTH + 1)
+        )
+
+
+def test_analysis_context_rejects_category_over_max_length():
+    with pytest.raises(ValidationError):
+        _analysis_context(
+            category="A" * (settings.MAX_CHAT_CONTEXT_TEXT_LENGTH + 1)
+        )
+
+
+def test_analysis_context_rejects_indicator_description_over_max_length():
+    with pytest.raises(ValidationError):
+        _analysis_context(
+            indicators=[
+                {
+                    "type": "MALICIOUS_URL",
+                    "description": "가"
+                    * (settings.MAX_CHAT_CONTEXT_TEXT_LENGTH + 1),
+                }
+            ]
+        )
+
+
+def test_analysis_context_accepts_indicators_at_max_count():
+    context = _analysis_context(
+        indicators=[
+            {"type": "MALICIOUS_URL", "description": "악성 URL"}
+            for _ in range(settings.MAX_CHAT_INDICATORS)
+        ]
+    )
+
+    assert len(context.indicators) == settings.MAX_CHAT_INDICATORS
+
+
+def test_analysis_context_rejects_indicators_over_max_count():
+    with pytest.raises(ValidationError):
+        _analysis_context(
+            indicators=[
+                {"type": "MALICIOUS_URL", "description": "악성 URL"}
+                for _ in range(settings.MAX_CHAT_INDICATORS + 1)
+            ]
+        )
+
+
+def test_analysis_context_oversized_explanation_is_not_leaked_in_error():
+    """hide_input_in_errors=True 로 컨텍스트 원문이 에러에 담기지 않아야 한다."""
+    secret_marker = "01012345678-비밀번호"
+    with pytest.raises(ValidationError) as exception_info:
+        _analysis_context(
+            explanation=secret_marker
+            + "가" * settings.MAX_CHAT_CONTEXT_TEXT_LENGTH
+        )
+
+    assert secret_marker not in str(exception_info.value)
+
+
 def test_chat_request_rejects_unknown_fields():
     with pytest.raises(ValidationError):
         ChatRequest(

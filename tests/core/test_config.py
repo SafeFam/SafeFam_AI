@@ -61,12 +61,30 @@ def test_input_size_limit_defaults_match_backend_contract():
     assert configured.MAX_CHAT_MESSAGES == 40
 
 
+def test_chat_context_size_limit_defaults():
+    """analysisContext(LLM 프롬프트 주입)의 안전 상한 기본값(issue #120)."""
+    configured = Settings(_env_file=None)
+
+    assert configured.MAX_CHAT_CONTEXT_TEXT_LENGTH == 2000
+    assert configured.MAX_CHAT_INDICATORS == 20
+
+
+def test_request_body_size_limit_default():
+    """HTTP 바디 크기 상한 기본값 1MiB(issue #120)."""
+    configured = Settings(_env_file=None)
+
+    assert configured.MAX_REQUEST_BODY_BYTES == 1_048_576
+
+
 @pytest.mark.parametrize(
     "field_name",
     [
         "MAX_ANALYSIS_CONTENT_LENGTH",
         "MAX_CHAT_CONTENT_LENGTH",
         "MAX_CHAT_MESSAGES",
+        "MAX_CHAT_CONTEXT_TEXT_LENGTH",
+        "MAX_CHAT_INDICATORS",
+        "MAX_REQUEST_BODY_BYTES",
     ],
 )
 def test_input_size_limits_reject_non_positive(field_name: str):

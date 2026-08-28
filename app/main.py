@@ -9,6 +9,7 @@ from app.analysis.service import SmishingAnalysisService
 from app.analysis.text.stacking_analyzer import is_stacking_model_loaded
 from app.chat import router as chat
 from app.core.config import settings
+from app.core.middleware import BodySizeLimitMiddleware
 from app.infrastructure.rabbitmq.connection import (
     RabbitMQConnection,
 )
@@ -116,6 +117,12 @@ def create_app(
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+    # 초대형 바디를 파싱 전에 차단(가장 바깥에서 먼저 실행되도록 마지막에 추가).
+    application.add_middleware(
+        BodySizeLimitMiddleware,
+        max_body_bytes=settings.MAX_REQUEST_BODY_BYTES,
     )
 
     application.include_router(analyze.router, prefix="/api")
