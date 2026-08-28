@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.analysis import router as analyze
@@ -9,6 +10,10 @@ from app.analysis.service import SmishingAnalysisService
 from app.analysis.text.stacking_analyzer import is_stacking_model_loaded
 from app.chat import router as chat
 from app.core.config import settings
+<<<<<<< HEAD
+=======
+from app.core.exception_handlers import validation_exception_handler
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
 from app.core.middleware import BodySizeLimitMiddleware
 from app.infrastructure.rabbitmq.connection import (
     RabbitMQConnection,
@@ -125,6 +130,15 @@ def create_app(
         max_body_bytes=settings.MAX_REQUEST_BODY_BYTES,
     )
 
+<<<<<<< HEAD
+=======
+    # 검증 실패(422) 응답에서 원문(PII)이 반사되지 않도록 처리.
+    application.add_exception_handler(
+        RequestValidationError,
+        validation_exception_handler,
+    )
+
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
     application.include_router(analyze.router, prefix="/api")
     application.include_router(chat.router, prefix="/api")
 

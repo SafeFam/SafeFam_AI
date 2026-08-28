@@ -15,6 +15,10 @@ class SmishingAnalysisRequest(BaseModel):
     @field_validator("text")
     @classmethod
     def validate_text(cls, value: str) -> str:
+<<<<<<< HEAD
+=======
+        """공백이거나 상한을 초과하는 검사 요청 본문을 거부한다(issue #120)."""
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
         if not value.strip():
             raise ValueError("text must not be blank")
         # 분석 content와 동일한 상한(BE @Size(max=5000)와 정합)을 공유한다.

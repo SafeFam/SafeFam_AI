@@ -23,7 +23,11 @@ class Indicator(BaseModel):
     @field_validator("type", "description")
     @classmethod
     def within_context_text_limit(cls, value: str) -> str:
+<<<<<<< HEAD
         # LLM 프롬프트로 주입되므로 무제한 유입을 막는다(issue #120).
+=======
+        """LLM 프롬프트로 주입되는 근거 문자열의 무제한 유입을 막는다(issue #120)."""
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
         if len(value) > settings.MAX_CHAT_CONTEXT_TEXT_LENGTH:
             raise ValueError("indicator field exceeds max length")
         return value
@@ -45,7 +49,11 @@ class AnalysisContext(BaseModel):
     @field_validator("category")
     @classmethod
     def category_within_limit(cls, value: str) -> str:
+<<<<<<< HEAD
         # LLM 프롬프트로 주입되므로 무제한 유입을 막는다(issue #120).
+=======
+        """LLM 프롬프트로 주입되는 category의 무제한 유입을 막는다(issue #120)."""
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
         if len(value) > settings.MAX_CHAT_CONTEXT_TEXT_LENGTH:
             raise ValueError("category exceeds max length")
         return value
@@ -53,6 +61,7 @@ class AnalysisContext(BaseModel):
     @field_validator("explanation")
     @classmethod
     def explanation_must_not_be_blank(cls, value: str) -> str:
+        """공백이거나 상한을 초과하는 분석 요약을 거부한다(issue #120)."""
         if not value.strip():
             raise ValueError("explanation must not be blank")
         if len(value) > settings.MAX_CHAT_CONTEXT_TEXT_LENGTH:
@@ -62,6 +71,10 @@ class AnalysisContext(BaseModel):
     @field_validator("indicators")
     @classmethod
     def indicators_within_limit(cls, value: list[Indicator]) -> list[Indicator]:
+<<<<<<< HEAD
+=======
+        """탐지 근거 개수 상한을 강제해 프롬프트 팽창을 막는다(issue #120)."""
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
         if len(value) > settings.MAX_CHAT_INDICATORS:
             raise ValueError("indicators exceeds max count")
         return value
@@ -77,6 +90,7 @@ class ChatMessage(BaseModel):
     @field_validator("content")
     @classmethod
     def content_must_not_be_blank(cls, value: str) -> str:
+        """공백이거나 상한을 초과하는 챗 메시지를 거부한다(issue #120)."""
         if not value.strip():
             raise ValueError("content must not be blank")
         # BE ChatMessage @Size(max=2000)와 정합.
@@ -94,6 +108,10 @@ class ChatRequest(BaseModel):
     @field_validator("messages")
     @classmethod
     def messages_within_limit(cls, value: list[ChatMessage]) -> list[ChatMessage]:
+<<<<<<< HEAD
+=======
+        """대화 메시지 개수 상한을 강제해 LLM 비용 폭증을 막는다(issue #120)."""
+>>>>>>> f57ae1c1b7e725f9df63b20d31f6be5505de2a1c
         if len(value) > settings.MAX_CHAT_MESSAGES:
             raise ValueError("messages exceeds max count")
         return value
