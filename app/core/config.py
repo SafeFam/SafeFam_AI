@@ -69,6 +69,39 @@ class Settings(BaseSettings):
         le=1.0,
     )
 
+    # 입력 크기 제한 (DoS·LLM 비용 방지, issue #120)
+    # SafeFam_BE가 계약상 게이트키퍼이므로 BE의 @Size 검증값과 정합을 맞춘다.
+    # - 분석 content: BE AnalysisRequest @Size(max = 5000)
+    # - 챗 content:  BE ChatMessage @Size(max = 2000)
+    MAX_ANALYSIS_CONTENT_LENGTH: int = Field(
+        default=5_000,
+        ge=1,
+    )
+    MAX_CHAT_CONTENT_LENGTH: int = Field(
+        default=2_000,
+        ge=1,
+    )
+    MAX_CHAT_MESSAGES: int = Field(
+        default=40,
+        ge=1,
+    )
+    # analysisContext는 BE가 생성해 전달하며 LLM 시스템 프롬프트로 주입되므로
+    # (explanation/category/indicators) 무제한 유입을 막는 안전 상한을 둔다.
+    MAX_CHAT_CONTEXT_TEXT_LENGTH: int = Field(
+        default=2_000,
+        ge=1,
+    )
+    MAX_CHAT_INDICATORS: int = Field(
+        default=20,
+        ge=1,
+    )
+    # HTTP 바디 크기 상한(바이트). 스키마 문자 제한 이전에 초대형 바디를 파싱 전 차단.
+    # 스키마상 최대 유효 요청(챗 40메시지+컨텍스트)이 대략 0.5MiB라 1MiB로 여유를 둔다.
+    MAX_REQUEST_BODY_BYTES: int = Field(
+        default=1_048_576,
+        ge=1,
+    )
+
     # Stacking 모델 임계값
     STACKING_NORMAL_PROBABILITY_MAX: float = Field(
         default=0.1,

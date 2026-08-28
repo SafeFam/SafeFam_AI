@@ -5,6 +5,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
+from app.core.config import settings
 from app.infrastructure.rabbitmq.schemas import (
     AnalysisRequestedEvent,
     AnalysisSource,
@@ -81,6 +82,42 @@ def test_rejects_blank_content(
 
     with pytest.raises(ValidationError):
         AnalysisRequestedEvent.model_validate(valid_event_data)
+
+
+def test_accepts_content_at_max_length(
+    valid_event_data: dict,
+):
+    valid_event_data["payload"]["content"] = "가" * settings.MAX_ANALYSIS_CONTENT_LENGTH
+
+    event = AnalysisRequestedEvent.model_validate(valid_event_data)
+
+    assert len(event.payload.content) == settings.MAX_ANALYSIS_CONTENT_LENGTH
+
+
+def test_rejects_content_over_max_length(
+    valid_event_data: dict,
+):
+    valid_event_data["payload"]["content"] = "가" * (
+        settings.MAX_ANALYSIS_CONTENT_LENGTH + 1
+    )
+
+    with pytest.raises(ValidationError):
+        AnalysisRequestedEvent.model_validate(valid_event_data)
+
+
+def test_oversized_content_is_not_leaked_in_validation_error(
+    valid_event_data: dict,
+):
+    """hide_input_in_errors=True 로 검증 실패 시 원문(PII)이 에러에 담기지 않아야 한다."""
+    secret_marker = "01012345678-비밀번호-보이스피싱"
+    valid_event_data["payload"]["content"] = (
+        secret_marker + "가" * settings.MAX_ANALYSIS_CONTENT_LENGTH
+    )
+
+    with pytest.raises(ValidationError) as exception_info:
+        AnalysisRequestedEvent.model_validate(valid_event_data)
+
+    assert secret_marker not in str(exception_info.value)
 
 
 def test_rejects_unsupported_schema_version(
