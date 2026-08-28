@@ -69,6 +69,23 @@ class Settings(BaseSettings):
         le=1.0,
     )
 
+    # 입력 크기 제한 (DoS·LLM 비용 방지, issue #120)
+    # SafeFam_BE가 계약상 게이트키퍼이므로 BE의 @Size 검증값과 정합을 맞춘다.
+    # - 분석 content: BE AnalysisRequest @Size(max = 5000)
+    # - 챗 content:  BE ChatMessage @Size(max = 2000)
+    MAX_ANALYSIS_CONTENT_LENGTH: int = Field(
+        default=5_000,
+        ge=1,
+    )
+    MAX_CHAT_CONTENT_LENGTH: int = Field(
+        default=2_000,
+        ge=1,
+    )
+    MAX_CHAT_MESSAGES: int = Field(
+        default=40,
+        ge=1,
+    )
+
     # Stacking 모델 임계값
     STACKING_NORMAL_PROBABILITY_MAX: float = Field(
         default=0.1,

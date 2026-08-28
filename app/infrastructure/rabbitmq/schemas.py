@@ -13,6 +13,7 @@ from pydantic import (
 
 from app.analysis.phishing_type import PhishingType
 from app.analysis.schemas import RiskGrade
+from app.core.config import settings
 
 
 class AnalysisSource(str, Enum):
@@ -25,7 +26,8 @@ class AnalysisSource(str, Enum):
 class AnalysisRequestedPayload(BaseModel):
     """AI 분석에 필요한 실제 문자 본문 데이터 스키마"""
 
-    model_config = ConfigDict(extra="forbid")
+    # hide_input_in_errors: 검증 실패 시 ValidationError에 원문(PII)이 담기지 않도록 한다.
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
     sender: str | None = Field(default=None, max_length=100)
     content: str
@@ -37,6 +39,8 @@ class AnalysisRequestedPayload(BaseModel):
     def validate_content(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("content must not be blank")
+        if len(value) > settings.MAX_ANALYSIS_CONTENT_LENGTH:
+            raise ValueError("content exceeds max length")
         return value
 
 

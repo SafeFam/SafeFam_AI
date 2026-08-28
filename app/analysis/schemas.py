@@ -1,11 +1,26 @@
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.core.config import settings
 
 
 # Spring Boot Gateway에서 Python FastAPI로 검사를 요청할 때의 바디 규격
 class SmishingAnalysisRequest(BaseModel):
+    # hide_input_in_errors: 검증 실패 시 원문(PII)이 에러에 담기지 않도록 한다.
+    model_config = ConfigDict(hide_input_in_errors=True)
+
     text: str = Field(..., description="검사할 문자 메시지 본문 텍스트")
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("text must not be blank")
+        # 분석 content와 동일한 상한(BE @Size(max=5000)와 정합)을 공유한다.
+        if len(value) > settings.MAX_ANALYSIS_CONTENT_LENGTH:
+            raise ValueError("text exceeds max length")
+        return value
 
 
 # Python FastAPI가 Spring Boot로 최종 전달할 하이브리드 검사 결과 규칙

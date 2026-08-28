@@ -3,6 +3,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.analysis.schemas import RiskGrade
+from app.core.config import settings
 
 
 class ChatRole(str, Enum):
@@ -41,7 +42,8 @@ class AnalysisContext(BaseModel):
 
 
 class ChatMessage(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # hide_input_in_errors: 검증 실패 시 챗 원문(PII)이 에러에 담기지 않도록 한다.
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
     role: ChatRole
     content: str
@@ -51,14 +53,24 @@ class ChatMessage(BaseModel):
     def content_must_not_be_blank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("content must not be blank")
+        # BE ChatMessage @Size(max=2000)와 정합.
+        if len(value) > settings.MAX_CHAT_CONTENT_LENGTH:
+            raise ValueError("content exceeds max length")
         return value
 
 
 class ChatRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
     analysisContext: AnalysisContext | None = None
     messages: list[ChatMessage] = Field(..., min_length=1)
+
+    @field_validator("messages")
+    @classmethod
+    def messages_within_limit(cls, value: list[ChatMessage]) -> list[ChatMessage]:
+        if len(value) > settings.MAX_CHAT_MESSAGES:
+            raise ValueError("messages exceeds max count")
+        return value
 
 
 class ChatResponse(BaseModel):
